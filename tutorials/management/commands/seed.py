@@ -20,7 +20,8 @@ class Command(BaseCommand):
     DEFAULT_PASSWORD = 'Password123'
     help = 'Seeds the database with sample data'
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.faker = Faker('en_GB')
 
     def handle(self, *args, **options):
