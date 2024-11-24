@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User
+from .models import User, StudentRequest
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -90,16 +90,21 @@ class PasswordForm(NewPasswordMixin):
 class SignUpForm(NewPasswordMixin, forms.ModelForm):
     """Form enabling unregistered users to sign up."""
 
+    role = forms.ChoiceField(
+        choices=[('tutor', 'Tutor'), ('student', 'Student')], 
+        label="Role")
+
     class Meta:
         """Form options."""
 
         model = User
-        fields = ['first_name', 'last_name', 'username', 'email']
+        fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
     def save(self):
         """Create a new user."""
 
         super().save(commit=False)
+        
         user = User.objects.create_user(
             self.cleaned_data.get('username'),
             first_name=self.cleaned_data.get('first_name'),
@@ -107,4 +112,25 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             email=self.cleaned_data.get('email'),
             password=self.cleaned_data.get('new_password'),
         )
+        role = self.cleaned_data.get('role')
+        if role not in ['tutor', 'student']:
+            raise ValueError("Invalid role selected.")
+        user.role = role
+        if commit:
+            user.save()
         return user
+
+class StudentRequestForm(forms.ModelForm):
+    class Meta:
+        model = StudentRequest
+        fields = [
+            'language', 'description', 'time', 'venue',
+            'duration', 'frequency', 'term'
+        ]
+        widgets = {
+            'description': forms.Textarea(attrs={'placeholder': 'Enter any other requirements here.'}),
+            'time': forms.TimeInput(attrs={'type': 'time'}),
+            'venue': forms.TextInput(attrs={'placeholder': 'Enter venue address'}),
+            'frequency': forms.Select(),
+            'term': forms.Select(),
+        }

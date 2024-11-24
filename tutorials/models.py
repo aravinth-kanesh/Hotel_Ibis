@@ -1,11 +1,49 @@
 from django.core.validators import RegexValidator
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from libgravatar import Gravatar
+from django.contrib.auth.models import BaseUserManager
+
+# idk whats going on here 
+class CustomUserManager(BaseUserManager):
+    def create_user(self, username, email, password=None, **extra_fields):
+        """
+        Create and return a regular user with the given username, email, and password.
+        """
+        if not email:
+            raise ValueError('The Email field must be set')
+        email = self.normalize_email(email)
+        extra_fields.setdefault('is_staff', False)
+        extra_fields.setdefault('is_superuser', False)
+
+        user = self.model(username=username, email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+def create_superuser(self, username, email, password=None, **extra_fields):
+        """
+        Create and return a superuser with the given username, email, and password.
+        """
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('Superuser must have is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('Superuser must have is_superuser=True.')
+
+        return self.create_user(username, email, password, **extra_fields)
+#til here
 
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
 
+    ROLE_CHOICES = [
+        ('tutor', 'Tutor'),
+        ('student', 'Student'),
+        ('admin', 'Admin'),
+    ]
     username = models.CharField(
         max_length=30,
         unique=True,
@@ -18,22 +56,29 @@ class User(AbstractUser):
     last_name = models.CharField(max_length=50, blank=False)
     email = models.EmailField(unique=True, blank=False)
     # adding according to database schema i made
-    roleChoices = [
-        ('tutor', 'Tutor'),
-        ('student', 'Student'),
-        ('admin', 'Admin'),
-    ]
+    
     id = models.AutoField(primary_key=True)
-    role = models.CharField(max_length=10, choices=roleChoices)
+    role = models.CharField(max_length=10, choices= ROLE_CHOICES, default='student')
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+    # assign groups/permissions based on role
+        if self.role == 'admin':
+            group, _ = Group.objects.get_or_create(name='Admins')
+            self.groups.add(group)
+        elif self.role == 'tutor':
+            group, _ = Group.objects.get_or_create(name='Tutors')
+            self.groups.add(group)
+        elif self.role == 'student':
+            group, _ = Group.objects.get_or_create(name='Students')
+            self.groups.add(group)
+
     is_active = models.BooleanField(default=True)
+
+#this is also part of the thing above
+    objects = CustomUserManager()
 
     def __str__(self):
         return self.username
-    
-    def role(self):
-        return self.role
-
-    
 
 
     class Meta:
@@ -57,6 +102,9 @@ class User(AbstractUser):
         """Return a URL to a miniature version of the user's gravatar."""
         
         return self.gravatar(size=60)
+
+
+# model for lang, tutor, student, invoice, class
 
 class Language(models.Model):
     """ languages supported by tutors"""
@@ -96,7 +144,12 @@ class Invoice(models.Model):
         status = "Paid" if self.paid else "Unpaid"
         return f"Invoice {self.id} ({status})"
 
-class Class(models.Model):
+#All students have regular sessions 
+# (every week/fortnight, same time, same venue, same tutor)
+# The lessons taken in one term normally continue in the next term, 
+# with the same tutor, frequency, lesson duration, time, and venue, 
+# unless the student or tutor requests a change or cancellation of the lessons.
+class Lesson(models.Model):
     FREQUENCY_CHOICES = [
         ('once a week', 'Once a week'),
         ('once per fortnight', 'Once per fortnight'),
@@ -119,6 +172,28 @@ class Class(models.Model):
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
 
     def __str__(self):
-        return f"Class {self.id} on {self.date} at {self.time}"
+        return f"Lesson {self.id} on {self.date} at {self.time}"
 
+# for handling student reqs
+class StudentRequest(models.Model):
+    FREQUENCY_CHOICES = [
+        ('once a week', 'Once a week'),
+        ('once per fortnight', 'Once per fortnight'),
+    ]
+    TERM_CHOICES = [
+        ('sept-christmas', 'September-Christmas'),
+        ('jan-easter', 'January-Easter'),
+        ('may-july', 'May-July'),
+    ]
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name ="classrequest")
+    language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name = "classrequest")
+    description = models.TextField()
+    is_allocated = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    time = models.TimeField()
+    venue = models.CharField(max_length=255)
+    duration = models.IntegerField() 
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
+    term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    
 
