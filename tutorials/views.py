@@ -6,10 +6,18 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect, render
 from django.views import View
+#
+from django.urls import reverse_lazy
+from django.views.generic.edit import CreateView
+from django.views.generic.list import ListView
+#
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
+# 
+from .forms import StudentRequestForm
+from .models import StudentRequest, Student
 
 
 @login_required
@@ -151,3 +159,35 @@ class SignUpView(LoginProhibitedMixin, FormView):
 
     def get_success_url(self):
         return reverse(settings.REDIRECT_URL_WHEN_LOGGED_IN)
+
+class StudentRequestCreateView(LoginRequiredMixin, CreateView):
+    """view to display the StudentRequest form and handle submissions."""
+    model = StudentRequest
+    form_class = StudentRequestForm
+    template_name = 'student_request_form.html'
+    success_url = reverse_lazy('my_requests') 
+
+    def form_valid(self, form):
+        """attach the logged-in student to the form before saving."""
+        # try:
+        #     student = self.request.user.student_profile  
+        # except Student.DoesNotExist:
+        #     return redirect('error_page')
+        form.instance.created_at = timezone.now()
+        form.instance.student = student  
+        return super().form_valid(form)
+
+
+class StudentRequestListView(LoginRequiredMixin, ListView):
+    """view to display all requests made by the logged-in student."""
+    model = StudentRequest
+    template_name = 'student_requests_list.html'
+    context_object_name = 'requests' 
+
+    def get_queryset(self):
+        """filter the requests to show only those created by the logged-in student."""
+        try:
+            student = self.request.user.student_profile
+            return StudentRequest.objects.filter(student=student).order_by('-created_at')
+        except Student.DoesNotExist:
+            return StudentRequest.objects.none() 
