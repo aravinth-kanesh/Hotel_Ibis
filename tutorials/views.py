@@ -169,10 +169,10 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         """attach the logged-in student to the form before saving."""
-        try:
-            student = self.request.user.student_profile  
-        except Student.DoesNotExist:
-            return redirect('error_page')
+        # try:
+        #     student = self.request.user.student_profile  
+        # except Student.DoesNotExist:
+        #     return redirect('error_page')
         form.instance.created_at = timezone.now()
         form.instance.student = student  
         return super().form_valid(form)
