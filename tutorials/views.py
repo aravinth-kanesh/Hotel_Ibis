@@ -39,6 +39,13 @@ def home(request):
     return render(request, 'home.html')
 
 
+@login_required
+def admin_dashboard(request):
+    """Display the admin's dashboard."""
+
+    return render(request, 'admin_dashboard.html')
+
+
 class LoginProhibitedMixin:
     """Mixin that redirects when a user is logged in."""
 

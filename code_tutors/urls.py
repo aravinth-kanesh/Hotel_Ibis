@@ -34,5 +34,7 @@ urlpatterns = [
     path('request/create/', views.StudentRequestCreateView.as_view(), name='create_request'),
     path('test/', lambda request: HttpResponse("Test page")),
     path('admin/process-request/<int:request_id>/', StudentRequestProcessingView.as_view(), name='process_student_request'),
+    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
+    
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
