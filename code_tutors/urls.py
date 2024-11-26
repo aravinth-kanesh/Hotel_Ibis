@@ -20,6 +20,7 @@ from django.contrib import admin
 from django.urls import path
 from tutorials import views
 from django.http import HttpResponse
+from tutorials.views import StudentRequestProcessingView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -32,5 +33,6 @@ urlpatterns = [
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     path('request/create/', views.StudentRequestCreateView.as_view(), name='create_request'),
     path('test/', lambda request: HttpResponse("Test page")),
+    path('admin/process-request/<int:request_id>/', StudentRequestProcessingView.as_view(), name='process_student_request'),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

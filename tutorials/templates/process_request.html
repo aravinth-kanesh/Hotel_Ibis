@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Process Student Request #{{ request.id }}</title>
+</head>
+<body>
+    <h1>Process Request #{{ request.id }}</h1>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Submit</button>
+    </form>
+
+    <a href="{% url 'admin_dashboard' %}">Back to Dashboard</a>
+</body>
+</html>

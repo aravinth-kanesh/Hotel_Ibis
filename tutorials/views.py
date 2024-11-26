@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404
 from django.views import View
 #
 from django.urls import reverse_lazy
@@ -17,7 +18,10 @@ from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
 # 
 from .forms import StudentRequestForm
+from .forms import StudentRequestProcessingForm
 from .models import StudentRequest, Student
+#
+from django.utils import timezone
 
 
 @login_required
@@ -191,3 +195,38 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             return StudentRequest.objects.filter(student=student).order_by('-created_at')
         except Student.DoesNotExist:
             return StudentRequest.objects.none() 
+        
+class StudentRequestProcessingView(LoginRequiredMixin, View):
+    """View for the admin to process a student request."""
+
+    def get(self, request, request_id):
+        """Display the form to process a specific student request."""
+
+        student_request = get_object_or_404(StudentRequest, id=request_id)
+        form = StudentRequestProcessingForm(instance=student_request)
+
+        return render(request, 'admin/process_request.html', {'form': form, 'request': student_request})
+
+    def post(self, request, request_id):
+        """Handle form submission for processing the student request."""
+
+        student_request = get_object_or_404(StudentRequest, id=request_id)
+        form = StudentRequestProcessingForm(request.POST, instance=student_request)
+
+        if form.is_valid():
+            form.save()  # Save the updated student request
+            status = form.cleaned_data['status']
+            notes = form.cleaned_data.get('notes', '')
+
+            # Display a success message based on the status
+            if status == 'accepted':
+                messages.success(request, f"Request accepted! Notes: {notes}")
+            elif status == 'rejected':
+                messages.warning(request, f"Request rejected. Notes: {notes}")
+
+            return redirect('admin_dashboard') 
+
+        # If form is invalid, show an error message and re-render the form
+        messages.error(request, "There was an error processing the request. Please try again.")
+        
+        return render(request, 'admin/process_request.html', {'form': form, 'request': student_request})

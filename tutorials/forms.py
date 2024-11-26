@@ -123,10 +123,12 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
 class StudentRequestForm(forms.ModelForm):
     class Meta:
         model = StudentRequest
+
         fields = [
             'language', 'description', 'time', 'venue',
             'duration', 'frequency', 'term'
         ]
+
         widgets = {
             'description': forms.Textarea(attrs={'placeholder': 'Enter any other requirements here.'}),
             'time': forms.TimeInput(attrs={'type': 'time'}),
@@ -134,3 +136,67 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+
+class StudentRequestProcessingForm(forms.ModelForm):
+    """Form for the admin to process student requests."""
+    
+    STATUS_CHOICES = [
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    ]
+
+    status = forms.ChoiceField(
+        choices=STATUS_CHOICES,
+        label='Request Status',
+        widget=forms.RadioSelect
+    )
+    
+    notes = forms.CharField(
+        label='Notes',
+        required=False, 
+        widget=forms.Textarea(attrs={
+            'placeholder': 'Provide details for why the lesson was accepted or rejected.',
+            'rows': 3,
+        })
+    )
+
+    class Meta:
+        model = StudentRequest
+
+        fields = [
+            'language', 'description', 'time', 'venue', 'duration', 
+            'frequency', 'term', 'status', 'notes'
+        ]
+
+        widgets = {
+            'description': forms.Textarea(attrs={'readonly': 'readonly'}),
+            'time': forms.TimeInput(attrs={'type': 'time', 'readonly': 'readonly'}),
+            'venue': forms.TextInput(attrs={'readonly': 'readonly'}),
+            'frequency': forms.Select(attrs={'disabled': 'disabled'}),
+            'term': forms.Select(attrs={'disabled': 'disabled'}),
+        }
+
+    def clean(self):
+        """Validate the form."""
+
+        super().clean()
+
+        # Retrieve cleaned data
+        status = self.cleaned_data.get('status')
+        notes = self.cleaned_data.get('notes')
+
+        # Enforce notes for rejected lessons
+        if status == 'rejected' and not notes:
+            self.add_error('notes', 'You must provide details in the Notes field when rejecting a request.')
+
+        return self.cleaned_data
+
+    def save(self, commit=True):
+        """Save the form data."""
+
+        student_request = super().save(commit=False)
+        
+        if commit:
+            student_request.save()
+        
+        return student_request
