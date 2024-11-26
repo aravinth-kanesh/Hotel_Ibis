@@ -13,7 +13,7 @@ from django.views.generic.list import ListView
 #
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
-from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
+from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, EditUserProfileForm
 from tutorials.helpers import login_prohibited
 # 
 from .forms import StudentRequestForm
@@ -33,6 +33,44 @@ def home(request):
     """Display the application's start/home screen."""
 
     return render(request, 'home.html')
+
+@login_required
+def edit_profile_view(request):
+    """View to edit user profile."""
+    current_user = request.user  # Get the currently logged-in user
+    if request.method == "POST":
+        form = EditUserProfileForm(request.POST, instance=current_user)
+        if form.is_valid():
+            form.save()
+            return redirect('profile')  # Redirect to profile page or another relevant page
+    else:
+        form = EditUserProfileForm(instance=current_user)
+    return render(request, 'edit_profile.html', {'form': form})
+
+
+@login_required
+def lesson_request_view(request):
+    """Handle user lesson requests."""
+    try:
+        # Ensure the user is a student before allowing access
+        student = Student.objects.get(UserID=request.user)
+    except Student.DoesNotExist:
+        messages.error(request, "Only students can request lessons.")
+        return redirect('dashboard')
+
+    if request.method == "POST":
+        form = StudentRequestForm(request.POST)
+        if form.is_valid():
+            # Save the lesson request and associate it with the current student
+            lesson_request = form.save(commit=False)
+            lesson_request.student = student
+            lesson_request.save()
+            messages.success(request, "Your lesson request has been submitted successfully!")
+            return redirect('dashboard')  # Redirect to dashboard or another appropriate page
+    else:
+        form = StudentRequestForm()
+
+    return render(request, 'lesson_request.html', {'form': form})
 
 
 class LoginProhibitedMixin:

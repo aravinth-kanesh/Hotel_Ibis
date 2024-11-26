@@ -92,32 +92,27 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
 
     role = forms.ChoiceField(
         choices=[('tutor', 'Tutor'), ('student', 'Student')], 
-        label="Role")
+        label="Role"
+    )
 
     class Meta:
         """Form options."""
-
         model = User
         fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
-    def save(self):
+    def save(self, commit=True):
         """Create a new user."""
-
-        super().save(commit=False)
+        # Do not save the instance immediately
+        user = super().save(commit=False)
         
-        user = User.objects.create_user(
-            self.cleaned_data.get('username'),
-            first_name=self.cleaned_data.get('first_name'),
-            last_name=self.cleaned_data.get('last_name'),
-            email=self.cleaned_data.get('email'),
-            password=self.cleaned_data.get('new_password'),
-        )
-        role = self.cleaned_data.get('role')
-        if role not in ['tutor', 'student']:
-            raise ValueError("Invalid role selected.")
-        user.role = role
+        # Set additional attributes
+        user.set_password(self.cleaned_data.get('new_password'))  # Hash the password
+        user.role = self.cleaned_data.get('role')
+
+        # Save to database only if commit=True
         if commit:
             user.save()
+        
         return user
 
 class StudentRequestForm(forms.ModelForm):
@@ -134,3 +129,57 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+
+
+class EditUserProfileForm(forms.ModelForm):
+    """Form for editing user profile details."""
+    
+    class Meta:
+        model = User
+        fields = ['username', 'first_name', 'last_name', 'email', 'role']
+        widgets = {
+            'username': forms.TextInput(attrs={'placeholder': 'Enter your username'}),
+            'first_name': forms.TextInput(attrs={'placeholder': 'Enter your first name'}),
+            'last_name': forms.TextInput(attrs={'placeholder': 'Enter your last name'}),
+            'email': forms.EmailInput(attrs={'placeholder': 'Enter your email'}),
+            'role': forms.Select(attrs={'placeholder': 'Select a role'}),
+        }
+
+    def clean_username(self):
+        """Ensure the username meets the regex validation and is unique."""
+        username = self.cleaned_data['username']
+        if User.objects.filter(username=username).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("This username is already taken.")
+        return username
+
+    def clean_email(self):
+        """Ensure the email is unique."""
+        email = self.cleaned_data['email']
+        if User.objects.filter(email=email).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("This email address is already in use.")
+        return email
+
+    def save(self, commit=True):
+        """Save the user profile and handle role-specific logic."""
+        user = super().save(commit=False)
+
+        # Handle role-specific group assignments
+        if user.role == 'admin':
+            group_name = 'Admins'
+        elif user.role == 'tutor':
+            group_name = 'Tutors'
+        elif user.role == 'student':
+            group_name = 'Students'
+        else:
+            group_name = None
+
+        if group_name:
+            group, _ = Group.objects.get_or_create(name=group_name)
+            user.groups.clear()  # Remove user from all groups
+            user.groups.add(group)
+
+        if commit:
+            user.save()
+
+        return user
+    
