@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest
+from .models import User, StudentRequest, Student, Tutor
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -101,18 +101,13 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
     def save(self, commit=True):
-        """Create a new user."""
-        # Do not save the instance immediately
+        """Create a new user and associated profile."""
         user = super().save(commit=False)
-        
-        # Set additional attributes
         user.set_password(self.cleaned_data.get('new_password'))  # Hash the password
         user.role = self.cleaned_data.get('role')
 
-        # Save to database only if commit=True
         if commit:
             user.save()
-        
         return user
 
 class StudentRequestForm(forms.ModelForm):

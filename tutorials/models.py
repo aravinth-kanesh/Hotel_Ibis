@@ -161,5 +161,3 @@ class StudentRequest(models.Model):
     duration = models.IntegerField() 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
-    
-

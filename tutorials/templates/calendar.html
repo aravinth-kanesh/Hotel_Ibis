@@ -1,0 +1,60 @@
+<!-- templates/calendar.html -->
+{% extends 'base_content.html' %}
+
+{% block title %}My Lessons Calendar{% endblock %}
+
+{% block content %}
+  <h1>My Lessons Calendar</h1>
+
+  <div class="calendar-navigation">
+    <a href="{% url 'calendar' year=prev_month.year month=prev_month.month %}">&lt; Previous Month</a>
+    <span>{{ year }} - {{ month }}</span>
+    <a href="{% url 'calendar' year=next_month.year month=next_month.month %}">Next Month &gt;</a>
+  </div>
+
+  <div class="calendar">
+    {{ calendar|safe }}
+  </div>
+
+  <style>
+    .calendar table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .calendar th, .calendar td {
+      text-align: center;
+      vertical-align: top;
+    }
+    .calendar .today {
+      background: #eaffea;
+    }
+    .calendar .has-lesson {
+      background: #fff0f0;
+    }
+    .calendar .has-lesson ul {
+      list-style-type: none;
+      padding: 0;
+      margin: 5px 0 0 0;
+    }
+    .calendar .has-lesson li {
+      font-size: 0.8em;
+    }
+    .calendar-navigation {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .calendar-navigation a {
+      margin: 0 10px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .calendar-navigation span {
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+    .calendar .date a {
+      text-decoration: none;
+      color: inherit;
+    }
+  </style>
+{% endblock %}

@@ -6,6 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect, render
 from django.views import View
+from django.http import JsonResponse
 #
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
@@ -13,11 +14,16 @@ from django.views.generic.list import ListView
 #
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
+from django.utils.dateparse import parse_date
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, EditUserProfileForm
 from tutorials.helpers import login_prohibited
 # 
 from .forms import StudentRequestForm
-from .models import StudentRequest, Student
+from .models import StudentRequest, Student, Lesson
+#
+from datetime import date, datetime, timedelta
+import calendar
+from calendar import HTMLCalendar
 
 
 @login_required
@@ -47,16 +53,25 @@ def edit_profile_view(request):
         form = EditUserProfileForm(instance=current_user)
     return render(request, 'edit_profile.html', {'form': form})
 
-
 @login_required
 def lesson_request_view(request):
     """Handle user lesson requests."""
-    try:
-        # Ensure the user is a student before allowing access
-        student = Student.objects.get(UserID=request.user)
-    except Student.DoesNotExist:
+    if request.user.role != 'student':
         messages.error(request, "Only students can request lessons.")
         return redirect('dashboard')
+
+    try:
+        student = Student.objects.get(UserID=request.user)
+    except Student.DoesNotExist:
+        student = Student.objects.create(UserID=request.user)
+
+    # Get the date from GET parameters, if available
+    date_str = request.GET.get('date')
+    initial_data = {}
+    if date_str:
+        date = parse_date(date_str)
+        if date:
+            initial_data['date'] = date
 
     if request.method == "POST":
         form = StudentRequestForm(request.POST)
@@ -68,9 +83,75 @@ def lesson_request_view(request):
             messages.success(request, "Your lesson request has been submitted successfully!")
             return redirect('dashboard')  # Redirect to dashboard or another appropriate page
     else:
-        form = StudentRequestForm()
+        form = StudentRequestForm(initial=initial_data)
 
     return render(request, 'lesson_request.html', {'form': form})
+
+@login_required
+def calendar_view(request, year=None, month=None):
+    user = request.user
+    today = date.today()
+    year = int(year) if year else today.year
+    month = int(month) if month else today.month
+
+    # Get the Student instance
+    try:
+        student = Student.objects.get(UserID=user)
+    except Student.DoesNotExist:
+        # Handle the case where the student profile doesn't exist
+        return redirect('dashboard')
+
+    # Fetch lessons for the student
+    lessons = Lesson.objects.filter(
+        student=student,
+        date__year=year,
+        date__month=month
+    )
+
+    cal = LessonCalendar(lessons)
+    html_cal = cal.formatmonth(year, month)
+
+    # Style adjustments
+    html_cal = html_cal.replace('<td ', '<td style="padding:10px; border:1px solid #ddd;" ')
+    html_cal = html_cal.replace('<th ', '<th style="padding:10px; border:1px solid #ddd; background:#f5f5f5;" ')
+
+    context = {
+        'calendar': html_cal,
+        'year': year,
+        'month': month,
+        'next_month': next_month(year, month),
+        'prev_month': prev_month(year, month),
+    }
+
+    return render(request, 'calendar.html', context)
+
+def next_month(year, month):
+    if month == 12:
+        return {'year': year + 1, 'month': 1}
+    else:
+        return {'year': year, 'month': month + 1}
+
+def prev_month(year, month):
+    if month == 1:
+        return {'year': year - 1, 'month': 12}
+    else:
+        return {'year': year, 'month': month - 1}
+
+@login_required
+def lessons_on_day(request, year, month, day):
+    user = request.user
+    date_obj = date(year=int(year), month=int(month), day=int(day))
+
+    try:
+        student = Student.objects.get(UserID=user)
+    except Student.DoesNotExist:
+        return redirect('dashboard')
+
+    lessons = Lesson.objects.filter(
+        student=student,
+        date=date_obj
+    )
+    return render(request, 'lessons_on_day.html', {'lessons': lessons, 'date': date_obj})
 
 
 class LoginProhibitedMixin:
@@ -228,4 +309,45 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             student = self.request.user.student_profile
             return StudentRequest.objects.filter(student=student).order_by('-created_at')
         except Student.DoesNotExist:
-            return StudentRequest.objects.none() 
+            return StudentRequest.objects.none()
+        
+class LessonCalendar(HTMLCalendar):
+    def __init__(self, lessons):
+        super().__init__()
+        self.lessons = self.group_by_day(lessons)
+
+    def formatday(self, day, weekday):
+        if day != 0:
+            cssclass = self.cssclasses[weekday]
+            date_obj = date(self.year, self.month, day)
+            if date.today() == date_obj:
+                cssclass += ' today'
+            if day in self.lessons:
+                cssclass += ' has-lesson'
+                body = []
+                for lesson in self.lessons[day]:
+                    language_name = lesson.language.name  # Assuming `Language` has a `name` field
+                    tutor_username = lesson.tutor.UserID.username  # Assuming `Tutor` has `UserID` pointing to `User`
+                    time_str = lesson.time.strftime('%H:%M')
+                    lesson_details = f"{language_name} with {tutor_username} at {time_str}"
+                    body.append(f'<li>{lesson_details}</li>')
+                day_link = f'<a href="{reverse("lessons_on_day", args=[self.year, self.month, day])}">{day}</a>'
+                return self.day_cell(cssclass, f'<span class="date">{day_link}</span><ul>{"".join(body)}</ul>')
+            else:
+                return self.day_cell(cssclass, f'<span class="date">{day}</span>')
+        else:
+            return self.day_cell('noday', '&nbsp;')
+
+    def formatmonth(self, year, month, withyear=True):
+        self.year, self.month = year, month
+        return super().formatmonth(year, month, withyear)
+
+    def group_by_day(self, lessons):
+        lessons_by_day = {}
+        for lesson in lessons:
+            day = lesson.date.day
+            lessons_by_day.setdefault(day, []).append(lesson)
+        return lessons_by_day
+
+    def day_cell(self, cssclass, body):
+        return f'<td class="{cssclass}">{body}</td>'

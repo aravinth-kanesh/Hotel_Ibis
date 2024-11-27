@@ -1,0 +1,19 @@
+<!-- templates/lessons_on_day.html -->
+{% extends 'base_content.html' %}
+
+{% block title %}Lessons on {{ date }}{% endblock %}
+
+{% block content %}
+  <h1>Lessons on {{ date }}</h1>
+  {% if lessons %}
+    <ul>
+      {% for lesson in lessons %}
+        <li>
+          {{ lesson.language.name }} with {{ lesson.tutor.UserID.username }} at {{ lesson.time|time:"H:i" }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No lessons on this day.</p>
+  {% endif %}
+{% endblock %}
