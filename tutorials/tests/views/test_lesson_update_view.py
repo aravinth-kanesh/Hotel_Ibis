@@ -67,7 +67,7 @@ class LessonUpdateViewTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'lesson_update.html')
 
-    def test_post_cancel_lesson_by_admin(self):
+    def test_cancel_lesson(self):
         """Test that the admin can cancel a lesson and the database is correctly updated."""
 
         self.client.login(username='@admin_user', password='adminpassword')
@@ -79,7 +79,7 @@ class LessonUpdateViewTestCase(TestCase):
         # Verify that the lesson is deleted
         self.assertFalse(Lesson.objects.filter(id=self.lesson.id).exists())
 
-    def test_post_reschedule_lesson_by_admin(self):
+    def test_reschedule_lesson(self):
         """Test that the admin can reschedule a lesson and the database is correctly updated."""
 
         self.client.login(username='@admin_user', password='adminpassword')
