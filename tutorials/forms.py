@@ -138,68 +138,54 @@ class StudentRequestForm(forms.ModelForm):
         }
 
 class StudentRequestProcessingForm(forms.ModelForm):
-    """Form for the admin to process student requests."""
-    
+    """Form for the admin to process student lesson requests."""
+
     STATUS_CHOICES = [
         ('accepted', 'Accepted'),
-        ('rejected', 'Rejected'),
+        ('denied', 'Denied'),
     ]
 
+    # Status field for admin to accept or deny the lesson request
     status = forms.ChoiceField(
         choices=STATUS_CHOICES,
         label='Request Status',
         widget=forms.RadioSelect
     )
-    
-    notes = forms.CharField(
-        label='Notes',
+
+    # Details field for admin to explain why the request was denied or for any necessary notes
+    details = forms.CharField(
+        label='Details',
         required=False, 
         widget=forms.Textarea(attrs={
-            'placeholder': 'Provide details for why the lesson was accepted or rejected.',
+            'placeholder': 'Provide extra details.',
             'rows': 3,
         })
     )
 
     class Meta:
-        model = StudentRequest
+        model = Lesson 
 
-        fields = [
-            'language', 'description', 'time', 'venue', 'duration', 
-            'frequency', 'term', 'status', 'notes'
-        ]
+        fields = ['status', 'details']
 
         widgets = {
-            'description': forms.Textarea(attrs={'readonly': 'readonly'}),
-            'time': forms.TimeInput(attrs={'type': 'time', 'readonly': 'readonly'}),
-            'venue': forms.TextInput(attrs={'readonly': 'readonly'}),
-            'frequency': forms.Select(attrs={'disabled': 'disabled'}),
-            'term': forms.Select(attrs={'disabled': 'disabled'}),
+            'status': forms.RadioSelect(),
+            'details': forms.Textarea(attrs={'placeholder': 'Provide extra details.'}),
         }
 
     def clean(self):
-        """Validate the form."""
+        """Validate the form fields."""
 
         super().clean()
 
         # Retrieve cleaned data
         status = self.cleaned_data.get('status')
-        notes = self.cleaned_data.get('notes')
+        details = self.cleaned_data.get('details')
 
-        # Enforce notes for rejected lessons
-        if status == 'rejected' and not notes:
-            self.add_error('notes', 'You must provide details in the Notes field when rejecting a request.')
+        # Enforce details for denied lessons
+        if status == 'denied' and not details:
+            self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
 
         return self.cleaned_data
-
-    def save(self, commit=True):
-        """Save the form data."""
-
-        student_request = super().save(commit=False)
-        
-        if commit:
-            student_request.save()
-        
-        return student_request
 
 class LessonUpdateForm(forms.ModelForm):
     """Form to update lesson date/time or cancel the lesson."""
@@ -229,7 +215,7 @@ class LessonUpdateForm(forms.ModelForm):
     
     def clean(self):
         """Custom validation to check if either cancel_lesson is selected or new_date & new_time are provided."""
-        
+
         cleaned_data = super().clean()
         
         cancel_lesson = cleaned_data.get('cancel_lesson')
