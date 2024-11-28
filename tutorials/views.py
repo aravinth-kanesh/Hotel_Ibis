@@ -99,7 +99,7 @@ def calendar_view(request, year=None, month=None):
         student = Student.objects.get(UserID=user)
     except Student.DoesNotExist:
         # Handle the case where the student profile doesn't exist
-        return redirect('dashboard')
+        return redirect('dashboard')  # Or an appropriate page
 
     # Fetch lessons for the student
     lessons = Lesson.objects.filter(
@@ -136,6 +136,7 @@ def prev_month(year, month):
         return {'year': year - 1, 'month': 12}
     else:
         return {'year': year, 'month': month - 1}
+
 
 @login_required
 def lessons_on_day(request, year, month, day):
@@ -311,7 +312,7 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
         except Student.DoesNotExist:
             return StudentRequest.objects.none()
         
-class LessonCalendar(HTMLCalendar):
+class LessonCalendar(calendar.HTMLCalendar):
     def __init__(self, lessons):
         super().__init__()
         self.lessons = self.group_by_day(lessons)
@@ -322,19 +323,21 @@ class LessonCalendar(HTMLCalendar):
             date_obj = date(self.year, self.month, day)
             if date.today() == date_obj:
                 cssclass += ' today'
+
+            day_html = f'<span class="date">{day}</span>'
+            lesson_html = ''
+
             if day in self.lessons:
-                cssclass += ' has-lesson'
-                body = []
+                lesson_list = ''
                 for lesson in self.lessons[day]:
-                    language_name = lesson.language.name  # Assuming `Language` has a `name` field
-                    tutor_username = lesson.tutor.UserID.username  # Assuming `Tutor` has `UserID` pointing to `User`
+                    language_name = lesson.language.name
                     time_str = lesson.time.strftime('%H:%M')
-                    lesson_details = f"{language_name} with {tutor_username} at {time_str}"
-                    body.append(f'<li>{lesson_details}</li>')
-                day_link = f'<a href="{reverse("lessons_on_day", args=[self.year, self.month, day])}">{day}</a>'
-                return self.day_cell(cssclass, f'<span class="date">{day_link}</span><ul>{"".join(body)}</ul>')
-            else:
-                return self.day_cell(cssclass, f'<span class="date">{day}</span>')
+                    # Create a link to the lesson details page (optional)
+                    lesson_url = reverse('lessons_on_day', args=[self.year, self.month, day])
+                    lesson_list += f'<div class="lesson-name"><a href="{lesson_url}">{time_str} - {language_name}</a></div>'
+                lesson_html = f'<div class="lessons">{lesson_list}</div>'
+
+            return self.day_cell(cssclass, day_html + lesson_html)
         else:
             return self.day_cell('noday', '&nbsp;')
 

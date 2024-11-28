@@ -10,6 +10,10 @@
       {% for lesson in lessons %}
         <li>
           {{ lesson.language.name }} with {{ lesson.tutor.UserID.username }} at {{ lesson.time|time:"H:i" }}
+          <br>
+          Venue: {{ lesson.venue }}
+          <br>
+          Duration: {{ lesson.duration }} minutes
         </li>
       {% endfor %}
     </ul>

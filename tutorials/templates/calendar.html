@@ -1,4 +1,3 @@
-<!-- templates/calendar.html -->
 {% extends 'base_content.html' %}
 
 {% block title %}My Lessons Calendar{% endblock %}
@@ -22,37 +21,35 @@
       border-collapse: collapse;
     }
     .calendar th, .calendar td {
-      text-align: center;
+      width: 14.28%;
+      border: 1px solid #ddd;
       vertical-align: top;
+      height: 100px;
+    }
+    .calendar th {
+      background: #f5f5f5;
+      padding: 5px;
+      text-align: center;
+    }
+    .calendar td {
+      padding: 5px;
+      text-align: left;
     }
     .calendar .today {
       background: #eaffea;
     }
-    .calendar .has-lesson {
-      background: #fff0f0;
+    .calendar .date {
+      font-weight: bold;
     }
-    .calendar .has-lesson ul {
-      list-style-type: none;
-      padding: 0;
-      margin: 5px 0 0 0;
+    .calendar .lessons {
+      margin-top: 5px;
     }
-    .calendar .has-lesson li {
+    .calendar .lesson-name {
       font-size: 0.8em;
+      color: #007aff;
+      margin-top: 2px;
     }
-    .calendar-navigation {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .calendar-navigation a {
-      margin: 0 10px;
-      text-decoration: none;
-      font-weight: bold;
-    }
-    .calendar-navigation span {
-      font-size: 1.2em;
-      font-weight: bold;
-    }
-    .calendar .date a {
+    .calendar .lesson-name a {
       text-decoration: none;
       color: inherit;
     }
