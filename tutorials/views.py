@@ -4,6 +4,8 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models.query import QuerySet
+from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render
 from django.views import View
 #
@@ -13,19 +15,37 @@ from django.views.generic.list import ListView
 #
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
+from pytz import timezone
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
 # 
 from .forms import StudentRequestForm
-from .models import StudentRequest, Student
+from .models import StudentRequest, Student, Tutor, TutorLangRequest, Language
 
 
 @login_required
 def dashboard(request):
     """Display the current user's dashboard."""
-
     current_user = request.user
-    return render(request, 'dashboard.html', {'user': current_user})
+    user_role = current_user.role
+    if user_role == 'admin':
+        context = {
+            'user': current_user,
+            'role': user_role,
+        }
+    elif user_role == 'student':
+        context = {
+            'user': current_user,
+            'role': user_role
+        }
+    elif user_role == 'tutor':
+        context = {
+            'user': current_user,
+            'role': user_role,
+        }
+        return render(request, 'tutor_dashboard.html', context)
+    else:
+        return render(request, 'dashboard.html', context)
 
 
 @login_prohibited
@@ -191,3 +211,76 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             return StudentRequest.objects.filter(student=student).order_by('-created_at')
         except Student.DoesNotExist:
             return StudentRequest.objects.none() 
+
+class TutorLangRequestView(LoginRequiredMixin, View):
+    """View for tutors to manage language requests."""
+    model = TutorLangRequest
+    template_name = "tutor_lang_request.html"
+
+    def get(self, request):
+        """Handle GET request to display the current languages and the form."""
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to manage languages.")
+
+        context = {
+            "tutor": tutor,
+            "languages": tutor.languages.all(),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        """Handle POST request to manage tutor languages."""
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to manage languages.")
+
+        action = request.POST.get("action")
+        language_name = request.POST.get("language")
+
+        if action == "add":
+            # Add a new language
+            if language_name:
+                language, _ = Language.objects.get_or_create(name=language_name)
+                tutor.languages.add(language)
+            TutorLangRequest.objects.create(
+            tutor=tutor,
+            action="add",
+            requested_language=language
+        )
+
+        elif action == "delete":
+            # Delete an existing language
+            if language_name:
+                try:
+                    language = tutor.languages.get(name=language_name)
+                    tutor.languages.remove(language)
+                    TutorLangRequest.objects.create(
+                        tutor=tutor,
+                        action="remove",
+                        current_language=language
+                    )
+                except Language.DoesNotExist:
+                    pass  # Ignore if the language doesn't exist
+
+        elif action == "change":
+            # Change a language
+            old_language_name = request.POST.get("old_language")
+            if language_name and old_language_name:
+                try:
+                    old_language = tutor.languages.get(name=old_language_name)
+                    tutor.languages.remove(old_language)
+                    TutorLangRequest.objects.create(
+                        tutor=tutor,
+                        action="change",
+                        current_language=old_language,
+                        requested_language=new_language
+                    )
+                except Language.DoesNotExist:
+                    pass  # Ignore if the old language doesn't exist
+                new_language, _ = Language.objects.get_or_create(name=language_name)
+                tutor.languages.add(new_language)
+
+        return redirect("tutor_lang_request")  # Redirect to the same page to prevent form resubmission

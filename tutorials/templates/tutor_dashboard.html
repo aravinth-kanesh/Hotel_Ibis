@@ -1,0 +1,24 @@
+{% extends 'dashboard.html' %}
+{% block content %}
+<div class="container">
+    <div class="row">
+      <div class="col-12">
+        <h1>Welcome to your dashboard {{ user.username}}</h1>
+        <h2>Role: {{user.role}}</h2>
+            {% if user.role == 'tutor' %}
+        <h3>Languages:</h3>
+        <ul class="list-group">
+            {% for language in user.tutor_profile.languages.all %}
+                <li class="list-group-item">{{ language.name }}</li>
+            {% endfor %}
+        </ul>
+        <br>
+        <!-- Add button for managing languages -->
+        <a href="{% url 'tutor_lang_request' %}" class="btn btn-primary">
+            Manage Languages
+        </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

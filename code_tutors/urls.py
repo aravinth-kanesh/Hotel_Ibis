@@ -31,6 +31,7 @@ urlpatterns = [
     path('profile/', views.ProfileUpdateView.as_view(), name='profile'),
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     path('request/create/', views.StudentRequestCreateView.as_view(), name='create_request'),
+    path('tutor/manage-languages/', views.TutorLangRequestView.as_view(), name='tutor_lang_request'),
     path('test/', lambda request: HttpResponse("Test page")),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

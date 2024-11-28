@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest
+from .models import User, StudentRequest, Tutor, Language, TutorLangRequest
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -28,7 +28,7 @@ class UserForm(forms.ModelForm):
         """Form options."""
 
         model = User
-        fields = ['first_name', 'last_name', 'username', 'email']
+        fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
 class NewPasswordMixin(forms.Form):
     """Form mixing for new_password and password_confirmation fields."""
@@ -93,6 +93,11 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
     role = forms.ChoiceField(
         choices=[('tutor', 'Tutor'), ('student', 'Student')], 
         label="Role")
+    
+    languages = forms.ChoiceField(
+        choices=[('Python', 'Python'), ('Scala', 'Scala'), ('Java', 'Java'), ('c++', 'c++')],
+        label = "Language"
+    )
 
     class Meta:
         """Form options."""
@@ -100,7 +105,7 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
-    def save(self):
+    def save(self, commit=True):
         """Create a new user."""
 
         super().save(commit=False)
@@ -113,11 +118,31 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             password=self.cleaned_data.get('new_password'),
         )
         role = self.cleaned_data.get('role')
+        language = self.cleaned_data.get('languages')
         if role not in ['tutor', 'student']:
             raise ValueError("Invalid role selected.")
         user.role = role
+
         if commit:
             user.save()
+
+        if user.role == 'tutor':
+            if not language:
+                raise forms.ValidationError("Tutors must select at least one language.")
+
+            try:
+                # Ensure the language exists in the database
+                language = Language.objects.get(name=language)
+            except Language.DoesNotExist:
+                raise forms.ValidationError(f"Language '{language}' does not exist.")
+
+            # Create Tutor instance and associate language
+            tutor = Tutor.objects.create(UserID=user)
+            tutor.languages.add(language)
+
+            if commit:
+                tutor.save()
+
         return user
 
 class StudentRequestForm(forms.ModelForm):
@@ -134,3 +159,8 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+
+class TutorLanguageRequestForm(forms.ModelForm):
+    class Meta:
+        model = TutorLangRequest
+        fields = ['tutor', 'language', 'action', 'current_language', 'requested_language']

@@ -9,6 +9,24 @@
         {% include 'partials/bootstrap_form.html' with form=form %}
         <input type="submit" value="Sign up" class="btn btn-primary">
       </form>
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          const roleField = document.querySelector("#id_role");
+          const languagesField = document.querySelector("#id_languages");
+
+          // Function to toggle languages visibility
+          function toggleLanguagesField() {
+            if (roleField.value === "tutor") {
+              languagesField.style.display = "block";
+            } else {
+              languagesField.style.display = "none";
+            }
+          }
+
+          toggleLanguagesField(); // Initialize on load
+          roleField.addEventListener("change", toggleLanguagesField); // Update on role change
+        });
+      </script>
     </div>
   </div>
 </div>

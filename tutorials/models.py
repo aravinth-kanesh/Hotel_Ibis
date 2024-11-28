@@ -26,7 +26,7 @@ class User(AbstractUser):
     # adding according to database schema i made
     
     id = models.AutoField(primary_key=True)
-    role = models.CharField(max_length=10, choices= ROLE_CHOICES, default='student')
+    role = models.CharField(max_length=10, choices= ROLE_CHOICES)
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
     # assign groups/permissions based on role
@@ -161,5 +161,28 @@ class StudentRequest(models.Model):
     duration = models.IntegerField() 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
+
+class TutorLangRequest(models.Model):
+    """Model for tutors to request adding a new language to their profile."""
+    ACTION = [
+        ('add', 'Add Language'),
+        ('remove', 'Remove Language'),
+        ('change', 'Change Language'),
+    ]
+    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="language_request")
+    language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, help_text="Existing language in the system.")
+    action = models.CharField(max_length=10, choices=ACTION)
+    current_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, related_name="current_language_requests")  # For 'change' and 'remove'
+    requested_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, related_name="requested_language_requests")  # For 'add' and 'change'
+    def __str__(self):
+        return f"Request {self.action} by {self.tutor.UserID.username}"
+
+
+
+
+
+
+
+
     
 
