@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest
+from .models import User, StudentRequest, Lesson
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -200,3 +200,45 @@ class StudentRequestProcessingForm(forms.ModelForm):
             student_request.save()
         
         return student_request
+
+class LessonUpdateForm(forms.ModelForm):
+    """Form to update lesson date/time or cancel the lesson."""
+
+    # The checkbox to cancel the lesson
+    cancel_lesson = forms.BooleanField(
+        label="Cancel Lesson", 
+        required=False, 
+        initial=False
+    )
+    
+    # Fields for new date and time to reschedule the lesson
+    new_date = forms.DateField(
+        label="New Date", 
+        required=False, 
+        widget=forms.SelectDateWidget()
+    )
+    new_time = forms.TimeField(
+        label="New Time", 
+        required=False, 
+        widget=forms.TimeInput(attrs={'type': 'time'})
+    )
+    
+    class Meta:
+        model = Lesson
+        fields = ['cancel_lesson', 'new_date', 'new_time']
+    
+    def clean(self):
+        """Custom validation to check if either cancel_lesson is selected or new_date & new_time are provided."""
+        
+        cleaned_data = super().clean()
+        
+        cancel_lesson = cleaned_data.get('cancel_lesson')
+        new_date = cleaned_data.get('new_date')
+        new_time = cleaned_data.get('new_time')
+
+        # If cancel_lesson is not selected, new_date and new_time must be filled out
+        if not cancel_lesson:
+            if not new_date or not new_time:
+                raise forms.ValidationError("Both New Date and New Time are required when cancelling is not selected.")
+
+        return cleaned_data
