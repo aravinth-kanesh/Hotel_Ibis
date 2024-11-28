@@ -19,9 +19,12 @@ from tutorials.helpers import login_prohibited
 # 
 from .forms import StudentRequestForm
 from .forms import StudentRequestProcessingForm
-from .models import StudentRequest, Student
+from .forms import LessonUpdateForm
+from .models import StudentRequest, Student, Lesson
 #
 from django.utils import timezone
+#
+from django.http import HttpResponseRedirect
 
 
 @login_required
@@ -237,3 +240,45 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         messages.error(request, "There was an error processing the request. Please try again.")
         
         return render(request, 'admin/process_request.html', {'form': form, 'request': student_request})
+    
+class LessonUpdateView(LoginRequiredMixin, View):
+    """View for changing or cancelling a lesson."""
+
+    def get(self, request, lesson_id):
+        """Display the form for changing or cancelling a lesson."""
+        
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+        form = LessonUpdateForm()
+
+        return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
+
+    def post(self, request, lesson_id):
+        """Handle the form submission for changing or cancelling a lesson."""
+
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+        form = LessonUpdateForm(request.POST)
+
+        if form.is_valid():
+            cancel_lesson = form.cleaned_data.get('cancel_lesson')
+
+            if cancel_lesson:
+                # If the lesson is cancelled, delete it and redirect
+                lesson.delete()
+                
+                messages.success(request, "Lesson successfully cancelled.")
+
+                return redirect('admin_dashboard')  # Redirect to the admin dashboard
+
+            # Update lesson fields explicitly instead of using `instance`
+            lesson.date = form.cleaned_data['new_date']
+            lesson.time = form.cleaned_data['new_time']
+            lesson.save()
+            
+            messages.success(request, "Lesson details successfully updated.")
+
+            return redirect('admin_dashboard') 
+
+        # If the form is invalid, re-render with errors
+        messages.error(request, "There was an error updating the lesson. Please try again.")
+
+        return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
