@@ -19,7 +19,7 @@ from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm, EditU
 from tutorials.helpers import login_prohibited
 # 
 from .forms import StudentRequestForm
-from .models import StudentRequest, Student, Lesson
+from .models import StudentRequest, Student, Lesson, Tutor
 #
 from datetime import date, datetime, timedelta
 import calendar
@@ -139,6 +139,44 @@ def prev_month(year, month):
 
 
 @login_required
+def tutor_calendar_view(request, year=None, month=None):
+    user = request.user
+    today = date.today()
+    year = int(year) if year else today.year
+    month = int(month) if month else today.month
+
+    # Get the Tutor instance
+    try:
+        tutor = Tutor.objects.get(UserID=user)
+    except Tutor.DoesNotExist:
+        return redirect('dashboard')
+
+    # Fetch lessons for the tutor
+    lessons = Lesson.objects.filter(
+        tutor=tutor,
+        date__year=year,
+        date__month=month
+    )
+
+    cal = LessonCalendar(lessons)
+    html_cal = cal.formatmonth(year, month)
+
+    # Style adjustments
+    html_cal = html_cal.replace('<td ', '<td style="padding:10px; border:1px solid #ddd;" ')
+    html_cal = html_cal.replace('<th ', '<th style="padding:10px; border:1px solid #ddd; background:#f5f5f5;" ')
+
+    context = {
+        'calendar': html_cal,
+        'year': year,
+        'month': month,
+        'next_month': next_month(year, month),
+        'prev_month': prev_month(year, month),
+    }
+
+    return render(request, 'tutor_calendar.html', context)
+
+
+@login_required
 def lessons_on_day(request, year, month, day):
     user = request.user
     date_obj = date(year=int(year), month=int(month), day=int(day))
@@ -153,6 +191,23 @@ def lessons_on_day(request, year, month, day):
         date=date_obj
     )
     return render(request, 'lessons_on_day.html', {'lessons': lessons, 'date': date_obj})
+
+
+@login_required
+def lessons_on_day_tutor(request, year, month, day):
+    user = request.user
+    date_obj = date(year=int(year), month=int(month), day=int(day))
+
+    try:
+        tutor = Tutor.objects.get(UserID=user)
+    except Tutor.DoesNotExist:
+        return redirect('dashboard')  # Or an appropriate page
+
+    lessons = Lesson.objects.filter(
+        tutor=tutor,
+        date=date_obj
+    )
+    return render(request, 'lessons_on_day_tutor.html', {'lessons': lessons, 'date': date_obj})
 
 
 class LoginProhibitedMixin:
@@ -328,13 +383,23 @@ class LessonCalendar(calendar.HTMLCalendar):
             lesson_html = ''
 
             if day in self.lessons:
+                # Build the lesson list
                 lesson_list = ''
                 for lesson in self.lessons[day]:
                     language_name = lesson.language.name
                     time_str = lesson.time.strftime('%H:%M')
-                    # Create a link to the lesson details page (optional)
-                    lesson_url = reverse('lessons_on_day', args=[self.year, self.month, day])
-                    lesson_list += f'<div class="lesson-name"><a href="{lesson_url}">{time_str} - {language_name}</a></div>'
+                    # Include student's name
+                    student_name = lesson.student.UserID.get_full_name()
+                    # Create a link to the lesson details page
+                    lesson_url = reverse('lessons_on_day_tutor', args=[self.year, self.month, day])
+                    # Build the lesson HTML
+                    lesson_list += f'''
+                        <div class="lesson-name">
+                            <a href="{lesson_url}">
+                                {time_str} - {language_name} with {student_name}
+                            </a>
+                        </div>
+                    '''
                 lesson_html = f'<div class="lessons">{lesson_list}</div>'
 
             return self.day_cell(cssclass, day_html + lesson_html)

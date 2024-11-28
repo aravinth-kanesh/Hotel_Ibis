@@ -1,0 +1,23 @@
+{% extends 'base_content.html' %}
+
+{% block title %}Lessons on {{ date }}{% endblock %}
+
+{% block content %}
+  <h1>Lessons on {{ date }}</h1>
+  {% if lessons %}
+    <ul>
+      {% for lesson in lessons %}
+        <li>
+          <strong>{{ lesson.time|time:"H:i" }} - {{ lesson.language.name }}</strong><br>
+          Student: {{ lesson.student.UserID.get_full_name }}<br>
+          Venue: {{ lesson.venue }}<br>
+          Duration: {{ lesson.duration }} minutes<br>
+          Frequency: {{ lesson.frequency }}<br>
+          Term: {{ lesson.term }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No lessons on this day.</p>
+  {% endif %}
+{% endblock %}

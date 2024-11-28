@@ -34,9 +34,12 @@ urlpatterns = [
     path('test/', lambda request: HttpResponse("Test page")),
     path('edit-profile/', views.edit_profile_view, name='edit_profile'),
     path('lesson-request', views.lesson_request_view, name='lesson-request'),
-     path('calendar/', views.calendar_view, name='calendar'),
+    path('calendar/', views.calendar_view, name='calendar'),
     path('calendar/<int:year>/<int:month>/', views.calendar_view, name='calendar'),
     path('lessons/<int:year>/<int:month>/<int:day>/', views.lessons_on_day, name='lessons_on_day'),
+    path('tutor/calendar/', views.tutor_calendar_view, name='tutor_calendar'),
+    path('tutor/calendar/<int:year>/<int:month>/', views.tutor_calendar_view, name='tutor_calendar'),
+    path('tutor/lessons/<int:year>/<int:month>/<int:day>/', views.lessons_on_day_tutor, name='lessons_on_day_tutor'),
 ]
 
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
