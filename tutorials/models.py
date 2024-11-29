@@ -40,7 +40,6 @@ class User(AbstractUser):
             group, _ = Group.objects.get_or_create(name='Students')
             self.groups.add(group)
 
-    is_active = models.BooleanField(default=True)
 
 
     def __str__(self):
@@ -157,9 +156,28 @@ class StudentRequest(models.Model):
     is_allocated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     time = models.TimeField()
-    venue = models.CharField(max_length=255)
+    venue = models.TextField()
     duration = models.IntegerField() 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
     
+class Message (models.Model):
+    id = models.AutoField(primary_key=True)
+    recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,  related_name="sent_messages", db_index=True)
+    subject = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    reply = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name="replies"
+    )
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+        models.Index(fields=["sender", "created_at"]),  
+        models.Index(fields=["recipient"]),            
+        models.Index(fields=["created_at"]),          
+    ]
 
+    def __str__(self):
+        return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"

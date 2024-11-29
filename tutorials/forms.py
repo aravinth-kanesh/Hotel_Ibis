@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest
+from .models import User, StudentRequest , Message
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -100,10 +100,10 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
-    def save(self):
+    def save(self, commit=True):
         """Create a new user."""
 
-        super().save(commit=False)
+        user =super().save(commit=False)
         
         user = User.objects.create_user(
             self.cleaned_data.get('username'),
@@ -134,3 +134,50 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+
+class MessageForm (forms.ModelForm):
+    recipient = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Type a username...',
+        }),
+        label="Recipient",
+    )
+
+    class Meta:
+        model = Message
+        fields = ['recipient', 'subject', 'content']
+        widgets = {
+            'subject': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter the subject here',
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Write your message here',
+                'rows': 5,
+            }),
+        }
+        
+    def clean_recipient(self):
+        """fuzzy matching for the recipient"""
+        username_input = self.cleaned_data['recipient']
+
+        try:
+            recipient_user = User.objects.get(username__iexact=username_input)
+        except User.DoesNotExist:
+            raise forms.ValidationError("No user found with that username. Please try again.")
+
+        return recipient_user
+    def save(self, commit=True):
+        """overide save to handle recipient and reply """
+        message = super().save(commit=False)
+    
+        message.recipient = self.cleaned_data['recipient']
+
+        if self.instance.reply:
+            message.reply = self.instance.reply
+        if commit:
+            message.save()
+        return message
+

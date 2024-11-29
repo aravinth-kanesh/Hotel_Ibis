@@ -1,0 +1,27 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="mb-4">Message Details</h1>
+      <form action="{% url 'reply_message' reply_id=message.id %}" method="get">
+        <div class="card mb-3">
+          <div class="card-header">
+            <strong>Subject:</strong> {{ message.subject }}
+          </div>
+          <div class="card-body">
+            <h5 class="card-title">From: {{ message.sender.username }}</h5>
+            <h5 class="card-title">To: {{ message.recipient.username }}</h5>
+            <p class="card-text">{{ message.content }}</p>
+            <p class="card-text">
+              <small class="text-muted">Sent on {{ message.created_at }}</small>
+            </p>
+          </div>
+        </div>
+        <input type="submit" value="Reply" class="btn btn-primary">
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

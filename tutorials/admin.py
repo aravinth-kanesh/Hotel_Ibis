@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib import admin
-from .models import User, Language, Tutor, Student, Invoice, Lesson
+from .models import User, Language, Tutor, Student, Invoice, Lesson, Message
 # Register your models here.
 
 
@@ -64,4 +64,10 @@ class StudentRequestAdmin(admin.ModelAdmin):
     search_fields = ('student__UserID__username', 'language__name', 'description') 
     ordering = ('-created_at',)  
 
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    """Admin view for the Message model."""
+    list_display = ('sender', 'recipient', 'subject', 'created_at')
+    search_fields = ('subject', 'content', 'sender__username', 'recipient__username')
+    ordering = ('-created_at',)
 
