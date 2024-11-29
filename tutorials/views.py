@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ImproperlyConfigured
@@ -20,7 +20,7 @@ from tutorials.helpers import login_prohibited
 from .forms import StudentRequestForm
 from .forms import StudentRequestProcessingForm
 from .forms import LessonUpdateForm
-from .models import StudentRequest, Student, Lesson
+from .models import StudentRequest, Student, Lesson, Tutor
 #
 from django.utils import timezone
 #
@@ -215,7 +215,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         student_request = get_object_or_404(StudentRequest, id=request_id)
         form = StudentRequestProcessingForm(instance=student_request)
 
-        return render(request, 'admin/process_request.html', {'form': form, 'request': student_request})
+        return render(request, 'process_request.html', {'form': form, 'request': student_request})
 
     def post(self, request, request_id):
         """Handle form submission for processing the student request."""
@@ -224,22 +224,51 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         form = StudentRequestProcessingForm(request.POST, instance=student_request)
 
         if form.is_valid():
-            form.save()  # Save the updated student request
             status = form.cleaned_data['status']
-            notes = form.cleaned_data.get('notes', '')
+            notes = form.cleaned_data.get('details', '')  # Get rejection notes if any
 
-            # Display a success message based on the status
+            # Temporary. Will be removed when entire functionality is implemented
+            self.user_tutor = get_user_model().objects.create_user(
+                username='@johnny_does',
+                first_name='Johnny',
+                last_name='Does',
+                email='johnny.does@example.com',
+                password='password123',
+                role='tutor'
+            )
+            self.tutor = Tutor.objects.create(UserID=self.user_tutor)
+
+            # Handle the request acceptance
             if status == 'accepted':
-                messages.success(request, f"Request accepted! Notes: {notes}")
-            elif status == 'rejected':
-                messages.warning(request, f"Request rejected. Notes: {notes}")
+                # Create a lesson from the student request details
+                Lesson.objects.create(
+                    student=student_request.student,
+                    tutor=self.tutor,
+                    language=student_request.language,
+                    time=student_request.time,
+                    date='2024-12-01',
+                    venue=student_request.venue,
+                    duration=student_request.duration,
+                    frequency=student_request.frequency,
+                    term=student_request.term
+                )
 
-            return redirect('admin_dashboard') 
+                student_request.is_allocated = True
+                messages.success(request, f"Request accepted! A lesson has been scheduled. {notes}")
+
+            # Handle the request rejection
+            elif status == 'denied':
+                messages.warning(request, f"Request rejected. {notes}")
+
+            # Save the student request
+            student_request.save()
+
+            return redirect('admin_dashboard')  # Redirect to the admin dashboard
 
         # If form is invalid, show an error message and re-render the form
         messages.error(request, "There was an error processing the request. Please try again.")
-        
-        return render(request, 'admin/process_request.html', {'form': form, 'request': student_request})
+
+        return render(request, 'process_request.html', {'form': form, 'request': student_request})
     
 class LessonUpdateView(LoginRequiredMixin, View):
     """View for changing or cancelling a lesson."""
