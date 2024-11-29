@@ -4,7 +4,7 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 #
 from django.urls import reverse_lazy
@@ -197,14 +197,25 @@ class SendMessageView(LoginRequiredMixin, CreateView):
     model = Message
     form_class = MessageForm
     template_name = 'send_message.html'
-    success_url = reverse_lazy('all_messages') 
+    success_url = reverse_lazy('all_messages')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        reply_id = self.kwargs.get('reply_id')
+        if reply_id:
+            reply_message = get_object_or_404(Message, pk=reply_id)
+            context['reply_message'] = reply_message
+        return context
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        reply_id = self.kwargs.get('reply_id')
+        if reply_id:
+            reply = get_object_or_404(Message, pk=reply_id)
+            kwargs['previous_message'] = reply
+        return kwargs
 
     def form_valid(self, form):
         
         form.instance.sender = self.request.user
-        reply_id = self.kwargs.get('reply_id')
-        if reply_id:
-            form.instance.previous_message = Message.objects.get(id=reply_id)
         messages.success(self.request, "Message sent successfully!")
         return super().form_valid(form)
 
@@ -212,6 +223,7 @@ class SendMessageView(LoginRequiredMixin, CreateView):
         
         messages.error(self.request, "Failed to send the message. Please correct the errors.")
         return super().form_invalid(form)
+
 
 class AllMessagesView(LoginRequiredMixin, TemplateView):
     """display all sent and received messages."""
@@ -236,4 +248,16 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         """ensure the user is authorized"""
         message = self.get_object()
         return self.request.user == message.sender or self.request.user == message.recipient
+    def get_context_data(self, **kwargs):
+        """Add previous message, next message (reply), and reply URL to the context."""
+        context = super().get_context_data(**kwargs)
+        message = self.get_object()
 
+        
+        context['previous_message'] = message.previous_message 
+        context['next_message'] = message.reply
+
+        
+        context['reply_url'] = reverse('reply_message', kwargs={'reply_id': message.id})
+
+        return context

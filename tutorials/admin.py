@@ -67,7 +67,7 @@ class StudentRequestAdmin(admin.ModelAdmin):
 @admin.register(Message)
 class MessageAdmin(admin.ModelAdmin):
     """Admin view for the Message model."""
-    list_display = ('sender', 'recipient', 'subject', 'created_at')
-    search_fields = ('subject', 'content', 'sender__username', 'recipient__username')
+    list_display = ('sender', 'recipient', 'subject', 'created_at', 'previous_message','reply')
+    search_fields = ('subject', 'content', 'sender__username', 'recipient__username','previous_message', 'reply')
     ordering = ('-created_at',)
 

@@ -139,7 +139,7 @@ class MessageForm (forms.ModelForm):
     recipient = forms.CharField(
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Type a username...',
+            'placeholder': '@...',
         }),
         label="Recipient",
     )
@@ -150,14 +150,21 @@ class MessageForm (forms.ModelForm):
         widgets = {
             'subject': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Enter the subject here',
+                'placeholder': 'Subject',
             }),
             'content': forms.Textarea(attrs={
                 'class': 'form-control',
-                'placeholder': 'Write your message here',
+                'placeholder': '....',
                 'rows': 5,
             }),
         }
+    def __init__(self, *args, **kwargs):
+        
+        previous_message = kwargs.pop('previous_message', None)
+        super().__init__(*args, **kwargs)
+
+        if previous_message:
+            self.fields['recipient'].widget.attrs['placeholder'] = previous_message.sender.username
         
     def clean_recipient(self):
         """fuzzy matching for the recipient"""
@@ -175,9 +182,15 @@ class MessageForm (forms.ModelForm):
     
         message.recipient = self.cleaned_data['recipient']
 
-        if self.instance.reply:
-            message.reply = self.instance.reply
+        if self.instance.previous_message:
+            previous_message = self.instance.previous_message
+            message.previous_message = previous_message
+
+            if commit:
+                message.save()
+                previous_message.reply = message
+                previous_message.save()
+
         if commit:
             message.save()
         return message
-

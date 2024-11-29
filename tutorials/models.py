@@ -162,14 +162,18 @@ class StudentRequest(models.Model):
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
     
 class Message (models.Model):
-    id = models.AutoField(primary_key=True)
     recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,  related_name="sent_messages", db_index=True)
     subject = models.CharField(max_length=255)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    reply = models.ForeignKey(
+    #if object is reply
+    previous_message = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True, blank=True, related_name="replies"
+    )
+    #replies to the object
+    reply = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name="replied_by"
     )
     class Meta:
         ordering = ["-created_at"]
