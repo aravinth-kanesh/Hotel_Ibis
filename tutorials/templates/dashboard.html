@@ -1,10 +1,56 @@
-{% extends 'base_content.html' %}
-{% block content %}
-<div class="container">
+<div class="container-fluid">
   <div class="row">
-    <div class="col-12">
-      <h1>Welcome to your dashboard {{ user.username }}</h1>
-    </div>
+      <!-- Sidebar -->
+      <div class="col-md-2 sidebar">
+          <a href="#">Student</a>
+          <a href="#">Tutor</a>
+          <a href="#">Admin</a>
+      </div>
+
+      <!-- Main Content -->
+      <div class="col-md-10 offset-md-2">
+          <h1> Welcome to the dashboard </h1>
+      </div>
   </div>
 </div>
-{% endblock %}
+
+<style>
+/* The Sidebar Menu */
+.sidebar {
+  width: 180px;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  left: 0;
+  background-color: #111;
+  overflow-x: hidden;
+  padding-top: 30px;
+  height: 100%; 
+}
+
+.sidebar a {
+  display: block;
+  color: white;
+  padding: 8px 16px;
+}
+
+/* Change color of links when mouse hovers over */
+.sidebar a:hover {
+  color: #f1f1f1;
+}
+
+body {
+  margin-left: 180px;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+      width: 100%;
+      height: auto;
+      position: relative;
+  }
+  body {
+      margin-left: 0;
+  }
+}
+</style>
