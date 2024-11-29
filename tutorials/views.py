@@ -23,8 +23,6 @@ from .forms import LessonUpdateForm
 from .models import StudentRequest, Student, Lesson, Tutor
 #
 from django.utils import timezone
-#
-from django.http import HttpResponseRedirect
 
 
 @login_required
@@ -173,6 +171,7 @@ class SignUpView(LoginProhibitedMixin, FormView):
 
     def get_success_url(self):
         return reverse(settings.REDIRECT_URL_WHEN_LOGGED_IN)
+    
 
 class StudentRequestCreateView(LoginRequiredMixin, CreateView):
     """view to display the StudentRequest form and handle submissions."""
@@ -205,6 +204,7 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             return StudentRequest.objects.filter(student=student).order_by('-created_at')
         except Student.DoesNotExist:
             return StudentRequest.objects.none() 
+        
         
 class StudentRequestProcessingView(LoginRequiredMixin, View):
     """View for the admin to process a student request."""
@@ -269,6 +269,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         messages.error(request, "There was an error processing the request. Please try again.")
 
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
+    
     
 class LessonUpdateView(LoginRequiredMixin, View):
     """View for changing or cancelling a lesson."""

@@ -4,6 +4,7 @@ from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
 from .models import User, StudentRequest, Lesson
 
+
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
 
@@ -19,7 +20,7 @@ class LogInForm(forms.Form):
             password = self.cleaned_data.get('password')
             user = authenticate(username=username, password=password)
         return user
-
+    
 
 class UserForm(forms.ModelForm):
     """Form to update user profiles."""
@@ -29,6 +30,7 @@ class UserForm(forms.ModelForm):
 
         model = User
         fields = ['first_name', 'last_name', 'username', 'email']
+
 
 class NewPasswordMixin(forms.Form):
     """Form mixing for new_password and password_confirmation fields."""
@@ -85,7 +87,7 @@ class PasswordForm(NewPasswordMixin):
             self.user.set_password(new_password)
             self.user.save()
         return self.user
-
+    
 
 class SignUpForm(NewPasswordMixin, forms.ModelForm):
     """Form enabling unregistered users to sign up."""
@@ -119,6 +121,7 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         if commit:
             user.save()
         return user
+    
 
 class StudentRequestForm(forms.ModelForm):
     class Meta:
@@ -136,6 +139,7 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+
 
 class StudentRequestProcessingForm(forms.ModelForm):
     """Form for the admin to process student lesson requests."""
@@ -186,6 +190,7 @@ class StudentRequestProcessingForm(forms.ModelForm):
             self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
 
         return self.cleaned_data
+    
 
 class LessonUpdateForm(forms.ModelForm):
     """Form to update lesson date/time or cancel the lesson."""

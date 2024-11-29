@@ -1,17 +1,39 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Process Student Request #{{ request.id }}</title>
-</head>
-<body>
+{% extends 'base_content.html' %}
+
+{% block content %}
     <h1>Process Request #{{ request.id }}</h1>
+
+    <div class="original-request">
+        <h3>Original Student Request</h3>
+        <p><strong>Student:</strong> {{ request.student.UserID.first_name }} {{ request.student.UserID.last_name }}</p>
+        <p><strong>Language:</strong> {{ request.language.name }}</p>
+        <p><strong>Date:</strong> {{ request.date }}</p>
+        <p><strong>Time:</strong> {{ request.time }}</p>
+        <p><strong>Venue:</strong> {{ request.venue }}</p>
+        <p><strong>Duration:</strong> {{ request.duration }} minutes</p>
+        <p><strong>Frequency:</strong> {{ request.frequency }}</p>
+        <p><strong>Term:</strong> {{ request.term }}</p>
+    </div>
+
+    <hr>
 
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+
+        <div class="form-group">
+            <label for="id_status">Request Status</label>
+            {{ form.status }}  
+        </div>
+
+        <div class="form-group">
+            <label for="id_details">Details</label>
+            {{ form.details }} 
+        </div>
+
         <button type="submit">Submit</button>
     </form>
 
+    <hr>
+
     <a href="{% url 'admin_dashboard' %}">Back to Dashboard</a>
-</body>
-</html>
+{% endblock %}
