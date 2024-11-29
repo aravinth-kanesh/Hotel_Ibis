@@ -212,6 +212,17 @@ class LessonUpdateForm(forms.ModelForm):
     class Meta:
         model = Lesson
         fields = ['cancel_lesson', 'new_date', 'new_time']
+
+    def __init__(self, *args, **kwargs):
+        """Initialise the form and pre-fill date and time."""
+
+        instance = kwargs.get('instance', None)
+        super().__init__(*args, **kwargs)
+
+        if instance:
+            # Pre-fill fields with original lesson data
+            self.fields['new_date'].initial = instance.date
+            self.fields['new_time'].initial = instance.time
     
     def clean(self):
         """Custom validation to check if either cancel_lesson is selected or new_date & new_time are provided."""

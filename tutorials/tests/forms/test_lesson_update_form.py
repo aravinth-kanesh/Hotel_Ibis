@@ -1,7 +1,58 @@
 from django.test import TestCase
 from tutorials.forms import LessonUpdateForm
+from tutorials.models import Lesson, Language, Student, Tutor
+from django.contrib.auth import get_user_model
+from django.utils.timezone import now
 
 class LessonUpdateFormTestCase(TestCase):
+    def setUp(self):
+        # Create a student and a tutor 
+
+        self.user_student = get_user_model().objects.create_user(
+            username='@student',
+            first_name='Student',
+            last_name='One',
+            email='student.one@example.com',
+            password='password123',
+            role='student'
+        )
+        self.user_tutor = get_user_model().objects.create_user(
+            username='@tutor',
+            first_name='Tutor',
+            last_name='One',
+            email='tutor.one@example.com',
+            password='password123',
+            role='tutor'
+        )
+
+        # Create student, tutor, and language instances
+        self.student = Student.objects.create(UserID=self.user_student)
+        self.tutor = Tutor.objects.create(UserID=self.user_tutor)
+        self.language = Language.objects.create(name="Python")
+
+        # Create a lesson
+        self.lesson = Lesson.objects.create(
+            student=self.student,
+            tutor=self.tutor,
+            language=self.language,
+            date="2024-12-05",
+            time="14:00",
+            venue="Room 101",
+            duration=60,
+            frequency="once a week",
+            term="sept-christmas"
+        )
+
+    def test_form_pre_filled_with_original_lesson_data(self):
+        """Test that the form is pre-filled with the original lesson details."""
+
+        # Initialise the form with the lesson instance
+        form = LessonUpdateForm(instance=self.lesson)
+
+        # Assert that the initial data matches the lesson instance
+        self.assertEqual(form.fields['new_date'].initial, self.lesson.date)
+        self.assertEqual(form.fields['new_time'].initial, self.lesson.time)
+
     def test_form_valid_when_cancel_lesson_checked(self):
         """Test if the form is valid when the cancel lesson checkbox is selected."""
 
@@ -93,5 +144,5 @@ class LessonUpdateFormTestCase(TestCase):
         }
 
         form = LessonUpdateForm(data)
-        
+
         self.assertTrue(form.is_valid())
