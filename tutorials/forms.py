@@ -233,9 +233,21 @@ class LessonUpdateForm(forms.ModelForm):
         new_date = cleaned_data.get('new_date')
         new_time = cleaned_data.get('new_time')
 
-        # If cancel_lesson is not selected, new_date and new_time must be filled out
-        if not cancel_lesson:
-            if not new_date or not new_time:
-                raise forms.ValidationError("Both New Date and New Time are required when cancelling is not selected.")
+        # Skip validation if the lesson is being cancelled
+        if cancel_lesson:
+            return cleaned_data
+
+        # Check if the date or time has been changed
+        if self.instance:
+            if new_date == self.instance.date and new_time == self.instance.time:
+                raise forms.ValidationError(
+                    "You must change the date or time to update the lesson details."
+                )
+
+        # Ensure new_date and/or new_time are provided if not cancelling
+        if not new_date or not new_time:
+            raise forms.ValidationError(
+                "New date and/or new time are required when cancelling is not selected."
+            )
 
         return cleaned_data
