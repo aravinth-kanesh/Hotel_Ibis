@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from libgravatar import Gravatar
 from django.contrib.auth.models import BaseUserManager
+from datetime import timedelta
 
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
@@ -97,19 +98,6 @@ class Student(models.Model):
     def __str__(self):
         return f"Student: {self.UserID.full_name}"
 
-class Invoice(models.Model):
-    id = models.AutoField(primary_key=True)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
-    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
-    total_amount = models.IntegerField()
-    paid = models.BooleanField(default=False)
-    date_issued = models.DateField(auto_now_add=True)
-    date_paid = models.DateField(null=True, blank=True)
-
-    def __str__(self):
-        status = "Paid" if self.paid else "Unpaid"
-        return f"Invoice {self.id} ({status})"
-
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
 # The lessons taken in one term normally continue in the next term, 
@@ -136,6 +124,49 @@ class Lesson(models.Model):
     duration = models.IntegerField()  # Duration in minutes
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+
+    def get_price(self):
+        return self.price
+    
+    def get_occurrence_dates(self):
+        from .term_dates import TERM_DATES
+
+        term_dates = TERM_DATES.get(self.term)
+        if not term_dates:
+            return []
+
+        start_date = max(self.date, term_dates['start_date'])  # Ensure the lesson doesn't start before the term
+        end_date = term_dates['end_date']
+
+        occurrence_dates = []
+        current_date = start_date
+
+        # Determine the interval between lessons
+        if self.frequency == 'once a week':
+            delta = timedelta(weeks=1)
+        elif self.frequency == 'once per fortnight':
+            delta = timedelta(weeks=2)
+        else:
+            return []
+
+        # Generate dates until the end of the term
+        while current_date <= end_date:
+            occurrence_dates.append(current_date)
+            current_date += delta
+
+        return occurrence_dates
+
+    def calculate_lesson_total(self):
+        # Calculate the total cost of this lesson over the term
+        price_per_lesson = self.get_price()
+        if self.frequency == 'once a week':
+            num_lessons = 13  # 13 weeks in a term
+        elif self.frequency == 'once per fortnight':
+            num_lessons = 7   # Approximately 7 lessons in a term
+        else:
+            num_lessons = 0   # Default to 0 if frequency is unknown
+        return price_per_lesson * num_lessons
 
     def __str__(self):
         return f"Lesson {self.id} on {self.date} at {self.time}"
@@ -161,3 +192,25 @@ class StudentRequest(models.Model):
     duration = models.IntegerField() 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    
+class Invoice(models.Model):
+    id = models.AutoField(primary_key=True)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
+    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
+    lessons = models.ManyToManyField(Lesson, related_name="invoices")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid = models.BooleanField(default=False)
+    date_issued = models.DateField(auto_now_add=True)
+    date_paid = models.DateField(null=True, blank=True)
+
+    def calculate_total_amount(self):
+        total = 0
+        for lesson in self.lessons.all():
+            lesson_total = lesson.calculate_lesson_total()
+            total += lesson_total
+        self.total_amount = total
+        self.save()
+
+    def __str__(self):
+        status = "Paid" if self.paid else "Unpaid"
+        return f"Invoice {self.id} ({status})"
