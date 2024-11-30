@@ -17,37 +17,59 @@
 
     <hr>
 
+    <!-- Display messages -->
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Display form errors -->
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field in form %}
+                    {% if field.errors %}
+                        <li><strong>{{ field.label }}:</strong> {{ field.errors|join:", " }}</li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
     <form method="post">
         {% csrf_token %}
 
         <!-- Request Status Field -->
         <div class="form-group">
             <label for="id_status">Request Status</label>
-            {{ form.status }}
+            {{ form.status|add_class:"form-control" }}
         </div>
 
         <!-- Tutor Selection Field -->
         <div class="form-group">
             <label for="id_tutor">Select Tutor</label>
-            {{ form.tutor }}
+            {{ form.tutor|add_class:"form-control" }}
         </div>
 
         <!-- First Lesson Date Field -->
         <div class="form-group">
             <label for="id_first_lesson_date">First Lesson Date</label>
-            {{ form.first_lesson_date }}
+            {{ form.first_lesson_date|add_class:"form-control" }}
         </div>
 
         <!-- First Lesson Time Field -->
         <div class="form-group">
             <label for="id_first_lesson_time">First Lesson Time</label>
-            {{ form.first_lesson_time }}
+            {{ form.first_lesson_time|add_class:"form-control" }}
         </div>
 
         <!-- Details Field -->
         <div class="form-group">
             <label for="id_details">Details</label>
-            {{ form.details }}
+            {{ form.details|add_class:"form-control" }}
         </div>
 
         <!-- Submit Button -->
@@ -56,5 +78,5 @@
 
     <hr>
 
-    <a href="{% url 'admin_dashboard' %}">Back to Dashboard</a>
+    <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
 {% endblock %}
