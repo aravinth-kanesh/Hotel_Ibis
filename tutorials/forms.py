@@ -102,9 +102,10 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
 
     def save(self, commit=True):
         """Create a new user."""
+        role = self.cleaned_data.get('role')
+        if role not in ['tutor', 'student']:
+            raise ValueError("Invalid role selected.")
 
-        user =super().save(commit=False)
-        
         user = User.objects.create_user(
             self.cleaned_data.get('username'),
             first_name=self.cleaned_data.get('first_name'),
@@ -112,10 +113,10 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             email=self.cleaned_data.get('email'),
             password=self.cleaned_data.get('new_password'),
         )
-        role = self.cleaned_data.get('role')
-        if role not in ['tutor', 'student']:
-            raise ValueError("Invalid role selected.")
-        user.role = role
+    
+        if hasattr(user, 'role'):
+            user.role = role
+
         if commit:
             user.save()
         return user
@@ -131,9 +132,18 @@ class StudentRequestForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'placeholder': 'Enter any other requirements here.'}),
             'time': forms.TimeInput(attrs={'type': 'time'}),
             'venue': forms.TextInput(attrs={'placeholder': 'Enter venue address'}),
+            'duration': forms.NumberInput(attrs={
+                'placeholder': 'Enter number of minutes',
+                'class': 'form-control',
+            }),
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+        def clean(self):
+            value = self.cleaned_data['duration']
+            if value is None and value <= 0:
+                raise forms.ValidationError("Invalid duration.")
+            return value
 
 class MessageForm (forms.ModelForm):
     recipient = forms.CharField(
@@ -164,7 +174,10 @@ class MessageForm (forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if previous_message:
-            self.fields['recipient'].widget.attrs['placeholder'] = previous_message.sender.username
+            if 'recipient' in self.fields:
+                self.fields['recipient'].widget.attrs.update({
+                    'placeholder': previous_message.sender.username
+            })
         
     def clean_recipient(self):
         """fuzzy matching for the recipient"""
