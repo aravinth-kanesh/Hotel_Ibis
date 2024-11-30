@@ -40,7 +40,6 @@ class User(AbstractUser):
             group, _ = Group.objects.get_or_create(name='Students')
             self.groups.add(group)
 
-    is_active = models.BooleanField(default=True)
 
 
     def __str__(self):
@@ -83,19 +82,18 @@ class Language(models.Model):
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
-    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
 
     def __str__(self):
-        return f"Tutor: {self.UserID.full_name}"
+        return f"Tutor: {self.user.full_name}"
     
 class Student(models.Model):
     """Model for student"""
     id = models.AutoField(primary_key=True)
-    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
-    paidInvoice = models.BooleanField(default=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
-        return f"Student: {self.UserID.full_name}"
+        return f"Student: {self.user.userna}"
 
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
@@ -138,7 +136,8 @@ class Lesson(models.Model):
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
 
     def __str__(self):
-        return f"Lesson {self.id} on {self.date} at {self.time}"
+        return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
+    
 
 # for handling student reqs
 class StudentRequest(models.Model):
@@ -152,14 +151,39 @@ class StudentRequest(models.Model):
         ('may-july', 'May-July'),
     ]
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name ="classrequest")
-    language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name = "classrequest")
+    language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name = "classrequest" )
     description = models.TextField()
     is_allocated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     time = models.TimeField()
-    venue = models.CharField(max_length=255)
+    venue = models.TextField()
     duration = models.IntegerField() 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    def __str__(self):
+        return f"Request {self.id} by {self.student.user.username} for {self.language.name}"
     
+class Message (models.Model):
+    recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
+    sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,  related_name="sent_messages", db_index=True)
+    subject = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    #if object is reply
+    previous_message = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name="replies"
+    )
+    #replies to the object
+    reply = models.ForeignKey(
+        'self', on_delete=models.SET_NULL, null=True, blank=True, related_name="replied_by"
+    )
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+        models.Index(fields=["sender", "created_at"]),  
+        models.Index(fields=["recipient"]),            
+        models.Index(fields=["created_at"]),          
+    ]
 
+    def __str__(self):
+        return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"

@@ -1,31 +1,43 @@
-{% extends 'base.html' %}
+{% extends 'base_content.html' %}
 
 {% block content %}
-<h2>My Class Requests</h2>
-<table class="table">
-    <thead>
-        <tr>
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+      <h1>My Class Requests</h1>
+      <table class="table table-striped">
+        <thead>
+          <tr>
             <th>Language</th>
             <th>Description</th>
             <th>Time</th>
             <th>Venue</th>
             <th>Status</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for request in requests %}
-        <tr>
+          </tr>
+        </thead>
+        <tbody>
+          {% for request in requests %}
+          <tr>
             <td>{{ request.language.name }}</td>
             <td>{{ request.description }}</td>
             <td>{{ request.time }}</td>
             <td>{{ request.venue }}</td>
-            <td>{{ "Allocated" if request.is_allocated else "Pending" }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="6">No class requests found.</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            <td>
+              {% if request.is_allocated %}
+                Allocated
+              {% else %}
+                Pending
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center">No class requests found.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
 {% endblock %}
