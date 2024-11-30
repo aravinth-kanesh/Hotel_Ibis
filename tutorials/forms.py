@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest, Lesson
+from .models import User, StudentRequest, Lesson, Tutor, Language, Lesson
 
 
 class LogInForm(forms.Form):
@@ -159,22 +159,41 @@ class StudentRequestProcessingForm(forms.ModelForm):
     # Details field for admin to explain why the request was denied or for any necessary notes
     details = forms.CharField(
         label='Details',
-        required=False, 
+        required=False,
         widget=forms.Textarea(attrs={
             'placeholder': 'Provide extra details.',
             'rows': 3,
         })
     )
 
+    # Tutor field (using ModelChoiceField to allow selection of a tutor)
+    tutor = forms.ModelChoiceField(
+        queryset=Tutor.objects.all(),
+        label="Select Tutor",
+        widget=forms.Select(attrs={'placeholder': 'Select a tutor'})
+    )
+
+    # Fields for first lesson date and time
+    first_lesson_date = forms.DateField(
+        label="First Lesson Date",
+        required=False,
+        widget=forms.SelectDateWidget()
+    )
+    first_lesson_time = forms.TimeField(
+        label="First Lesson Time",
+        required=False,
+        widget=forms.TimeInput(attrs={'type': 'time'})
+    )
+
     class Meta:
-        model = Lesson 
+        model = Lesson
+        fields = ['status', 'details', 'tutor', 'first_lesson_date', 'first_lesson_time']
 
-        fields = ['status', 'details']
+    def __init__(self, *args, **kwargs):
+        """Initialise the form and dynamically filter tutors."""
 
-        widgets = {
-            'status': forms.RadioSelect(),
-            'details': forms.Textarea(attrs={'placeholder': 'Provide extra details.'}),
-        }
+        kwargs.pop('student_request', None)
+        super().__init__(*args, **kwargs)
 
     def clean(self):
         """Validate the form fields."""
@@ -184,13 +203,25 @@ class StudentRequestProcessingForm(forms.ModelForm):
         # Retrieve cleaned data
         status = self.cleaned_data.get('status')
         details = self.cleaned_data.get('details')
+        tutor = self.cleaned_data.get('tutor')
+        first_lesson_date = self.cleaned_data.get('first_lesson_date')
+        first_lesson_time = self.cleaned_data.get('first_lesson_time')
 
         # Enforce details for denied lessons
         if status == 'denied' and not details:
             self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
 
+        # Enforce tutor, date, and time for accepted lessons
+        if status == 'accepted':
+            if not tutor:
+                self.add_error('tutor', 'You must select a tutor for accepted requests.')
+            if not first_lesson_date:
+                self.add_error('first_lesson_date', 'You must provide the first lesson date.')
+            if not first_lesson_time:
+                self.add_error('first_lesson_time', 'You must provide the first lesson time.')
+
         return self.cleaned_data
-    
+
 
 class LessonUpdateForm(forms.ModelForm):
     """Form to update lesson date/time or cancel the lesson."""
