@@ -168,7 +168,7 @@ class StudentRequestProcessingForm(forms.ModelForm):
 
     # Tutor field (using ModelChoiceField to allow selection of a tutor)
     tutor = forms.ModelChoiceField(
-        queryset=Tutor.objects.all(),
+        queryset=Tutor.objects.all(), 
         label="Select Tutor",
         widget=forms.Select(attrs={'placeholder': 'Select a tutor'})
     )
@@ -191,9 +191,16 @@ class StudentRequestProcessingForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         """Initialise the form and dynamically filter tutors."""
-
-        kwargs.pop('student_request', None)
+        
+        student_request = kwargs.pop('student_request', None)  # Extract student_request from kwargs
         super().__init__(*args, **kwargs)
+
+        if student_request:
+            # Get the requested language from the student request
+            requested_language = student_request.language  # Assuming the student_request has a 'language' field
+
+            # Filter tutors by the requested language (assuming Tutor has a ManyToManyField to Language)
+            self.fields['tutor'].queryset = Tutor.objects.filter(languages=requested_language)
 
     def clean(self):
         """Validate the form fields."""
