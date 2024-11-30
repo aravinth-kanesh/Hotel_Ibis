@@ -92,9 +92,8 @@ class Student(models.Model):
     """Model for student"""
     id = models.AutoField(primary_key=True)
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
-    paidInvoice = models.BooleanField(default=False)
     def __str__(self):
-        return f"Student: {self.UserID.full_name}"
+        return f"Student: {self.UserID.username}"
 
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
@@ -137,7 +136,8 @@ class Lesson(models.Model):
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
 
     def __str__(self):
-        return f"Lesson {self.id} on {self.date} at {self.time}"
+        return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
+    
 
 # for handling student reqs
 class StudentRequest(models.Model):

@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.contrib import admin
 from .models import User, Language, Tutor, Student, Invoice, Lesson, Message
 # Register your models here.
 
@@ -34,7 +33,7 @@ class TutorAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'UserID', 'paidInvoice') 
+    list_display = ('id', 'UserID') 
     search_fields = ('UserID__username', 'UserID__email')  
     autocomplete_fields = ['UserID']  
 
