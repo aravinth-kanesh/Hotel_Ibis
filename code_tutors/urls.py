@@ -41,7 +41,7 @@ urlpatterns = [
     path('messages/<int:pk>/', views.MessageDetailView.as_view(), name='message_detail'),
     # lesson request processing
     path('process-request/<int:request_id>/', views.StudentRequestProcessingView.as_view(), name='process_request'),
-    path('lesson-update/<int:lesson_id>/', views.LessonUpdateView.as_view(), name='lesson_update')
+    path('lesson-update/<int:lesson_id>/', views.LessonUpdateView.as_view(), name='lesson_update'),
 
     #dashboards
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),

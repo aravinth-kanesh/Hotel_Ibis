@@ -178,7 +178,7 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
     model = StudentRequest
     form_class = StudentRequestForm
     template_name = 'student_request_form.html'
-    success_url = reverse_lazy('my_requests') 
+    success_url = reverse_lazy('view_request') 
 
     def form_valid(self, form):
         """attach the logged-in student to the form before saving."""
