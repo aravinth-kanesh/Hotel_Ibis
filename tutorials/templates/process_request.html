@@ -7,7 +7,7 @@
         <h3>Original Student Request</h3>
         <p><strong>Student:</strong> {{ request.student.UserID.first_name }} {{ request.student.UserID.last_name }}</p>
         <p><strong>Language:</strong> {{ request.language.name }}</p>
-        <p><strong>Date:</strong> {{ request.date }}</p>
+        <p><strong>Description:</strong> {{ request.description }}</p>
         <p><strong>Time:</strong> {{ request.time }}</p>
         <p><strong>Venue:</strong> {{ request.venue }}</p>
         <p><strong>Duration:</strong> {{ request.duration }} minutes</p>
@@ -20,17 +20,38 @@
     <form method="post">
         {% csrf_token %}
 
+        <!-- Request Status Field -->
         <div class="form-group">
             <label for="id_status">Request Status</label>
-            {{ form.status }}  
+            {{ form.status }}
         </div>
 
+        <!-- Tutor Selection Field -->
+        <div class="form-group">
+            <label for="id_tutor">Select Tutor</label>
+            {{ form.tutor }}
+        </div>
+
+        <!-- First Lesson Date Field -->
+        <div class="form-group">
+            <label for="id_first_lesson_date">First Lesson Date</label>
+            {{ form.first_lesson_date }}
+        </div>
+
+        <!-- First Lesson Time Field -->
+        <div class="form-group">
+            <label for="id_first_lesson_time">First Lesson Time</label>
+            {{ form.first_lesson_time }}
+        </div>
+
+        <!-- Details Field -->
         <div class="form-group">
             <label for="id_details">Details</label>
-            {{ form.details }} 
+            {{ form.details }}
         </div>
 
-        <button type="submit">Submit</button>
+        <!-- Submit Button -->
+        <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 
     <hr>
