@@ -82,18 +82,18 @@ class Language(models.Model):
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
-    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
 
     def __str__(self):
-        return f"Tutor: {self.UserID.full_name}"
+        return f"Tutor: {self.user.full_name}"
     
 class Student(models.Model):
     """Model for student"""
     id = models.AutoField(primary_key=True)
-    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
-        return f"Student: {self.UserID.username}"
+        return f"Student: {self.user.userna}"
 
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
@@ -160,6 +160,8 @@ class StudentRequest(models.Model):
     duration = models.IntegerField() 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    def __str__(self):
+        return f"Request {self.id} by {self.student.user.username} for {self.language.name}"
     
 class Message (models.Model):
     recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
