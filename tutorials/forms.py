@@ -122,6 +122,7 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         return user
 
 class StudentRequestForm(forms.ModelForm):
+    is_allocated = False
     class Meta:
         model = StudentRequest
         fields = [
@@ -139,9 +140,9 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
-        def clean(self):
+        def clean_duration(self):
             value = self.cleaned_data['duration']
-            if value is None and value <= 0:
+            if value is None or value <= 0:
                 raise forms.ValidationError("Invalid duration.")
             return value
 
@@ -169,6 +170,7 @@ class MessageForm (forms.ModelForm):
             }),
         }
     def __init__(self, *args, **kwargs):
+        """Adds intended recipient into placeholder for QOl"""
         
         previous_message = kwargs.pop('previous_message', None)
         super().__init__(*args, **kwargs)
@@ -180,7 +182,7 @@ class MessageForm (forms.ModelForm):
             })
         
     def clean_recipient(self):
-        """fuzzy matching for the recipient"""
+        """Fuzzy matching for the recipient"""
         username_input = self.cleaned_data['recipient']
 
         try:
@@ -190,7 +192,7 @@ class MessageForm (forms.ModelForm):
 
         return recipient_user
     def save(self, commit=True):
-        """overide save to handle recipient and reply """
+        """Overide save to handle recipient and reply """
         message = super().save(commit=False)
     
         message.recipient = self.cleaned_data['recipient']

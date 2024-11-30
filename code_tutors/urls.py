@@ -31,6 +31,7 @@ urlpatterns = [
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     # student request form
     path('request/create/', views.StudentRequestCreateView.as_view(), name='create_request'),
+    path('request/view/', views.StudentRequestListView.as_view(), name='view_request'),
 
 
     # messages

@@ -151,7 +151,7 @@ class StudentRequest(models.Model):
         ('may-july', 'May-July'),
     ]
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name ="classrequest")
-    language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name = "classrequest")
+    language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name = "classrequest" )
     description = models.TextField()
     is_allocated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
