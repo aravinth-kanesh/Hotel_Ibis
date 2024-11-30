@@ -19,7 +19,6 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path
 from tutorials import views
-from django.http import HttpResponse
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,7 +29,15 @@ urlpatterns = [
     path('password/', views.PasswordView.as_view(), name='password'),
     path('profile/', views.ProfileUpdateView.as_view(), name='profile'),
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
+    # student request form
     path('request/create/', views.StudentRequestCreateView.as_view(), name='create_request'),
-    path('test/', lambda request: HttpResponse("Test page")),
+    path('request/view/', views.StudentRequestListView.as_view(), name='view_request'),
+
+
+    # messages
+    path('message/send/', views.SendMessageView.as_view(), name='send_message'),
+    path('message/send/<int:reply_id>/', views.SendMessageView.as_view(), name='reply_message'),
+    path('messages/', views.AllMessagesView.as_view(), name='all_messages'),
+    path('messages/<int:pk>/', views.MessageDetailView.as_view(), name='message_detail'),
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

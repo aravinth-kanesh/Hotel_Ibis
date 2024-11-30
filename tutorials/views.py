@@ -2,13 +2,14 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
-from django.shortcuts import redirect, render
+from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 #
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
+from django.views.generic import TemplateView, DetailView
 from django.views.generic.list import ListView
 #
 from django.views.generic.edit import FormView, UpdateView
@@ -16,8 +17,8 @@ from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
 # 
-from .forms import StudentRequestForm
-from .models import StudentRequest, Student
+from .forms import StudentRequestForm, MessageForm
+from .models import StudentRequest, Student, Message
 
 
 @login_required
@@ -169,10 +170,10 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         """attach the logged-in student to the form before saving."""
-        # try:
-        #     student = self.request.user.student_profile  
-        # except Student.DoesNotExist:
-        #     return redirect('error_page')
+        try:
+            student = self.request.user.student_profile  
+        except Student.DoesNotExist:
+            return redirect('error_page')
         form.instance.created_at = timezone.now()
         form.instance.student = student  
         return super().form_valid(form)
@@ -191,3 +192,72 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             return StudentRequest.objects.filter(student=student).order_by('-created_at')
         except Student.DoesNotExist:
             return StudentRequest.objects.none() 
+
+class SendMessageView(LoginRequiredMixin, CreateView):
+    model = Message
+    form_class = MessageForm
+    template_name = 'send_message.html'
+    success_url = reverse_lazy('all_messages')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        reply_id = self.kwargs.get('reply_id')
+        if reply_id:
+            reply_message = get_object_or_404(Message, pk=reply_id)
+            context['reply_message'] = reply_message
+        return context
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        reply_id = self.kwargs.get('reply_id')
+        if reply_id:
+            reply = get_object_or_404(Message, pk=reply_id)
+            kwargs['previous_message'] = reply
+        return kwargs
+
+    def form_valid(self, form):
+        
+        form.instance.sender = self.request.user
+        messages.success(self.request, "Message sent successfully!")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        
+        messages.error(self.request, "Failed to send the message. Please correct the errors.")
+        return super().form_invalid(form)
+
+
+class AllMessagesView(LoginRequiredMixin, TemplateView):
+    """display all sent and received messages."""
+    template_name = 'all_messages.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        context['sent_messages'] = user.sent_messages.all().order_by('-created_at')
+        context['received_messages'] = user.received_messages.all().order_by('-created_at')
+        
+        return context
+
+class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """ single message """
+    model = Message
+    template_name = 'message_detail.html'
+    context_object_name = 'message'
+
+    def test_func(self):
+        """ensure the user is authorized"""
+        message = self.get_object()
+        return self.request.user == message.sender or self.request.user == message.recipient
+    def get_context_data(self, **kwargs):
+        """Add previous message, next message (reply), and reply URL to the context."""
+        context = super().get_context_data(**kwargs)
+        message = self.get_object()
+
+        
+        context['previous_message'] = message.previous_message 
+        context['next_message'] = message.reply
+
+        
+        context['reply_url'] = reverse('reply_message', kwargs={'reply_id': message.id})
+
+        return context
