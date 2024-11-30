@@ -1,4 +1,5 @@
 """Forms for the tutorials app."""
+from datetime import datetime, timedelta
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
@@ -244,12 +245,12 @@ class LessonUpdateForm(forms.ModelForm):
     new_date = forms.DateField(
         label="New Date", 
         required=False, 
-        widget=forms.SelectDateWidget()
+        widget=forms.SelectDateWidget(attrs={'class': 'form-control'})
     )
     new_time = forms.TimeField(
         label="New Time", 
         required=False, 
-        widget=forms.TimeInput(attrs={'type': 'time'})
+        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'})
     )
     
     class Meta:
@@ -257,8 +258,7 @@ class LessonUpdateForm(forms.ModelForm):
         fields = ['cancel_lesson', 'new_date', 'new_time']
 
     def __init__(self, *args, **kwargs):
-        """Initialise the form and pre-fill date and time."""
-
+        """Initialize the form and pre-fill date and time."""
         instance = kwargs.get('instance', None)
         super().__init__(*args, **kwargs)
 
@@ -266,10 +266,9 @@ class LessonUpdateForm(forms.ModelForm):
             # Pre-fill fields with original lesson data
             self.fields['new_date'].initial = instance.date
             self.fields['new_time'].initial = instance.time
-    
+
     def clean(self):
         """Custom validation to check if either cancel_lesson is selected or new_date & new_time are provided."""
-
         cleaned_data = super().clean()
         
         cancel_lesson = cleaned_data.get('cancel_lesson')
@@ -280,17 +279,58 @@ class LessonUpdateForm(forms.ModelForm):
         if cancel_lesson:
             return cleaned_data
 
-        # Check if the date or time has been changed
-        if self.instance:
-            if new_date == self.instance.date and new_time == self.instance.time:
-                raise forms.ValidationError(
-                    "You must change the date or time to update the lesson details."
-                )
-
         # Ensure new_date and/or new_time are provided if not cancelling
         if not new_date or not new_time:
-            raise forms.ValidationError(
-                "New date and/or new time are required when cancelling is not selected."
-            )
+            raise forms.ValidationError("New date and/or new time are required when cancelling is not selected.")
+
+        # If the date or time has not changed, raise validation error
+        if new_date == self.instance.date and new_time == self.instance.time:
+            raise forms.ValidationError("You must change the date or time to update the lesson details.")
+
+        # Convert new date and time to datetime objects
+        new_start_datetime = datetime.combine(new_date, new_time)
+        new_end_datetime = new_start_datetime + timedelta(minutes=self.instance.duration)  
+
+        # Check if there are any conflicts with the student's existing lessons
+        student_conflict = Lesson.objects.filter(
+            student=self.instance.student
+        ).exclude(id=self.instance.id).filter(
+            date=new_date
+        )
+
+        # Check if there are any conflicts with the tutor's existing lessons
+        tutor_conflict = Lesson.objects.filter(
+            tutor=self.instance.tutor  
+        ).exclude(id=self.instance.id).filter(
+            date=new_date
+        )
+
+        # Check for overlap conditions with the student's timetable
+        for existing_lesson in student_conflict:
+            existing_start_datetime = datetime.combine(existing_lesson.date, existing_lesson.time)
+            existing_end_datetime = existing_start_datetime + timedelta(minutes=existing_lesson.duration)
+
+            # Check for overlap conditions with the student's timetable
+            if (
+                (new_start_datetime < existing_end_datetime and new_end_datetime > existing_start_datetime and new_end_datetime < existing_end_datetime) or
+                (new_start_datetime < existing_start_datetime and new_end_datetime > existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime)
+            ):
+                raise forms.ValidationError("The student already has a lesson scheduled that conflicts with the new date and time.")
+
+        # Check for overlap conditions with the tutor's timetable
+        for existing_lesson in tutor_conflict:
+            existing_start_datetime = datetime.combine(existing_lesson.date, existing_lesson.time)
+            existing_end_datetime = existing_start_datetime + timedelta(minutes=existing_lesson.duration)
+
+            # Check for overlap conditions with the tutor's timetable
+            if (
+                (new_start_datetime < existing_end_datetime and new_end_datetime > existing_start_datetime and new_end_datetime < existing_end_datetime) or
+                (new_start_datetime < existing_start_datetime and new_end_datetime > existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime)
+            ):
+                raise forms.ValidationError("The tutor already has a lesson scheduled that conflicts with the new date and time.")
 
         return cleaned_data

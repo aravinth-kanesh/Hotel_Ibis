@@ -1,3 +1,4 @@
+from datetime import datetime
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, get_user_model
@@ -213,7 +214,9 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         """Display the form to process a specific student request."""
 
         student_request = get_object_or_404(StudentRequest, id=request_id)
-        form = StudentRequestProcessingForm(instance=student_request)
+        
+        # Pass the student request instance to the form for dynamic filtering
+        form = StudentRequestProcessingForm(student_request=student_request)
 
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
 
@@ -221,53 +224,50 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         """Handle form submission for processing the student request."""
 
         student_request = get_object_or_404(StudentRequest, id=request_id)
-        form = StudentRequestProcessingForm(request.POST, instance=student_request)
+        
+        # Pass the student request instance for validation and filtering
+        form = StudentRequestProcessingForm(request.POST, student_request=student_request)
 
         if form.is_valid():
             status = form.cleaned_data['status']
-            notes = form.cleaned_data.get('details', '')  # Get rejection notes if any
+            details = form.cleaned_data.get('details', '')  # Optional notes
+            tutor = form.cleaned_data.get('tutor')  # Selected tutor
+            first_lesson_date = form.cleaned_data.get('first_lesson_date')
+            first_lesson_time = form.cleaned_data.get('first_lesson_time')
 
-            # Temporary. Will be removed when entire functionality is implemented
-            self.user_tutor = get_user_model().objects.create_user(
-                username='@johnny_does',
-                first_name='Johnny',
-                last_name='Does',
-                email='johnny.does@example.com',
-                password='password123',
-                role='tutor'
-            )
-            self.tutor = Tutor.objects.create(UserID=self.user_tutor)
-
-            # Handle the request acceptance
+            # If request is accepted
             if status == 'accepted':
-                # Create a lesson from the student request details
+                # Combine date and time for the lesson
+                first_lesson_datetime = datetime.combine(first_lesson_date, first_lesson_time)
+
+                # Create a new lesson
                 Lesson.objects.create(
                     student=student_request.student,
-                    tutor=self.tutor,
+                    tutor=tutor,
                     language=student_request.language,
-                    time=student_request.time,
-                    date='2024-12-01',
+                    time=first_lesson_datetime.time(),
+                    date=first_lesson_datetime.date(),
                     venue=student_request.venue,
                     duration=student_request.duration,
                     frequency=student_request.frequency,
-                    term=student_request.term
+                    term=student_request.term,
                 )
 
                 student_request.is_allocated = True
-                messages.success(request, f"Request accepted! A lesson has been scheduled. {notes}")
+                messages.success(request, f"Request accepted! A lesson has been scheduled. {details}")
 
-            # Handle the request rejection
+            # If request is denied
             elif status == 'denied':
-                messages.warning(request, f"Request rejected. {notes}")
+                student_request.is_allocated = False
+                messages.warning(request, f"Request rejected. {details}")
 
-            # Save the student request
+            # Save the updated student request
             student_request.save()
 
             return redirect('admin_dashboard')  # Redirect to the admin dashboard
 
-        # If form is invalid, show an error message and re-render the form
+        # If the form is invalid, re-render the form with errors
         messages.error(request, "There was an error processing the request. Please try again.")
-
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
     
     
@@ -279,8 +279,8 @@ class LessonUpdateView(LoginRequiredMixin, View):
         
         lesson = get_object_or_404(Lesson, id=lesson_id)
 
-        # Pass the lesson instance to the form to pre-fill fields
-        form = LessonUpdateForm(lesson_instance=lesson)
+        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
+        form = LessonUpdateForm(instance=lesson)
 
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
 
@@ -289,8 +289,8 @@ class LessonUpdateView(LoginRequiredMixin, View):
 
         lesson = get_object_or_404(Lesson, id=lesson_id)
 
-        # Pass the lesson instance to the form for validation
-        form = LessonUpdateForm(request.POST, lesson_instance=lesson)
+        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
+        form = LessonUpdateForm(request.POST, instance=lesson)
 
         if form.is_valid():
             cancel_lesson = form.cleaned_data.get('cancel_lesson')
