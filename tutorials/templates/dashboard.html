@@ -2,55 +2,102 @@
   <div class="row">
       <!-- Sidebar -->
       <div class="col-md-2 sidebar">
-          <a href="#""student_dashboard.html">Student</a>
-          <a href="#""tutor_dashboard.html">Tutor</a>
-          <a href="#""admin_dashboard.html">Admin</a>
+          <a href="student_dashboard.html"><i class="fas fa-user-graduate"></i> Student</a>
+          <a href="tutor_dashboard.html"><i class="fas fa-chalkboard-teacher"></i> Tutor</a>
+          <a href="admin_dashboard.html"><i class="fas fa-cogs"></i> Admin</a>
       </div>
 
       <!-- Main Content -->
-      <div class="col-md-10 offset-md-2">
-          <h1> Welcome to the dashboard </h1>
+      <div class="col-md-10 offset-md-2 main-content">
+          <h1> Welcome to the Dashboard </h1>
       </div>
   </div>
 </div>
 
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+
 <style>
-/* The Sidebar Menu */
+/* General Styles */
+body {
+  font-family: 'Roboto', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f4f4;
+  color: #333;
+}
+
+/* Sidebar Styling */
 .sidebar {
-  width: 180px;
+  width: 200px;
   position: fixed;
   z-index: 1;
   top: 0;
   left: 0;
-  background-color: #111;
-  overflow-x: hidden;
-  padding-top: 30px;
-  height: 100%; 
+  background: linear-gradient(180deg, #009688, #00796b);
+  padding-top: 40px;
+  height: 100%;
+  box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
 }
 
 .sidebar a {
-  display: block;
+  display: flex;
+  align-items: center;
   color: white;
-  padding: 8px 16px;
+  padding: 12px 20px;
+  margin-bottom: 12px;
+  text-decoration: none;
+  border-radius: 5px;
+  font-size: 16px;
+  transition: all 0.3s ease-in-out;
 }
 
-/* Change color of links when mouse hovers over */
+/* Add icons next to links */
+.sidebar a i {
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+/* Sidebar link hover effect */
 .sidebar a:hover {
+  background-color: #004d40;
   color: #f1f1f1;
+  transform: translateX(10px); 
 }
 
-body {
-  margin-left: 180px;
+.sidebar a.active {
+  background-color: #0288d1;
+  color: white;
 }
 
+/* Main Content Styling */
+.main-content {
+  margin-left: 220px;
+  padding: 30px;
+}
+
+.main-content h1 {
+  font-size: 36px;
+  font-weight: 600;
+  color: #333;
+}
+
+/* Responsive Sidebar */
 @media (max-width: 768px) {
   .sidebar {
-      width: 100%;
-      height: auto;
-      position: relative;
+    width: 100%;
+    height: auto;
+    position: relative;
+    box-shadow: none;
+    border-radius: 0;
+    padding-top: 20px;
   }
-  body {
-      margin-left: 0;
+  .sidebar a {
+    padding: 10px 15px;
+  }
+  .main-content {
+    margin-left: 0;
   }
 }
 </style>
