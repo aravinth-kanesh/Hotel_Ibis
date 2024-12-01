@@ -7,6 +7,7 @@ from django.utils import timezone
 
 class StudentRequestProcessingViewTestCase(TestCase):
     """Test suite for the StudentRequestProcessingView where the admin user processes student requests."""
+    """Commit test"""
 
     def setUp(self):
         # Create an admin 

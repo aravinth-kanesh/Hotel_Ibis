@@ -211,6 +211,8 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
 class StudentRequestProcessingView(LoginRequiredMixin, View):
     # Define term ranges and frequency-to-days mapping as class attributes
 
+    """Commit test"""
+
     TERM_RANGES = {
         'sept-christmas': (date(2024, 9, 1), date(2024, 12, 25)),
         'jan-easter': (date(2025, 1, 1), date(2025, 4, 12)),
