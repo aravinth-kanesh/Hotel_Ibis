@@ -1,94 +1,164 @@
 {% extends 'base_content.html' %}
 
 {% block content %}
-    <h1>Update Lesson #{{ lesson.id }}</h1>
+    <div class="container">
+        <h1 class="mb-4 text-center">Update Lesson Details</h1>
 
-    <div class="original-lesson">
-        <h3>Original Lesson Details</h3>
-        <p><strong>Student:</strong> {{ lesson.student.UserID.first_name }} {{ lesson.student.UserID.last_name }}</p>
-        <p><strong>Tutor:</strong> {{ lesson.tutor.UserID.first_name }} {{ lesson.tutor.UserID.last_name }}</p>
-        <p><strong>Language:</strong> {{ lesson.language.name }}</p>
-        <p><strong>Date:</strong> {{ lesson.date }}</p>
-        <p><strong>Time:</strong> {{ lesson.time }}</p>
-        <p><strong>Venue:</strong> {{ lesson.venue }}</p>
-        <p><strong>Duration:</strong> {{ lesson.duration }} minutes</p>
-        <p><strong>Frequency:</strong> {{ lesson.frequency }}</p>
-        <p><strong>Term:</strong> {{ lesson.term }}</p>
+        <!-- Card for Original Lesson Details -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="mb-4">Lesson Details</h3>
+                <table class="table table-bordered">
+                    <tr>
+                        <th>Student</th>
+                        <td>{{ lesson.student.UserID.first_name }} {{ lesson.student.UserID.last_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Tutor</th>
+                        <td>{{ lesson.tutor.UserID.first_name }} {{ lesson.tutor.UserID.last_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Language</th>
+                        <td>{{ lesson.language.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date</th>
+                        <td>{{ lesson.date }}</td>
+                    </tr>
+                    <tr>
+                        <th>Time</th>
+                        <td>{{ lesson.time }}</td>
+                    </tr>
+                    <tr>
+                        <th>Venue</th>
+                        <td>{{ lesson.venue }}</td>
+                    </tr>
+                    <tr>
+                        <th>Duration</th>
+                        <td>{{ lesson.duration }} minutes</td>
+                    </tr>
+                    <tr>
+                        <th>Frequency</th>
+                        <td>{{ lesson.frequency }}</td>
+                    </tr>
+                    <tr>
+                        <th>Term</th>
+                        <td>{{ lesson.term }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Display form-wide errors -->
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-4">
+                <ul>
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <!-- Card for Updating Lesson -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <!-- Cancel Lesson Checkbox -->
+                    <div class="form-group mb-4 d-flex align-items-center">
+                        <label for="id_cancel_lesson" class="font-weight-bold h4 mb-0 mr-3">Cancel Lesson</label>
+                        {{ form.cancel_lesson }}
+                    </div>
+
+                    <!-- New Date Field -->
+                    <div id="new_date_field" class="form-group mb-3">
+                        <label for="id_new_date" class="font-weight-bold h4">New Date</label>
+                        <div class="mt-2">
+                            {{ form.new_date }}
+                        </div>
+                        {% if form.new_date.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.new_date.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- New Time Field -->
+                    <div id="new_time_field" class="form-group mb-4">
+                        <label for="id_new_time" class="font-weight-bold h4">New Time</label>
+                        <div class="mt-2">
+                            {{ form.new_time }}
+                        </div>
+                        {% if form.new_time.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.new_time.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="form-group mb-0">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Back to Dashboard Link -->
+        <div class="mb-4">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
     </div>
 
-    <hr>
-
-    <!-- Display form-wide errors -->
-    {% if form.non_field_errors %}
-        <div class="alert alert-danger">
-            <ul>
-                {% for error in form.non_field_errors %}
-                    <li>{{ error }}</li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% endif %}
-
-    <form method="post">
-        {% csrf_token %}
-
-        <div class="form-group">
-            <label for="id_cancel_lesson">Cancel Lesson</label>
-            {{ form.cancel_lesson|add_class:"form-control" }}  
-        </div>
-
-        <div id="new_date_field" class="form-group">
-            <label for="id_new_date">New Date</label>
-            {{ form.new_date|add_class:"form-control" }}
-            {% if form.new_date.errors %}
-                <ul class="errorlist">
-                    {% for error in form.new_date.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-
-        <div id="new_time_field" class="form-group">
-            <label for="id_new_time">New Time</label>
-            {{ form.new_time|add_class:"form-control" }}
-            {% if form.new_time.errors %}
-                <ul class="errorlist">
-                    {% for error in form.new_time.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                </ul>
-            {% endif %}
-        </div>
-
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-
-    <hr>
-
-    <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
-
-    <script>
-        // JavaScript to toggle visibility of new date and new time fields based on cancel_lesson checkbox
-        const cancelLessonCheckbox = document.getElementById('id_cancel_lesson');
-        const newDateField = document.getElementById('new_date_field');
-        const newTimeField = document.getElementById('new_time_field');
-
-        // Function to show/hide new date and time fields based on checkbox
-        function toggleNewDateTimeFields() {
-            if (cancelLessonCheckbox.checked) {
-                newDateField.style.display = 'none';
-                newTimeField.style.display = 'none';
-            } else {
-                newDateField.style.display = 'block';
-                newTimeField.style.display = 'block';
-            }
+    <style>
+        #id_cancel_lesson {
+            transform: scale(1.5); 
+            margin-left: 10px; 
         }
 
-        // Add event listener to checkbox to toggle fields visibility
-        cancelLessonCheckbox.addEventListener('change', toggleNewDateTimeFields);
+        .form-group label {
+            font-size: 1.25rem; 
+            margin-bottom: 10px;
+        }
 
-        // Run on page load to set the initial state of visibility
-        document.addEventListener("DOMContentLoaded", toggleNewDateTimeFields);
-    </script>
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group .errorlist {
+            color: red;
+        }
+
+        .form-group .mt-2 {
+            margin-top: 0.5rem;
+        }
+
+        .form-group input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .form-group button {
+            width: auto;
+            display: inline-block;
+        }
+
+        .mb-4 a {
+            display: inline-block;
+            margin: 0 auto;
+        }
+
+        #new_time_field {
+            margin-bottom: 1.5rem; 
+        }
+    </style>
 {% endblock %}
