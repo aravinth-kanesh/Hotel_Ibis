@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest, Student, Tutor, Lesson, Language, Message
+from .models import User, StudentRequest, Student, Tutor, Lesson, Language, Message, TutorAvailability
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -402,3 +402,96 @@ class LessonUpdateForm(forms.ModelForm):
                 raise forms.ValidationError("The tutor already has a lesson scheduled that conflicts with the new date and time.")
 
         return cleaned_data
+
+class TutorAvailabilityForm(forms.ModelForm):
+    class Meta:
+        model = TutorAvailability
+        fields = ['tutor', 'start_time', 'end_time', 'day', 'availability_status']
+        widgets = {
+            'tutor': forms.Select(attrs={'class': 'form-control'}),
+            'day': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'availability_status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+        def clean(self):
+            cleaned_data = super().clean()
+            start_time = cleaned_data.get('start_time')
+            end_time = cleaned_data.get('end_time')
+            day = cleaned_data.get('day')
+            tutor = self.instance.tutor  # Access the tutor instance
+
+            if start_time and end_time and start_time >= end_time:
+                raise forms.ValidationError("Start time must be earlier than end time.")
+            
+            conflicting_availability = TutorAvailability.objects.filter(
+                tutor=tutor,
+                day=day,
+            ).exclude(id=self.instance.id)  # Exclude the current instance for updates
+
+            for availability in conflicting_availability:
+                if (
+                    start_time < availability.end_time and
+                    end_time > availability.start_time
+                ):
+                    raise forms.ValidationError("There is already an overlapping availability request for this time slot.")
+
+        # Check for overlapping availability
+            if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day).exists():
+                raise forms.ValidationError("This time slot is already recorded.")
+            return cleaned_data
+        
+        def save(self, commit=True):
+            instance = super().save(commit=False)
+            if self.initial.get('tutor'):
+                instance.tutor = self.initial['tutor']
+            if commit:
+                instance.save()
+            return instance
+
+class TutorLanguageForm(forms.Form):
+    query = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={'placeholder': 'Type to search or create a new language'}),
+    )
+    existing_language = forms.ModelChoiceField(
+        queryset=Language.objects.none(),
+        required=False,
+        empty_label="Select an existing language",
+    )
+
+    def __init__(self, *args, **kwargs):
+        initial_query = kwargs.pop('initial_query', None)
+        super().__init__(*args, **kwargs)
+        # Dynamically filter the queryset based on the input query
+        if initial_query:
+            self.fields['existing_language'].queryset = Language.objects.filter(name__icontains=initial_query)
+        else:
+            self.fields['existing_language'].queryset = Language.objects.all()
+
+    def save_or_create_language(self):
+        """Handle saving the selected or creating a new language."""
+        query = self.cleaned_data.get('query')
+        existing_language = self.cleaned_data.get('existing_language')
+
+        if existing_language:
+            return existing_language
+        elif query:  # If no existing language is selected, create a new one
+            language, created = Language.objects.get_or_create(name=query)
+            return language
+        return None
+    
+class RemoveLanguageForm(forms.Form):
+    language = forms.ModelChoiceField(
+        queryset=Language.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Select a language to remove",
+    )
+
+    def __init__(self, *args, **kwargs):
+        tutor = kwargs.pop('tutor', None)
+        super().__init__(*args, **kwargs)
+        if tutor:
+            self.fields['language'].queryset = tutor.languages.all()

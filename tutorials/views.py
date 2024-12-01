@@ -1,5 +1,6 @@
 from datetime import date, datetime, time, timedelta
 from django.db.models import Q
+from itertools import count
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, get_user_model
@@ -28,8 +29,8 @@ from tutorials.helpers import login_prohibited
 from django.contrib.auth import get_user_model
 from itertools import chain
 # 
-from .forms import StudentRequestForm, MessageForm, LessonUpdateForm, StudentRequestProcessingForm
-from .models import StudentRequest, Student, Message, Lesson, User, Invoice, Tutor, Lesson, Tutor, Invoice
+from .forms import StudentRequestForm, MessageForm, LessonUpdateForm, StudentRequestProcessingForm , TutorAvailabilityForm, TutorLanguageForm, RemoveLanguageForm
+from .models import StudentRequest, Student, Message, Lesson, User, Invoice, Tutor, Lesson, Tutor, Invoice, TutorAvailability, Language
 from .utils import generate_calendar, LessonCalendar
 from datetime import date, datetime, timedelta
 import calendar
@@ -104,6 +105,18 @@ def dashboard(request):
         })
 
     elif user.role == 'tutor':
+        # try:
+        #     tutor = current_user.tutor_profile
+        #     availabilities = TutorAvailability.objects.filter(tutor=tutor)
+        # except Tutor.DoesNotExist:
+        #     return HttpResponseBadRequest("You are not authorized to view this page")
+
+        # context = {
+        #     'user': current_user,
+        #     'role': user_role,
+        #     'tutor': tutor,
+        #     'availabilities': availabilities,  # Pass availability data to the template
+        # }
         lessons = Lesson.objects.filter(tutor__UserID=user)
         context.update({'lessons': lessons})
 
@@ -394,7 +407,52 @@ def student_invoices_admin(request, student_id):
         'invoices': invoices,
     })
 
+@login_required
+def manage_languages(request):
+    """View to implement autocompleting dropdown and manage languages."""
 
+    if not request.user.is_authenticated or not hasattr(request.user, 'tutor_profile'):
+        messages.warning(request, "You must be a tutor to manage languages.")
+        return redirect(reverse('dashboard'))
+    
+    tutor = request.user.tutor_profile
+    query = request.GET.get('query', '').strip()
+    languages = tutor.languages.all()  
+
+
+    if request.method == "POST" and 'add_language' in request.POST:
+        add_form = TutorLanguageForm(request.POST, initial_query=query)
+        if add_form.is_valid():
+            language = add_form.save_or_create_language()
+            if language:
+                tutor.languages.add(language)
+                messages.success(request, f"{language.name} has been added to your languages.")
+            else:
+                messages.error(request, "Failed to add the language. Please try again.")
+        else:
+            messages.error(request, "Invalid input. Please check your form and try again.")
+    else:
+        add_form = TutorLanguageForm(initial_query=query)
+
+
+    if request.method == "POST" and 'remove_language' in request.POST:
+        remove_form = RemoveLanguageForm(request.POST, tutor=tutor)
+        if remove_form.is_valid():
+            language = remove_form.cleaned_data['language']
+            tutor.languages.remove(language)
+            messages.success(request, f"{language.name} has been removed.")
+            if language.taught_by.count() == 0:
+                language.delete()
+                messages.info(request, f"{language.name} has been deleted as no tutors teach it anymore.")
+        else:
+            messages.error(request, "An error occurred while removing the language.")
+
+    remove_form = RemoveLanguageForm(tutor=tutor)
+
+    return render(request, "manage_languages.html", {
+        'query': query,
+        'languages': languages,
+        'remove_form': remove_form,})
 
 class LoginProhibitedMixin:
     """Mixin that redirects when a user is logged in."""
@@ -857,3 +915,78 @@ class LessonUpdateView(LoginRequiredMixin, View):
         messages.error(request, "There was an error updating the lesson. Please try again.")
 
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
+    
+class TutorAvailabilityView(LoginRequiredMixin, View):
+    """View for tutors to manage availibility requests."""
+    model = TutorAvailability
+    template = 'tutor_availability_request.html'
+
+    def get(self, request, availability_id=None):
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to view this page")
+        
+        # Retrieve the tutor's availability
+        availabilities = TutorAvailability.objects.filter(tutor=tutor)
+
+        # Handle specific actions
+        action = request.GET.get('action')  # Retrieve the action (edit or delete)
+        if action == 'edit' and availability_id:
+            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
+            if availability:
+                form = TutorAvailabilityForm(instance=availability)  # Pre-fill form for editing
+            else:
+                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+        elif action == 'delete' and availability_id:
+            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
+            if availability:
+                availability.delete()
+                return redirect("dashboard")  # Redirect after deletion
+            else:
+                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+        else:
+            form = TutorAvailabilityForm(initial={'tutor': tutor})  # Default form for creating new requests
+
+        # Pass data to the template
+        context = {
+            "tutor": tutor,
+            "availabilities": availabilities,
+            "form": form,
+        }
+        return render(request, self.template, context)
+    
+    def post(self, request, availability_id=None):
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to change tutor times.")
+    
+        if availability_id:
+        # If an ID is provided, retrieve the existing object for editing
+            try:
+                availability = TutorAvailability.objects.get(id=availability_id, tutor=tutor)
+                form = TutorAvailabilityForm(request.POST, instance=availability)
+            except TutorAvailability.DoesNotExist:
+                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+        else:
+        # If no ID is provided, create a new object
+            form = TutorAvailabilityForm(request.POST)
+    
+        if form.is_valid():
+        # Save the form and associate it with the tutor
+            availability = form.save(commit=False)
+            availability.tutor = tutor
+            availability.save()
+            return redirect("dashboard")  # Redirect to the dashboard after submission
+        if not form.is_valid():
+            print(form.errors)
+
+    # If the form is invalid, re-render the page with errors
+        availabilities = TutorAvailability.objects.filter(tutor=tutor)
+        context = {
+            "tutor": tutor,
+            "availabilities": availabilities,
+            "form": form,
+        }
+        return render(request, self.template, context)

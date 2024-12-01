@@ -65,5 +65,11 @@ urlpatterns = [
 
     path('process-request/<int:request_id>/', views.StudentRequestProcessingView.as_view(), name='process_request'),
     path('lesson-update/<int:lesson_id>/', views.LessonUpdateView.as_view(), name='lesson_update')
+    # tutor pages
+    path('manage-languages/', views.manage_languages, name='manage_languages'),
+    path('tutor/manage-availability/', views.TutorAvailabilityView.as_view(), name='tutor_availability_request'),
+    path('tutor/manage-availability/<int:availability_id>/edit', views.TutorAvailabilityView.as_view(), name='edit_tutor_availability'),
+    path('tutor/manage-availability/<int:availability_id>/delete', views.TutorAvailabilityView.as_view(), name='delete_tutor_availability'),
+
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

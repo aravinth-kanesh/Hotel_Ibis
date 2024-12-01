@@ -1,6 +1,7 @@
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from django.forms import ValidationError
 from libgravatar import Gravatar
 from django.contrib.auth.models import BaseUserManager
 from datetime import time  
@@ -77,7 +78,7 @@ class Tutor(models.Model):
     id = models.AutoField(primary_key=True)
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
-
+    
     def __str__(self):
         languages = ", ".join([language.name for language in self.languages.all()])
         print(languages)
@@ -235,3 +236,28 @@ class Invoice(models.Model):
     def __str__(self):
         status = "Paid" if self.paid else "Unpaid"
         return f"Invoice {self.id} ({status})"
+    
+
+class TutorAvailability(models.Model):
+    CHOICE = [
+        ('available', 'Available'),
+        ('not_available', 'Not Available'),
+    ]
+    ACTION = [
+        ('edit', 'Edit'),
+        ('delete', 'Delete')
+    ]
+    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="availability")
+    start_time = models.TimeField(default="09:00")
+    end_time = models.TimeField()
+    day = models.DateField()
+    availability_status = models.CharField(max_length=20, choices=CHOICE, default='available')
+    action = models.CharField(max_length=10, choices=ACTION, default='edit')
+
+    def __str__(self):
+        return f"{self.tutor.UserID.full_name} - {self.day} - from {self.start_time} to {self.end_time} - ({self.availability_status})"
+    
+    def clean(self):
+        """Ensure start_time is before end_time."""
+        if self.start_time >= self.end_time:
+            raise ValidationError("Start time must be before end time.")
