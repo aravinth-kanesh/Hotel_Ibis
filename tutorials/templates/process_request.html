@@ -1,82 +1,181 @@
 {% extends 'base_content.html' %}
 
 {% block content %}
-    <h1>Process Request #{{ request.id }}</h1>
+    <div class="container">
+        <h1 class="mb-4 text-center">Process Student Request</h1>
 
-    <div class="original-request">
-        <h3>Original Student Request</h3>
-        <p><strong>Student:</strong> {{ request.student.UserID.first_name }} {{ request.student.UserID.last_name }}</p>
-        <p><strong>Language:</strong> {{ request.language.name }}</p>
-        <p><strong>Description:</strong> {{ request.description }}</p>
-        <p><strong>Time:</strong> {{ request.time }}</p>
-        <p><strong>Venue:</strong> {{ request.venue }}</p>
-        <p><strong>Duration:</strong> {{ request.duration }} minutes</p>
-        <p><strong>Frequency:</strong> {{ request.frequency }}</p>
-        <p><strong>Term:</strong> {{ request.term }}</p>
+        <!-- Card for Original Request Details -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h3 class="mb-4">Original Request Details</h3>
+                <table class="table table-bordered">
+                    <tr>
+                        <th>Student</th>
+                        <td>{{ request.student.UserID.first_name }} {{ request.student.UserID.last_name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Language</th>
+                        <td>{{ request.language.name }}</td>
+                    </tr>
+                    <tr>
+                        <th>Description</th>
+                        <td>{{ request.description }}</td>
+                    </tr>
+                    <tr>
+                        <th>Time</th>
+                        <td>{{ request.time }}</td>
+                    </tr>
+                    <tr>
+                        <th>Venue</th>
+                        <td>{{ request.venue }}</td>
+                    </tr>
+                    <tr>
+                        <th>Duration</th>
+                        <td>{{ request.duration }} minutes</td>
+                    </tr>
+                    <tr>
+                        <th>Frequency</th>
+                        <td>{{ request.frequency }}</td>
+                    </tr>
+                    <tr>
+                        <th>Term</th>
+                        <td>{{ request.term }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Display form-wide errors -->
+        {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-4">
+                <ul>
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        <!-- Form for Processing Request -->
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Card for Processing Request -->
+            <div class="card mb-4">
+                <div class="card-body">
+
+                    <!-- Request Status Field -->
+                    <div class="form-group mb-4">
+                        <label for="id_status" class="font-weight-bold h4">Request Status</label>
+                        <div class="mt-2">
+                            {{ form.status }}
+                        </div>
+                        {% if form.status.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.status.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tutor Selection Field -->
+                    <div class="form-group mb-4">
+                        <label for="id_tutor" class="font-weight-bold h4">Select Tutor</label>
+                        <div class="mt-2">
+                            {{ form.tutor }}
+                        </div>
+                        {% if form.tutor.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.tutor.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- First Lesson Date Field -->
+                    <div class="form-group mb-4">
+                        <label for="id_first_lesson_date" class="font-weight-bold h4">First Lesson Date</label>
+                        <div class="mt-2">
+                            {{ form.first_lesson_date }}
+                        </div>
+                        {% if form.first_lesson_date.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.first_lesson_date.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- First Lesson Time Field -->
+                    <div class="form-group mb-4">
+                        <label for="id_first_lesson_time" class="font-weight-bold h4">First Lesson Time</label>
+                        <div class="mt-2">
+                            {{ form.first_lesson_time }}
+                        </div>
+                        {% if form.first_lesson_time.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.first_lesson_time.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- Details Field -->
+                    <div class="form-group mb-4">
+                        <label for="id_details" class="font-weight-bold h4">Details</label>
+                        <div class="mt-2">
+                            {{ form.details }}
+                        </div>
+                        {% if form.details.errors %}
+                            <ul class="errorlist">
+                                {% for error in form.details.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="form-group mb-0">
+                        <button type="submit" class="btn btn-primary">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+        <!-- Back to Dashboard Link -->
+        <div class="mb-4">
+            <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+        </div>
     </div>
 
-    <hr>
+    <style>
+        .card {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
 
-    <!-- Display messages -->
-    {% if messages %}
-        <div class="alert alert-info">
-            {% for message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
-        </div>
-    {% endif %}
+        .card-body {
+            padding: 2rem;
+        }
 
-    <!-- Display form errors -->
-    {% if form.errors %}
-        <div class="alert alert-danger">
-            <ul>
-                {% for field in form %}
-                    {% if field.errors %}
-                        <li><strong>{{ field.label }}:</strong> {{ field.errors|join:", " }}</li>
-                    {% endif %}
-                {% endfor %}
-            </ul>
-        </div>
-    {% endif %}
+        .table th, .table td {
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+        }
 
-    <form method="post">
-        {% csrf_token %}
+        .form-group label {
+            font-size: 1.25rem;
+        }
 
-        <!-- Request Status Field -->
-        <div class="form-group">
-            <label for="id_status">Request Status</label>
-            {{ form.status|add_class:"form-control" }}
-        </div>
-
-        <!-- Tutor Selection Field -->
-        <div class="form-group">
-            <label for="id_tutor">Select Tutor</label>
-            {{ form.tutor|add_class:"form-control" }}
-        </div>
-
-        <!-- First Lesson Date Field -->
-        <div class="form-group">
-            <label for="id_first_lesson_date">First Lesson Date</label>
-            {{ form.first_lesson_date|add_class:"form-control" }}
-        </div>
-
-        <!-- First Lesson Time Field -->
-        <div class="form-group">
-            <label for="id_first_lesson_time">First Lesson Time</label>
-            {{ form.first_lesson_time|add_class:"form-control" }}
-        </div>
-
-        <!-- Details Field -->
-        <div class="form-group">
-            <label for="id_details">Details</label>
-            {{ form.details|add_class:"form-control" }}
-        </div>
-
-        <!-- Submit Button -->
-        <button type="submit" class="btn btn-primary">Submit</button>
-    </form>
-
-    <hr>
-
-    <a href="{% url 'admin_dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+        .errorlist {
+            color: red;
+            margin-top: 0.5rem;
+        }
+    </style>
 {% endblock %}
