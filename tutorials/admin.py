@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib import admin
-from .models import User, Language, Tutor, Student, Invoice, Lesson
+from .models import User, Language, Tutor, Student, Invoice, Lesson, TutorAvailability
 # Register your models here.
 
 
@@ -55,7 +55,7 @@ class ClassAdmin(admin.ModelAdmin):
     autocomplete_fields = ['tutor', 'student', 'language'] 
 
 from django.contrib import admin
-from .models import StudentRequest
+from .models import StudentRequest, TutorLangRequest
 
 @admin.register(StudentRequest)
 class StudentRequestAdmin(admin.ModelAdmin):
@@ -63,5 +63,18 @@ class StudentRequestAdmin(admin.ModelAdmin):
     list_filter = ('is_allocated', 'term', 'frequency', 'language') 
     search_fields = ('student__UserID__username', 'language__name', 'description') 
     ordering = ('-created_at',)  
+
+@admin.register(TutorLangRequest)
+class TutorLangRequest(admin.ModelAdmin):
+    list_display = ('tutor', 'language', 'action')
+    list_filter = ('tutor', 'action', 'language', 'current_language', 'requested_language')
+    search_fields = ('tutor__user__username', 'language__name', 'current_language__name', 'requested_language__name')
+
+@admin.register(TutorAvailability)
+class TutorAvailability(admin.ModelAdmin):
+    list_display = ('tutor', 'day', 'start_time', 'end_time', 'action', 'availability_status')
+    list_filter = ('tutor', 'action', 'availability_status', )
+    search_fields = ('tutor__UserID__username', 'day', 'availability_status')
+
 
 

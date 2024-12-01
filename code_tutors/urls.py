@@ -32,6 +32,9 @@ urlpatterns = [
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     path('request/create/', views.StudentRequestCreateView.as_view(), name='create_request'),
     path('tutor/manage-languages/', views.TutorLangRequestView.as_view(), name='tutor_lang_request'),
-    path('test/', lambda request: HttpResponse("Test page")),
+    path('tutor/manage-availability/', views.TutorAvailabilityView.as_view(), name='tutor_availability_request'),
+    path('tutor/manage-availability/<int:availability_id>/edit', views.TutorAvailabilityView.as_view(), name='edit_tutor_availability'),
+    path('tutor/manage-availability/<int:availability_id>/delete', views.TutorAvailabilityView.as_view(), name='delete_tutor_availability'),
+
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

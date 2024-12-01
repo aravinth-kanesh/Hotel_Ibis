@@ -2,7 +2,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest, Tutor, Language, TutorLangRequest
+from .models import User, StudentRequest, Tutor, Language, TutorLangRequest, TutorAvailability
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -94,8 +94,10 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         choices=[('tutor', 'Tutor'), ('student', 'Student')], 
         label="Role")
     
+    language_choices = [(lang.name, lang.name) for lang in Language.objects.all()]
     languages = forms.ChoiceField(
-        choices=[('Python', 'Python'), ('Scala', 'Scala'), ('Java', 'Java'), ('c++', 'c++')],
+        
+        choices=language_choices,
         label = "Language"
     )
 
@@ -164,3 +166,51 @@ class TutorLanguageRequestForm(forms.ModelForm):
     class Meta:
         model = TutorLangRequest
         fields = ['tutor', 'language', 'action', 'current_language', 'requested_language']
+
+
+class TutorAvailabilityForm(forms.ModelForm):
+    class Meta:
+        model = TutorAvailability
+        fields = ['tutor', 'start_time', 'end_time', 'day', 'availability_status']
+        widgets = {
+            'tutor': forms.Select(attrs={'class': 'form-control'}),
+            'day': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'availability_status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+        def clean(self):
+            cleaned_data = super().clean()
+            start_time = cleaned_data.get('start_time')
+            end_time = cleaned_data.get('end_time')
+            day = cleaned_data.get('day')
+            tutor = self.instance.tutor  # Access the tutor instance
+
+            if start_time and end_time and start_time >= end_time:
+                raise forms.ValidationError("Start time must be earlier than end time.")
+            
+            conflicting_availability = TutorAvailability.objects.filter(
+                tutor=tutor,
+                day=day,
+            ).exclude(id=self.instance.id)  # Exclude the current instance for updates
+
+            for availability in conflicting_availability:
+                if (
+                    start_time < availability.end_time and
+                    end_time > availability.start_time
+                ):
+                    raise forms.ValidationError("There is already an overlapping availability request for this time slot.")
+
+        # Check for overlapping availability
+            if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day).exists():
+                raise forms.ValidationError("This time slot is already recorded.")
+            return cleaned_data
+        
+        def save(self, commit=True):
+            instance = super().save(commit=False)
+            if self.initial.get('tutor'):
+                instance.tutor = self.initial['tutor']
+            if commit:
+                instance.save()
+            return instance
