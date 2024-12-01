@@ -39,5 +39,7 @@ urlpatterns = [
     path('message/send/<int:reply_id>/', views.SendMessageView.as_view(), name='reply_message'),
     path('messages/', views.AllMessagesView.as_view(), name='all_messages'),
     path('messages/<int:pk>/', views.MessageDetailView.as_view(), name='message_detail'),
+
+
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

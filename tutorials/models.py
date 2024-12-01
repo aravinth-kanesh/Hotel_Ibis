@@ -95,19 +95,6 @@ class Student(models.Model):
     def __str__(self):
         return f"Student: {self.user.userna}"
 
-class Invoice(models.Model):
-    id = models.AutoField(primary_key=True)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
-    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
-    total_amount = models.IntegerField()
-    paid = models.BooleanField(default=False)
-    date_issued = models.DateField(auto_now_add=True)
-    date_paid = models.DateField(null=True, blank=True)
-
-    def __str__(self):
-        status = "Paid" if self.paid else "Unpaid"
-        return f"Invoice {self.id} ({status})"
-
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
 # The lessons taken in one term normally continue in the next term, 
@@ -138,6 +125,19 @@ class Lesson(models.Model):
     def __str__(self):
         return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
     
+class Invoice(models.Model):
+    id = models.AutoField(primary_key=True)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
+    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
+    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="invoices")
+    total_amount = models.IntegerField()
+    paid = models.BooleanField(default=False)
+    date_issued = models.DateField(auto_now_add=True)
+    date_paid = models.DateField(null=True, blank=True)
+
+    def __str__(self):
+        status = "Paid" if self.paid else "Unpaid"
+        return f"Invoice {self.id} ({status})"
 
 # for handling student reqs
 class StudentRequest(models.Model):

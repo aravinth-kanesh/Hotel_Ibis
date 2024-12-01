@@ -24,6 +24,24 @@ from .models import StudentRequest, Student, Message
 @login_required
 def dashboard(request):
     """Display the current user's dashboard."""
+    # change role
+    if request.method == "POST" and "role" in request.POST:
+        user_id = request.POST.get("user_id")
+        new_role = request.POST.get("role")
+        user = get_object_or_404(User, id=user_id)
+        user.role = new_role
+        user.save()
+        messages.success(request, f"Role updated for {user.username}.")
+        return redirect("dashboard")
+    # delete user
+    if request.method == "POST" and "delete_account" in request.POST:
+        user_id = request.POST.get("user_id")
+        user = get_object_or_404(User, id=user_id)
+        user.delete()
+        messages.success(request, f"User {user.username} deleted successfully.")
+        return redirect("dashboard")
+    # Retrieve all users
+    users = User.objects.all()
 
     current_user = request.user
     return render(request, 'dashboard.html', {'user': current_user})
