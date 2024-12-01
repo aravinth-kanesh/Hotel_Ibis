@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
+from django.db.models import Q
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, get_user_model
@@ -208,68 +209,190 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
         
         
 class StudentRequestProcessingView(LoginRequiredMixin, View):
-    """View for the admin to process a student request."""
+    # Define term ranges and frequency-to-days mapping as class attributes
+
+    TERM_RANGES = {
+        'sept-christmas': (date(2024, 9, 1), date(2024, 12, 25)),
+        'jan-easter': (date(2025, 1, 1), date(2025, 4, 12)),
+        'may-july': (date(2025, 5, 1), date(2025, 7, 31)),
+    }
+
+    FREQUENCY_TO_DAYS = {
+        'once a week': 7,
+        'once per fortnight': 14,
+    }
 
     def get(self, request, request_id):
-        """Display the form to process a specific student request."""
-
         student_request = get_object_or_404(StudentRequest, id=request_id)
-        
-        # Pass the student request instance to the form for dynamic filtering
+
         form = StudentRequestProcessingForm(student_request=student_request)
 
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
 
     def post(self, request, request_id):
-        """Handle form submission for processing the student request."""
-
         student_request = get_object_or_404(StudentRequest, id=request_id)
-        
-        # Pass the student request instance for validation and filtering
+
         form = StudentRequestProcessingForm(request.POST, student_request=student_request)
 
         if form.is_valid():
             status = form.cleaned_data['status']
-            details = form.cleaned_data.get('details', '')  # Optional notes
-            tutor = form.cleaned_data.get('tutor')  # Selected tutor
-            first_lesson_date = form.cleaned_data.get('first_lesson_date')
-            first_lesson_time = form.cleaned_data.get('first_lesson_time')
+            details = form.cleaned_data.get('details', '')
+            tutor = form.cleaned_data['tutor']
+            first_lesson_date = form.cleaned_data['first_lesson_date']
+            first_lesson_time = form.cleaned_data['first_lesson_time']
 
-            # If request is accepted
             if status == 'accepted':
-                # Combine date and time for the lesson
                 first_lesson_datetime = datetime.combine(first_lesson_date, first_lesson_time)
+                frequency = student_request.frequency
+                term = student_request.term
+                duration = student_request.duration
+                venue = student_request.venue
 
-                # Create a new lesson
-                Lesson.objects.create(
-                    student=student_request.student,
-                    tutor=tutor,
-                    language=student_request.language,
-                    time=first_lesson_datetime.time(),
-                    date=first_lesson_datetime.date(),
-                    venue=student_request.venue,
-                    duration=student_request.duration,
-                    frequency=student_request.frequency,
-                    term=student_request.term,
+                term_start, term_end = self.TERM_RANGES.get(term, (None, None))
+
+                # Schedule lessons for the term
+                scheduled_lessons = self.schedule_lessons_for_term(
+                    tutor, student_request.student, student_request.language,
+                    first_lesson_datetime, frequency, duration, term_start, term_end, venue
                 )
 
-                student_request.is_allocated = True
-                messages.success(request, f"Request accepted! A lesson has been scheduled. {details}")
-
-            # If request is denied
-            elif status == 'denied':
+                if scheduled_lessons:
+                    messages.success(request, f"Request accepted! {len(scheduled_lessons)} lessons have been scheduled.")
+                    student_request.is_allocated = True
+                else:
+                    messages.error(request, "Unable to schedule lessons due to conflicts.")
+            else:
                 student_request.is_allocated = False
                 messages.warning(request, f"Request rejected. {details}")
 
-            # Save the updated student request
             student_request.save()
 
-            return redirect('admin_dashboard')  # Redirect to the admin dashboard
+            return redirect('admin_dashboard')
 
-        # If the form is invalid, re-render the form with errors
         messages.error(request, "There was an error processing the request. Please try again.")
+
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
-    
+
+    def schedule_lessons_for_term(self, tutor, student, language, start_datetime, frequency, duration, term_start, term_end, venue):
+        """Schedules lessons for the requested term, resolving conflicts dynamically."""
+
+        scheduled_lessons = []
+        current_datetime = start_datetime
+        days_between_lessons = self.FREQUENCY_TO_DAYS.get(frequency, 7)
+
+        while current_datetime.date() <= term_end:
+            if current_datetime.date() >= term_start:
+                available_slot = self.find_available_slot(tutor, student, current_datetime.date(), current_datetime.time(), duration)
+                if available_slot:
+                    lesson = Lesson.objects.create(
+                        student=student,
+                        tutor=tutor,
+                        language=language,
+                        date=available_slot.date(),
+                        time=available_slot.time(),
+                        duration=duration,
+                        venue=venue
+                    )
+                    scheduled_lessons.append(lesson)
+                else:
+                    break  
+
+            current_datetime += timedelta(days=days_between_lessons)
+
+        return scheduled_lessons
+
+    def find_available_slot(self, tutor, student, proposed_date, proposed_time, duration, max_days_to_search=7):
+        """Finds an available slot for a lesson, resolving conflicts dynamically."""
+        
+        day_delta = timedelta(minutes=30)  # Interval to check for free slots
+        max_time = time(21, 0)  # End of the available time range (9 PM)
+
+        def get_earliest_start_time(date):
+            if date.weekday() < 5:
+                return time(15, 0)  # 3 PM weekdays
+            else:
+                return time(10, 0)  # 10 AM weekends
+
+        for day_offset in range(max_days_to_search):
+            check_date = proposed_date + timedelta(days=day_offset)
+            earliest_start = get_earliest_start_time(check_date)
+
+            # Generate time slots before and after the proposed time
+            slots_before = self.generate_time_slots(check_date, earliest_start, proposed_time, day_delta, duration)
+            slots_after = self.generate_time_slots(check_date, proposed_time, max_time, day_delta, duration)
+
+            for slots in (slots_before, slots_after):
+                for check_start_datetime in slots:
+                    # Calculate the end time of the new proposed lesson
+                    check_end_datetime = check_start_datetime + timedelta(minutes=duration)
+                    check_end_time = check_end_datetime.time()
+
+                    # Check for conflicts with student lessons
+                    student_conflict = False
+                    student_conflict_found = False
+                    student_conflict = Lesson.objects.filter(
+                        student=student,
+                        date=check_start_datetime.date()  # Same date as the new lesson
+                    )
+
+                    # Iterate over the existing lessons for the student
+                    for existing_lesson in student_conflict:
+                        # Calculate the end time of the existing lesson
+                        existing_end_time = (datetime.combine(existing_lesson.date, existing_lesson.time) + timedelta(minutes=existing_lesson.duration)).time()
+
+                        # Check for the four types of conflicts
+                        if (
+                            (check_start_datetime.time() < existing_end_time and check_end_time > existing_lesson.time) or  # 1. New lesson starts before, ends after
+                            (check_start_datetime.time() < existing_lesson.time and check_end_time > existing_lesson.time and check_end_time <= existing_end_time) or  # 2. New lesson starts before and ends during
+                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time <= existing_end_time) or  # 3. New lesson starts during and ends during
+                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time > existing_end_time)  # 4. New lesson starts during and ends after
+                        ):
+                            student_conflict_found = True
+                            break
+
+                    # Check for conflicts with tutor lessons
+                    tutor_conflict = False
+                    tutor_conflict_found = False
+                    tutor_conflict = Lesson.objects.filter(
+                        tutor=tutor,
+                        date=check_start_datetime.date()  # Same date as the new lesson
+                    )
+
+                    # Iterate over the existing lessons for the tutor
+                    for existing_lesson in tutor_conflict:
+                        # Calculate the end time of the existing lesson
+                        existing_end_time = (datetime.combine(existing_lesson.date, existing_lesson.time) + timedelta(minutes=existing_lesson.duration)).time()
+
+                        # Check for the four types of conflicts
+                        if (
+                            (check_start_datetime.time() < existing_end_time and check_end_time > existing_lesson.time) or  # 1. New lesson starts before, ends after
+                            (check_start_datetime.time() < existing_lesson.time and check_end_time > existing_lesson.time and check_end_time <= existing_end_time) or  # 2. New lesson starts before and ends during
+                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time <= existing_end_time) or  # 3. New lesson starts during and ends during
+                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time > existing_end_time)  # 4. New lesson starts during and ends after
+                        ):
+                            tutor_conflict_found = True
+                            break
+
+                    # If conflicts are found for both the student and tutor, skip this slot and continue
+                    if student_conflict_found or tutor_conflict_found:
+                        continue  # Skip to the next available slot
+
+                    # If no conflicts, return the available slot
+                    return check_start_datetime 
+
+        return None
+
+    def generate_time_slots(self, date, start_time, end_time, interval, duration):
+        """Generate time slots for a given date within a specified start and end range."""
+
+        slots = []
+        current_time = datetime.combine(date, start_time)
+
+        while current_time.time() < end_time:
+            slots.append(current_time)
+            current_time += interval
+
+        return slots
     
 class LessonUpdateView(LoginRequiredMixin, View):
     """View for changing or cancelling a lesson."""
