@@ -79,3 +79,4 @@ class MessageAdmin(admin.ModelAdmin):
         return obj.reply.subject if obj.reply else "None"
     get_reply.subject = "Reply Message"
 
+# test
