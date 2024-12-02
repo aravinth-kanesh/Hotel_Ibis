@@ -121,11 +121,12 @@
             </tr>
           </thead>
           <tbody>
-            {% for tutor in tutors %}
+            {% for data in tutor_data %}
             <tr>
-              <td>{{ tutor.full_name }}</td>
-              <td>{{ tutor.email }}</td>
-              <td>{{ tutor.language|join:", " }}</td>
+              <td>{{ data.tutor.user.full_name }}</td>
+              <td>{{ data.tutor.user.email }}</td>
+              <td>{{ data.tutor.language|join:", " }}</td>
+              <!-- add more tutor info here? -->
             </tr>
             {% empty %}
             <tr>
@@ -140,6 +141,25 @@
 
       <!-- Retrieve Student Info Tab -->
       {% if tab == 'students' %}
+      <!-- filter by action -->
+      <form method="get" class="d-flex mb-3">
+        <input type="hidden" name="tab" value="students">
+        <label for="action_filter" class="me-2">Filter by Actions:</label>
+        <select name="action_filter" id="action_filter" class="form-select-sm me-2" onchange="this.form.submit()">
+            <option value="">All Students</option>
+            <option value="unallocated" {% if action_filter == "unallocated" %}selected{% endif %}>
+                Unallocated Requests
+            </option>
+            <option value="allocated" {% if action_filter == "allocated" %}selected{% endif %}>
+                Allocated Lessons
+            </option>
+            <option value="no_actions" {% if action_filter == "no_actions" %}selected{% endif %}>
+                No Actions
+            </option>
+        </select>
+      </form>
+    
+    
       <div id="all_student">
         <h2>Retrieve Student Info</h2>
         <table class="table table-bordered table-striped">
@@ -151,37 +171,35 @@
             </tr>
           </thead>
           <tbody>
-            {% for student in students %}
+            {% for data in student_data %}
             <tr>
-              <td>{{ student.full_name }}</td>
-              <td>{{ student.email }}</td>
+              <td>{{ data.student.user.full_name }}</td>
+              <td>{{ data.student.user.email }}</td>
               <td>
-                {% with student as current_student %}
-                  {% if current_student.unallocated_requests %}
-                      <p>Unallocated Request: {{ current_student.unallocated_requests }}</p>
-                  {% elif current_student.allocated_lesson %}
-                      <p>Allocated Lesson: {{ current_student.allocated_lesson.language.name }} at {{ current_student.allocated_lesson.time }}</p>
-                      {% if current_student.invoice %}
-                          {% if not current_student.invoice.paid %}
-                              <form method="post" action="{% url 'approve_invoice' current_student.invoice.id %}" style="display: inline;">
-                                  {% csrf_token %}
-                                  <button type="submit" class="btn btn-success btn-sm">Approve Payment</button>
-                              </form>
-                          {% else %}
-                              <p>Invoice Approved</p>
-                          {% endif %}
-                      {% else %}
-                          <p>No Invoice Created</p>
-                      {% endif %}
+                {% if data.unallocated_request %}
+                  <p>Unallocated Request: {{ data.unallocated_request }}</p>
+                {% elif data.allocated_lesson %}
+                  <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} at {{ data.allocated_lesson.time }}</p>
+                  {% if data.invoice %}
+                    {% if not data.invoice.paid %}
+                      <form method="post" action="{% url 'approve_invoice' data.invoice.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-sm">Approve Payment</button>
+                      </form>
+                    {% else %}
+                      <p>Invoice Approved</p>
+                    {% endif %}
                   {% else %}
-                      <p>No Requests or Lessons</p>
+                    <p>No Invoice Created</p>
                   {% endif %}
-                {% endwith %}
+                {% else %}
+                  <p>No Requests or Lessons</p>
+                {% endif %}
               </td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="4">No students found.</td>
+              <td colspan="3">No students found.</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -190,7 +208,6 @@
       {% endif %}
       {% if tab == 'lessons' %}
       <div id="all_lessons">
-        <h2>Lessons</h2>
         <h2>Manage Lessons</h2>
         <table class="table table-bordered table-striped">
           <thead class="table-light">
@@ -204,15 +221,15 @@
             </tr>
           </thead>
           <tbody>
-            {% for lesson in lessons %}
+            {% for data in lessons_data %}
             <tr>
-              <td>{{ lesson.id }}</td>
-              <td>{{ lesson.language.name }}</td>
-              <td>{{ lesson.tutor.full_name }}</td>
-              <td>{{ lesson.student.full_name }}</td>
-              <td>{{ lesson.time }}</td>
+              <td>{{ data.lesson.id }}</td>
+              <td>{{  data.lesson.language.name }}</td>
+              <td>{{  data.lesson.tutor.user.full_name }}</td>
+              <td>{{  data.lesson.student.user.full_name }}</td>
+              <td>{{  data.lesson.time }}</td>
               <td>
-                <!-- <a href="{% url '!!!!!!!!!!!! LESSON CHANGE FORM' lesson.id %}" class="btn btn-sm">Change/Cancel</a> -->
+                
                  <p> placeholder</p>
               </td>
             </tr>
@@ -226,6 +243,8 @@
       </div>
       {% endif %}
     </div>
+
+    
   {%elif user.role == 'tutor'%}
     <div id="lessons">
       <h2>View Lessons</h2>

@@ -19,7 +19,7 @@ from tutorials.helpers import login_prohibited
 from django.contrib.auth import get_user_model
 # 
 from .forms import StudentRequestForm, MessageForm
-from .models import StudentRequest, Student, Message, Lesson, User, Invoice
+from .models import StudentRequest, Student, Message, Lesson, User, Invoice, Tutor
 
 
 @login_required
@@ -34,6 +34,7 @@ def dashboard(request):
 
         search_query = request.GET.get('search', '')
         sort_query = request.GET.get('sort_query', '')
+        action_filter = request.GET.get('action_filter', '')
 
         # Fetch users with optional filters
         User = get_user_model()
@@ -56,12 +57,35 @@ def dashboard(request):
                 'allocated_lesson': allocated_lesson,
                 'invoice': invoice,
             })
+        if action_filter == 'unallocated':
+            student_data = [
+                data for data in student_data if data['unallocated_request']
+            ]
+        elif action_filter == 'allocated':
+            student_data = [
+                data for data in student_data if data['allocated_lesson']
+            ]
+        elif action_filter == 'no_actions':
+            student_data = [
+                data for data in student_data
+                if not data['unallocated_request'] and not data['allocated_lesson']
+            ]
+        
+        tutors = Tutor.objects.all()
+        tutor_data = [{'tutor': tutor} for tutor in tutors]
+
+        lessons = Lesson.objects.all()
+        lessons_data = [{'lesson': lesson} for lesson in lessons]
+
 
         context.update({
             'users': users,
             'student_data': student_data,
+            'tutor_data': tutor_data,
+            'lessons_data': lessons_data,
             'search_query': search_query,
             'sort_query': sort_query,
+            'action_filter': action_filter,
         })
 
     elif user.role == 'tutor':
