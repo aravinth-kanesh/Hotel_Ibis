@@ -16,35 +16,111 @@ from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
+from django.contrib.auth import get_user_model
 # 
 from .forms import StudentRequestForm, MessageForm
-from .models import StudentRequest, Student, Message
+from .models import StudentRequest, Student, Message, Lesson, User, Invoice
 
 
 @login_required
 def dashboard(request):
     """Display the current user's dashboard."""
-    # change role
-    if request.method == "POST" and "role" in request.POST:
-        user_id = request.POST.get("user_id")
-        new_role = request.POST.get("role")
+    user = request.user
+    tab = request.GET.get('tab', 'accounts')  
+
+    context = {'user': user, 'tab': tab}
+
+    if user.role == 'admin':
+
+        search_query = request.GET.get('search', '')
+        sort_query = request.GET.get('sort_query', '')
+
+        # Fetch users with optional filters
+        User = get_user_model()
+        users = User.objects.all()
+        if search_query:
+            users = users.filter(username__icontains=search_query)
+        if sort_query:
+            users = users.filter(role=sort_query)
+
+        # Add unallocated requests and invoices for students
+        students = Student.objects.all()
+        student_data = []
+        for student in students:
+            unallocated_request = get_unallocated_requests(student)
+            allocated_lesson = get_allocated_lesson(student)
+            invoice = get_invoice_for_lesson(allocated_lesson)
+            student_data.append({
+                'student': student,
+                'unallocated_request': unallocated_request,
+                'allocated_lesson': allocated_lesson,
+                'invoice': invoice,
+            })
+
+        context.update({
+            'users': users,
+            'student_data': student_data,
+            'search_query': search_query,
+            'sort_query': sort_query,
+        })
+
+    elif user.role == 'tutor':
+        lessons = Lesson.objects.filter(tutor__user=user)
+        context.update({'lessons': lessons})
+
+    elif user.role == 'student':
+  
+        lessons = Lesson.objects.filter(student__user=user)
+        context.update({'lessons': lessons})
+
+    return render(request, 'dashboard.html', context)
+
+@login_required
+def update_user_role(request, user_id):
+    if request.method == "POST" and request.user.role == 'admin':
         user = get_object_or_404(User, id=user_id)
-        user.role = new_role
-        user.save()
-        messages.success(request, f"Role updated for {user.username}.")
-        return redirect("dashboard")
-    # delete user
-    if request.method == "POST" and "delete_account" in request.POST:
-        user_id = request.POST.get("user_id")
+        new_role = request.POST.get('role')
+        if new_role in dict(User.ROLE_CHOICES):
+            user.role = new_role
+            user.save()
+            messages.success(request, f"Role updated for {user.username}.")
+        return redirect('dashboard')
+@login_required
+def delete_user(request, user_id):
+    if request.method == "POST" and request.user.role == 'admin':
         user = get_object_or_404(User, id=user_id)
         user.delete()
         messages.success(request, f"User {user.username} deleted successfully.")
-        return redirect("dashboard")
-    # Retrieve all users
-    users = User.objects.all()
+        return redirect('dashboard')
+def get_unallocated_requests(student):
+    # Ensure we are working with a Student instance
+    if isinstance(student, Student):
+        return StudentRequest.objects.filter(student=student, is_allocated=False).order_by('-created_at').first()
+    return None
 
-    current_user = request.user
-    return render(request, 'dashboard.html', {'user': current_user})
+def get_allocated_lesson(student):
+    if isinstance(student, Student):
+        return Lesson.objects.filter(student=student).order_by('-created_at').first()
+    return None
+
+def get_invoice_for_lesson(lesson):
+    if lesson:
+        return Invoice.objects.filter(lesson=lesson).first()
+    return None
+
+
+@login_required
+def approve_invoice(request, invoice_id):
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    if request.method == "POST" and request.user.role in ['admin']:
+        invoice.paid = True
+        invoice.date_paid = timezone.now()
+        invoice.save()
+        messages.success(request, f"Approved invoice successfully.")
+    else:
+        messages.success(request, f"Invoice already approved.")
+    return redirect('dashboard')
+
 
 
 @login_prohibited

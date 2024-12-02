@@ -20,6 +20,7 @@ from django.contrib import admin
 from django.urls import path
 from tutorials import views
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.home, name='home'),
@@ -40,6 +41,11 @@ urlpatterns = [
     path('messages/', views.AllMessagesView.as_view(), name='all_messages'),
     path('messages/<int:pk>/', views.MessageDetailView.as_view(), name='message_detail'),
 
+    path('invoice/<int:invoice_id>/approve/', views.approve_invoice, name='approve_invoice'),
+
+    #dashboard tools (admin)
+    path('user/<int:user_id>/delete/', views.delete_user, name='delete_user'),
+    path('user/<int:user_id>/update-role/', views.update_user_role, name='update_user_role'),
 
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

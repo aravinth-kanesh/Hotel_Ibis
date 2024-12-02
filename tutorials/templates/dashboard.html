@@ -5,7 +5,7 @@
     <h1>Welcome to your dashboard {{ user.username }}</h1>
     <!-- Navigation Tabs -->
     <ul class="nav nav-tabs">
-      {% if user.role == 'admin' %}
+      {% if user.role == 'admin' and user.is_staff %}
         <li class="nav-item">
           <a class="nav-link {% if tab == 'accounts' %}active{% endif %}" href="?tab=accounts">All Accounts</a>
         </li>
@@ -20,7 +20,7 @@
         </li>
       {% elif user.role == 'tutor' %}
         <li class="nav-item">
-          <a class="nav-link {% if tab == 'students' %}active{% endif %}" href="?tab=students">View Assigned Students</a>
+          <a class="nav-link {% if tab == 'students' %}active{% endif %}" href="?tab=students">Lessons</a>
         </li>
       {% elif user.role == 'student' %}
         <li class="nav-item">
@@ -31,7 +31,7 @@
 
     <!-- ADMIN Tab Content -->
     <div class="tab-content mt-3">
-      {% if user.role == 'admin' %}
+      {% if user.role == 'admin' and user.is_staff %}
       <!-- Manage Accounts Tab -->
       {% if tab == 'accounts' %}
       <div id="manage-accounts">
@@ -41,7 +41,7 @@
         <div class="d-flex justify-content-between mb-3">
           <form method="get" class="d-flex mb-3">
             <input type="hidden" name="tab" value="accounts"> 
-            <input type="text" name="search" class="form-control me-2" placeholder="Search for a username"
+            <input type="text" name="search" class="form-control-sm me-2" placeholder="Search for a username"
                   value="{{ search_query }}">
             <button type="submit" class="btn btn-outline-primary">Search</button>
           </form>
@@ -50,7 +50,7 @@
           <form method="get" class="d-flex mb-3">
             <input type="hidden" name="tab" value="accounts"> 
             <label for="sort_query" class="me-2">Filter by Role:</label>
-            <select name="sort_query" id="sort_query" class="form-select me-2" onchange="this.form.submit()">
+            <select name="sort_query" id="sort_query" class="form-select-sm me-2" onchange="this.form.submit()">
               <option value="">All Roles</option>
               {% for value, label in user.ROLE_CHOICES %}
               <option value="{{ value }}" {% if sort_query|default:'' == value|stringformat:"s" %}selected{% endif %}>
@@ -62,12 +62,11 @@
         </div>
 
         <table class="table table-bordered table-striped">
-          <thead class="table-dark">
+          <thead class="table-light">
             <tr>
               <th>Username</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Action</tr>th>
               <th>Deletion</th>
             </tr>
           </thead>
@@ -77,56 +76,25 @@
               <td>{{ user.username }}</td>
               <td>{{ user.email }}</td>
               <td>
-                <form method="post" action="{% url 'dashboard' %}" class="d-flex align-items-center">
+                <form method="post" action="{% url 'update_user_role' user.id %}" class="d-flex align-items-center">
                   {% csrf_token %}
                   <input type="hidden" name="user_id" value="{{ user.id }}">
-                  <select name="role" class="form-select me-2">
+                  <select name="role" class="form-select-sm me-2">
                     {% for value, label in user.ROLE_CHOICES %}
-                    <option value="{{ value }}" {% if user.role == value %}selected{% endif %}>
-                      {{ label }}
-                    </option>
+                      <option value="{{ value }}" {% if user.role == value %}selected{% endif %}>
+                        {{ label }}
+                      </option>
                     {% endfor %}
                   </select>
-                  <button type="submit" class="btn btn-primary">Update</button>
+                  <button type="submit" class="btn btn-primary btn-sm">Update Role</button>
                 </form>
               </td>
               <td>
-                <!-- Show actions (show unallocated student request, button to allocate -> allocated lesson, send invoice -> approve invoice ) -->
-                 {% if user.role == 'student' %}
-                  {% with student_requests|filter:is_allocated=False as unallocated_requests %}
-                    {% if unallocated_requests %}
-                      <button class="btn btn-primary" onclick=" !!!!!!!!!!!LESSON REQUEST HERE">Allocate</button>
-                    {% else %}
-                      {% with allocated_lesson as lesson %}
-                        {% if lesson %}
-                          {%with invoices|get_for_lesson:lesson as lesson_invoice%}
-                            {% if lesson_invoice %}
-                              {%if not lesson_invoice.paid %}
-                                <button class="btn btn-success" onclick="approveInvoice({{ invoice.id }})">Approve Payment</button>
-                              {%if lesson_invoice.paid %}
-                                <p>Payment approved.</p>
-                              {%endif%}
-                            {%else%}
-                              <button class="btn btn-primary" onclick=" !!!!!!!!!!!CREATE INVOICE HERE">Create Invoice</button>
-                            {%endif%}
-                          {%endwith%}
-                        {%else%}
-                          <p>-</p>
-                        {% endif %}
-                      {%endwith%}
-                    { % endif %}
-                  {%endwith%}
-                 {% else %}
-                 <p>-</p>
-                 {%endif%}
-              </td>
-              <td>
                 <!-- Delete User Form -->
-                <form method="post" action="{% url 'admin_dashboard' %}" onsubmit="return confirm('Are you sure you want to delete this account?');">
+                <form method="post" action="{% url 'delete_user' user.id %}" onsubmit="return confirm('Are you sure you want to delete this user?');">
                   {% csrf_token %}
                   <input type="hidden" name="user_id" value="{{ user.id }}">
-                  <input type="hidden" name="delete_account" value="1">
-                  <button type="submit" class="btn btn-danger">Delete</button>
+                  <button type="submit" class="btn btn-danger btn-sm">Delete User</button>
                 </form>
               </td>
             </tr>
@@ -145,7 +113,7 @@
       <div id="all_tutor">
         <h2>Retrieve Tutor Info</h2>
         <table class="table table-bordered table-striped">
-          <thead class="table-dark">
+          <thead class="table-light">
             <tr>
               <th>Name</th>
               <th>Email</th>
@@ -175,11 +143,11 @@
       <div id="all_student">
         <h2>Retrieve Student Info</h2>
         <table class="table table-bordered table-striped">
-          <thead class="table-dark">
+          <thead class="table-light">
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Enrolled Lessons</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -187,7 +155,29 @@
             <tr>
               <td>{{ student.full_name }}</td>
               <td>{{ student.email }}</td>
-              <td>{{ student.lessons.count }}</td>
+              <td>
+                {% with student as current_student %}
+                  {% if current_student.unallocated_requests %}
+                      <p>Unallocated Request: {{ current_student.unallocated_requests }}</p>
+                  {% elif current_student.allocated_lesson %}
+                      <p>Allocated Lesson: {{ current_student.allocated_lesson.language.name }} at {{ current_student.allocated_lesson.time }}</p>
+                      {% if current_student.invoice %}
+                          {% if not current_student.invoice.paid %}
+                              <form method="post" action="{% url 'approve_invoice' current_student.invoice.id %}" style="display: inline;">
+                                  {% csrf_token %}
+                                  <button type="submit" class="btn btn-success btn-sm">Approve Payment</button>
+                              </form>
+                          {% else %}
+                              <p>Invoice Approved</p>
+                          {% endif %}
+                      {% else %}
+                          <p>No Invoice Created</p>
+                      {% endif %}
+                  {% else %}
+                      <p>No Requests or Lessons</p>
+                  {% endif %}
+                {% endwith %}
+              </td>
             </tr>
             {% empty %}
             <tr>
@@ -203,7 +193,7 @@
         <h2>Lessons</h2>
         <h2>Manage Lessons</h2>
         <table class="table table-bordered table-striped">
-          <thead class="table-dark">
+          <thead class="table-light">
             <tr>
               <th>Lesson ID</th>
               <th>Subject</th>
@@ -222,7 +212,8 @@
               <td>{{ lesson.student.full_name }}</td>
               <td>{{ lesson.time }}</td>
               <td>
-                <a href="{% url '!!!!!!!!!!!! LESSON CHANGE FORM' lesson.id %}" class="btn btn-sm">Change/Cancel</a>
+                <!-- <a href="{% url '!!!!!!!!!!!! LESSON CHANGE FORM' lesson.id %}" class="btn btn-sm">Change/Cancel</a> -->
+                 <p> placeholder</p>
               </td>
             </tr>
             {% empty %}
@@ -236,37 +227,35 @@
       {% endif %}
     </div>
   {%elif user.role == 'tutor'%}
-    <div id="students">
-      <h2>View Assigned Students</h2>
+    <div id="lessons">
+      <h2>View Lessons</h2>
       {% if students %}
         <table class="table table-bordered table-striped">
-          <thead class="table-dark">
+          <thead class="table-light">
             <tr>
-              <th>Student Name</th>
-              <th>Email</th>
-              <th>Assigned Lesson</th>
+              <th>Lesson</th>
+              <th>Tutor</th>
+              <th>Time</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
-            {% for student in students %}
+            {% for lesson in lessons %}
             <tr>
-              <td>{{ student.full_name }}</td>
-              <td>{{ student.email }}</td>
-              <td>
-                {% for lesson in student.classes.all %}
-                  <p>{{ lesson.language.name }} - {{ lesson.time|time:"H:i" }} on {{ lesson.date }}</p>
-                {% endfor %}
-              </td>
+              <td>{{ lesson.language.name }}</td>
+              <td>{{ lesson.tutor.full_name }}</td>
+              <td>{{ lesson.time|time:"H:i" }}</td>
+              <td>{{ lesson.date }}</td>
             </tr>
             {% empty %}
             <tr>
-              <td colspan="4">No students assigned.</td>
+              <td colspan="4">No lessons assigned.</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
       {% else %}
-        <p>No students assigned yet.</p>
+        <p>No lessons assigned yet.</p>
       {% endif %}
     </div>
 
@@ -275,7 +264,7 @@
       <h2>View My Lessons</h2>
       {% if lessons %}
         <table class="table table-bordered table-striped">
-          <thead class="table-dark">
+          <thead class="table-light">
             <tr>
               <th>Lesson</th>
               <th>Tutor</th>

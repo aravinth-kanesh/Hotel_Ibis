@@ -3,6 +3,8 @@ from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 from libgravatar import Gravatar
 from django.contrib.auth.models import BaseUserManager
+from datetime import time  
+from django.utils import timezone
 
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
@@ -93,7 +95,7 @@ class Student(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
-        return f"Student: {self.user.userna}"
+        return f"Student: {self.user.username}"
 
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
@@ -115,12 +117,13 @@ class Lesson(models.Model):
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="classes")
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="classes")
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name="classes")
-    time = models.TimeField()
-    date = models.DateField()
-    venue = models.CharField(max_length=255)
-    duration = models.IntegerField()  # Duration in minutes
-    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
-    term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    time = models.TimeField(default=time(9, 0))
+    date = models.DateField(default=timezone.now)
+    venue = models.CharField(max_length=255, default="TBD")
+    duration = models.IntegerField(default=60)  # Duration in minutes
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='once a week')
+    term = models.CharField(max_length=20, choices=TERM_CHOICES, default='sept-christmas')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
