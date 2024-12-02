@@ -1,9 +1,52 @@
+<!-- templates/base_content.html or your dashboard template -->
+
 {% extends 'base_content.html' %}
+
 {% block content %}
 <div class="container">
+  <!-- Navigation Menu -->
+  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+    <a class="navbar-brand" href="#">Your App Name</a>
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav">
+        {% if user.is_authenticated %}
+          {% if user.role == 'student' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'calendar' %}">My Calendar</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'student_invoices' %}">My Invoices</a>
+            </li>
+          {% elif user.role == 'tutor' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'tutor_calendar' %}">Teaching Calendar</a>
+            </li>
+          {% elif user.role == 'admin' %}
+            <li class="nav-item">
+              <a class="nav-link" href="{% url 'student_list' %}">Manage Students</a>
+            </li>
+            <!-- Removed tutor_list and admin_invoices links -->
+          {% endif %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'log_out' %}">Logout</a>
+          </li>
+        {% else %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'login' %}">Login</a>
+          </li>
+        {% endif %}
+      </ul>
+    </div>
+  </nav>
+  <!-- End of Navigation Menu -->
+
   <div class="row">
     <div class="col-12">
-      <h1>Welcome to your dashboard {{ user.username }}</h1>
+      <h1>Welcome to your dashboard, {{ user.username }}</h1>
     </div>
   </div>
 </div>

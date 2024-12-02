@@ -1,0 +1,14 @@
+{% extends 'base_content.html' %}
+
+{% block title %}My Invoices{% endblock %}
+
+{% block content %}
+  <h1>My Invoices</h1>
+  <ul>
+    {% for invoice in invoices %}
+      <li>
+        <a href="{% url 'invoice_detail' invoice.id %}">Invoice {{ invoice.id }}</a> - {{ invoice.get_paid_display }} - ${{ invoice.total_amount }}
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

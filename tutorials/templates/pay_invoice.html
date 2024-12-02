@@ -1,0 +1,14 @@
+{% extends 'base_content.html' %}
+
+{% block title %}Pay Invoice {{ invoice.id }}{% endblock %}
+
+{% block content %}
+  <h1>Pay Invoice {{ invoice.id }}</h1>
+  <p>Total Amount: ${{ invoice.total_amount }}</p>
+  <p>Are you sure you want to mark this invoice as paid?</p>
+  <form method="post">
+    {% csrf_token %}
+    <button type="submit">Yes, Mark as Paid</button>
+    <a href="{% url 'invoice_detail' invoice.id %}">Cancel</a>
+  </form>
+{% endblock %}

@@ -1,0 +1,29 @@
+<!-- templates/invoice_detail.html -->
+
+{% extends 'base_content.html' %}
+
+{% block title %}Invoice {{ invoice.id }}{% endblock %}
+
+{% block content %}
+  <h1>Invoice {{ invoice.id }}</h1>
+  <p>Status: {{ invoice.get_paid_display }}</p>
+  <p>Total Amount: ${{ invoice.total_amount }}</p>
+  <p>Date Issued: {{ invoice.date_issued }}</p>
+  {% if invoice.date_paid %}
+    <p>Date Paid: {{ invoice.date_paid }}</p>
+  {% endif %}
+  <h2>Lessons</h2>
+  <ul>
+    {% for lesson in invoice.lessons.all %}
+      <li>
+        {{ lesson.date }} at {{ lesson.time }} - {{ lesson.language.name }} with {{ lesson.tutor.UserID.full_name }}
+      </li>
+    {% endfor %}
+  </ul>
+  {% if not invoice.paid and request.user == invoice.student.UserID %}
+    <form method="post" action="{% url 'pay_invoice' invoice.id %}">
+      {% csrf_token %}
+      <button type="submit">Mark as Paid</button>
+    </form>
+  {% endif %}
+{% endblock %}

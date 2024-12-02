@@ -3,9 +3,7 @@ from datetime import datetime, timedelta
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest, Lesson, Tutor, Language, Lesson
-
-#Test commit
+from .models import User, StudentRequest, Student, Tutor, Lesson, Language
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -104,10 +102,10 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
         model = User
         fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
-    def save(self):
+    def save(self, commit=True):
         """Create a new user."""
 
-        super().save(commit=False)
+        user =super().save(commit=False)
         
         user = User.objects.create_user(
             self.cleaned_data.get('username'),

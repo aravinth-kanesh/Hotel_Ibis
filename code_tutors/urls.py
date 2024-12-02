@@ -33,10 +33,25 @@ urlpatterns = [
     path('sign_up/', views.SignUpView.as_view(), name='sign_up'),
     path('request/create/', views.StudentRequestCreateView.as_view(), name='create_request'),
     path('test/', lambda request: HttpResponse("Test page")),
+    path('calendar/', views.calendar_view, name='calendar'),
+    path('calendar/<int:year>/<int:month>/', views.calendar_view, name='calendar'),
+    path('lessons/<int:year>/<int:month>/<int:day>/', views.lessons_on_day, name='lessons_on_day'),
+    path('tutor/calendar/', views.tutor_calendar_view, name='tutor_calendar'),
+    path('tutor/calendar/<int:year>/<int:month>/', views.tutor_calendar_view, name='tutor_calendar'),
+    path('tutor/lessons/<int:year>/<int:month>/<int:day>/', views.lessons_on_day_tutor, name='lessons_on_day_tutor'),
+    # Admin URLs
+    path('students/', views.student_list, name='student_list'),
+    path('invoices/create/<int:student_id>/', views.create_invoice, name='create_invoice'),
+    path('admin/students/<int:student_id>/invoices/', views.student_invoices_admin, name='student_invoices_admin'),
+    # Invoice URLs
+    path('invoices/<int:invoice_id>/', views.invoice_detail, name='invoice_detail'),
+    path('invoices/pay/<int:invoice_id>/', views.pay_invoice, name='pay_invoice'),
+
+    # Student Invoice List
+    path('my-invoices/', views.student_invoices, name='student_invoices'),
+
     path('process-request/<int:request_id>/', StudentRequestProcessingView.as_view(), name='process_request'),
     path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('lesson-update/<int:lesson_id>/', LessonUpdateView.as_view(), name='lesson_update')
-
-    
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
