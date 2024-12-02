@@ -3,6 +3,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from tutorials.models import Lesson, Tutor, Student, Language
 
+#Test commit
+
 class LessonUpdateViewTestCase(TestCase):
     """Test suite for the LessonUpdateView where the admin user performs the actions."""
 
