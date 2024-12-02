@@ -194,14 +194,8 @@ class StudentRequestProcessingForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         """Initialise the form and dynamically filter tutors."""
         
-        student_request = kwargs.pop('student_request', None)  # Extract student_request from kwargs
+        kwargs.pop('student_request', None)  # Extract student_request from kwargs
         super().__init__(*args, **kwargs)
-
-        if student_request:
-            # Get the requested language from the student request
-            requested_language = student_request.language  
-
-            self.fields['tutor'].queryset = Tutor.objects.filter(languages=requested_language)
 
     def clean(self):
         """Validate the form fields."""
