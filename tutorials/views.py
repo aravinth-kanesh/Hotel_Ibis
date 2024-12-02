@@ -67,6 +67,7 @@ def calendar_view(request, year=None, month=None):
     try:
         student = Student.objects.get(UserID=user)
     except Student.DoesNotExist:
+        print("Student Doesn't exist")
         # Handle the case where the student profile doesn't exist
         return redirect('dashboard')  # Or an appropriate page
 
@@ -77,7 +78,7 @@ def calendar_view(request, year=None, month=None):
         date__month=month
     )
 
-    cal = LessonCalendar(lessons)
+    cal = LessonCalendar(lessons, year=2024, month=12)
     html_cal = cal.formatmonth(year, month)
 
     # Style adjustments

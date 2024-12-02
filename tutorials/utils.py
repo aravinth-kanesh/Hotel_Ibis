@@ -1,5 +1,5 @@
 import calendar
-import datetime
+from datetime import datetime
 
 def generate_calendar(year, month, events):
     cal = calendar.Calendar(firstweekday=6)  # Start week on Sunday
@@ -31,29 +31,47 @@ def generate_calendar(year, month, events):
 
     return weeks
 
-class LessonCalendar(calendar.HTMLCalendar):
+from calendar import HTMLCalendar
+from datetime import date
+
+class LessonCalendar(HTMLCalendar):
     def __init__(self, lessons, year, month):
         super().__init__()
-        self.lessons = lessons  # dict: day (int) -> list of dicts with 'name' and 'time'
+        self.lessons = self.group_by_day(lessons)
         self.year = year
         self.month = month
 
-    def formatday(self, day, weekday):
-        if day != 0:
-            cssclass = self.cssclasses[weekday]
-            # Highlight today's date
-            if day == datetime.today().day and self.year == datetime.today().year and self.month == datetime.today().month:
-                cssclass += ' today'
-            lessons_html = ''
-            for lesson in self.lessons.get(day, []):
-                lessons_html += f'<div class="lesson-name">{lesson["time"]}: {lesson["name"]}</div>'
-            return f'<td class="{cssclass}"><span class="date">{day}</span><div class="lessons">{lessons_html}</div></td>'
-        return '<td class="noday">&nbsp;</td>'
+    def group_by_day(self, lessons):
+        """Group lessons by their day."""
+        lessons_by_day = {}
+        for lesson in lessons:
+            day = lesson.date.day
+            lessons_by_day.setdefault(day, []).append(lesson)
+        return lessons_by_day
 
-    def formatweek(self, theweek):
-        week_html = ''.join(self.formatday(d, wd) for (d, wd) in theweek)
-        return f'<tr>{week_html}</tr>'
+    def formatday(self, day, weekday):
+        """Format a day as a table cell."""
+        if day == 0:
+            return '<td class="noday">&nbsp;</td>'  # Blank day
+
+        cssclass = self.cssclasses[weekday]
+        if date.today() == date(self.year, self.month, day):
+            cssclass += ' today'
+
+        day_html = f'<span class="date">{day}</span>'
+        lesson_html = ''
+
+        if day in self.lessons:
+            # Add lessons to the day's HTML
+            lesson_list = ''.join(
+                f'<div class="lesson">{lesson.language.name} at {lesson.time}</div>'
+                for lesson in self.lessons[day]
+            )
+            lesson_html = f'<div class="lessons">{lesson_list}</div>'
+
+        return f'<td class="{cssclass}">{day_html}{lesson_html}</td>'
 
     def formatmonth(self, year, month, withyear=True):
+        """Format a month as a table."""
         self.year, self.month = year, month
         return super().formatmonth(year, month, withyear)
