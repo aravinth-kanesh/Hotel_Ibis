@@ -341,6 +341,15 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
         }
         return render(request, self.template, context)
     
+    @staticmethod
+    def has_overlapping(tutor, day, new_start, new_end):
+        existing_slots = TutorAvailability.objects.filter(tutor=tutor, day=day)
+        for slot in existing_slots:
+            # Directly compare the times without calling another method
+            if (new_start < slot.end_time and new_end > slot.start_time):
+                return True
+        return False
+    
     def post(self, request, availability_id=None):
         try:
             tutor = request.user.tutor_profile
@@ -357,15 +366,19 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
         else:
         # If no ID is provided, create a new object
             form = TutorAvailabilityForm(request.POST)
-    
+
         if form.is_valid():
-        # Save the form and associate it with the tutor
-            availability = form.save(commit=False)
-            availability.tutor = tutor
-            availability.save()
-            return redirect("dashboard")  # Redirect to the dashboard after submission
-        if not form.is_valid():
-            print(form.errors)
+            new_availability = form.save(commit=False)
+            new_availability.tutor = tutor
+            new_start = form.cleaned_data['start_time']
+            new_end = form.cleaned_data['end_time']
+            day = form.cleaned_data['day']
+            if TutorAvailabilityView.has_overlapping(tutor, day, new_start, new_end):
+                form.add_error(None, "This time slot overlaps with an existing availability.")
+                return render(request, self.template, {'form': form})
+            
+            new_availability.save()
+            return redirect("dashboard")
 
     # If the form is invalid, re-render the page with errors
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
@@ -375,4 +388,5 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
             "form": form,
         }
         return render(request, self.template, context)
+    
 

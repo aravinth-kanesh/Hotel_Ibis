@@ -190,18 +190,6 @@ class TutorAvailabilityForm(forms.ModelForm):
             if start_time and end_time and start_time >= end_time:
                 raise forms.ValidationError("Start time must be earlier than end time.")
             
-            conflicting_availability = TutorAvailability.objects.filter(
-                tutor=tutor,
-                day=day,
-            ).exclude(id=self.instance.id)  # Exclude the current instance for updates
-
-            for availability in conflicting_availability:
-                if (
-                    start_time < availability.end_time and
-                    end_time > availability.start_time
-                ):
-                    raise forms.ValidationError("There is already an overlapping availability request for this time slot.")
-
         # Check for overlapping availability
             if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day).exists():
                 raise forms.ValidationError("This time slot is already recorded.")
