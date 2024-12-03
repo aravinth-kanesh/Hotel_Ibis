@@ -65,7 +65,7 @@ def dashboard(request):
         for student in students:
             unallocated_request = get_unallocated_requests(student)
             allocated_lesson = get_allocated_lesson(student)
-            invoice = get_invoice_for_lesson(allocated_lesson)
+            invoice = get_invoice_for_lesson(student)
             student_data.append({
                 'student': student,
                 'unallocated_request': unallocated_request,
@@ -144,7 +144,7 @@ def get_allocated_lesson(student):
 
 def get_invoice_for_lesson(lesson):
     if lesson:
-        return Invoice.objects.filter(lesson=lesson).first()
+        return Invoice.objects.filter(student=student).first()
     return None
 
 
