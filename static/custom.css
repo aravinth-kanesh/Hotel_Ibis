@@ -2,6 +2,7 @@
  * Alerts
  */
 
+/* removes any rounded corners from elements*/
 .alert {
   border-radius: 0px;
 }
@@ -11,15 +12,18 @@
  * Cover page
  */
 
+/* adds padding to top of element */
 .content {
   padding-top: 10px;
 }
 
+/* sets height to 100% of viewport height */
 .h-100 {
   min-height: 100vh;
   height: 100vh;
 }
 
+/* centres vertically*/
 .vcenter-item{
     display: flex;
     align-items: center;
@@ -28,14 +32,18 @@
 /*
  * Cover page
  */
+
+/* sets font size */
 h1.cover-heading {
   font-size: 4rem;
 }
 
+/* sets font size */
 p.cover-text {
   font-size: 1.7rem;
 }
 
+/* sets background, padding and rounded corners */
 .cover-card {
   background-color: rgba(245, 245, 245, 0.6);
   max-width: 30rem;
@@ -45,6 +53,8 @@ p.cover-text {
   padding-bottom: 30px;
   border-radius: 15%;
 }
+
+/* sets opacity*/
 .cover-card-block {
   opacity: 1
 }
@@ -53,10 +63,13 @@ p.cover-text {
 /*
  * forms
  */
+
+/* hides label elements */
 .nolabel label {
   display: none;
 }
 
+/*removes list styling */
 ul.errorlist {
   list-style-type: none;
   padding: 0;
@@ -67,11 +80,13 @@ ul.errorlist {
  * Typefaces
  */
 
+/* sets colour and font weight */
 .low-key {
   color: #777777;
   font-weight: 300;
 }
 
+/* adds vertical margins */
 .list-title {
   margin-top: 10px;
   margin-bottom: 20px;
@@ -80,21 +95,26 @@ ul.errorlist {
 /*
  * Profile
  */
+
+/* sets width, clears floats and floats to left */
 .profile-image {
   width: 120px;
   clear:both;
   float:left;
 }
 
+/* prevents overflow and adds left padding */
 .profile-text {
   overflow:hidden;
   padding-left:20px
 }
 
+/*removes bottom margin */
 h3.profile-title {
   margin-bottom: 0px;
 }
 
+/* sets colour, weight and italic */
 .profile-username {
   color: #777777;
   font-weight: 300;
@@ -105,10 +125,14 @@ h3.profile-title {
 /*
  * Hyperlinks
  */
+
+/* removes underline and sets colour */
 .content a {
   text-decoration: none;
   color: #0d6efd;
 }
+
+/* adds underline and colour on hover */
 .content a:hover {
   text-decoration: underline;
   color: #0d6efd;
