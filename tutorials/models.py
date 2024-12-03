@@ -120,13 +120,14 @@ class Lesson(models.Model):
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="classes")
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="classes")
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name="classes")
-    time = models.TimeField()
-    date = models.DateField()
-    venue = models.CharField(max_length=255)
-    duration = models.IntegerField()  # Duration in minutes
-    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
-    term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    time = models.TimeField(default=time(9, 0))
+    date = models.DateField(default=timezone.now())
+    venue = models.CharField(max_length=255, default="TBD")
+    duration = models.IntegerField(default=60)  # Duration in minutes
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='once a week')
+    term = models.CharField(max_length=20, choices=TERM_CHOICES, default='sept-christmas')
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    created_at = models.DateTimeField(auto_now=True)
 
     def get_price(self):
         return self.price
@@ -172,20 +173,7 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
-    
-class Invoice(models.Model):
-    id = models.AutoField(primary_key=True)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
-    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="invoices")
-    total_amount = models.IntegerField()
-    paid = models.BooleanField(default=False)
-    date_issued = models.DateField(auto_now_add=True)
-    date_paid = models.DateField(null=True, blank=True)
 
-    def __str__(self):
-        status = "Paid" if self.paid else "Unpaid"
-        return f"Invoice {self.id} ({status})"
 
 # for handling student reqs
 class StudentRequest(models.Model):
@@ -234,11 +222,13 @@ class Message (models.Model):
     ]
 
     def __str__(self):
-        return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"class Invoice(models.Model):
+        return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
+    
+class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
-    lessons = models.ManyToManyField(Lesson, related_name="invoices")
+    lessons = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="invoices", default=1)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     paid = models.BooleanField(default=False)
     date_issued = models.DateField(auto_now_add=True)

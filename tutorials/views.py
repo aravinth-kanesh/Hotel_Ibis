@@ -142,8 +142,8 @@ def get_allocated_lesson(student):
         return Lesson.objects.filter(student=student).order_by('-created_at').first()
     return None
 
-def get_invoice_for_lesson(lesson):
-    if lesson:
+def get_invoice_for_lesson(student):
+    if student:
         return Invoice.objects.filter(student=student).first()
     return None
 

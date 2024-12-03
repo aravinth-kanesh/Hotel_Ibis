@@ -63,8 +63,7 @@ urlpatterns = [
     # Student Invoice List
     path('my-invoices/', views.student_invoices, name='student_invoices'),
 
-    path('process-request/<int:request_id>/', StudentRequestProcessingView.as_view(), name='process_request'),
-    path('admin/dashboard/', views.admin_dashboard, name='admin_dashboard'),
-    path('lesson-update/<int:lesson_id>/', LessonUpdateView.as_view(), name='lesson_update')
+    path('process-request/<int:request_id>/', views.StudentRequestProcessingView.as_view(), name='process_request'),
+    path('lesson-update/<int:lesson_id>/', views.LessonUpdateView.as_view(), name='lesson_update')
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

@@ -40,7 +40,7 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'tutor','lesson', 'total_amount', 'paid', 'date_issued', 'date_paid')  
+    list_display = ('id', 'student', 'tutor','lessons', 'total_amount', 'paid', 'date_issued', 'date_paid')  
     list_filter = ('paid', 'date_issued')  
     search_fields = ('student__UserID__username', 'tutor__UserID__username')  
     date_hierarchy = 'date_issued' 

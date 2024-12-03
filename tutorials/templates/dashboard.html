@@ -184,7 +184,7 @@
                   <a href="{% url 'process_request' unallocated_request.id %}" class="btn btn-secondary">
                 {% elif data.allocated_lesson %}
                   <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} at {{ data.allocated_lesson.time }}</p>
-                  <a href="{% url 'invoices' data.student.id %}" class="btn btn-secondary"></a>
+                  <a href="{% url 'create_invoice' data.student.id %}" class="btn btn-secondary"></a>
                   {% if data.invoice %}
                     {% if not data.invoice.paid %}
                       <form method="post" action="{% url 'approve_invoice' data.invoice.id %}" style="display: inline;">
