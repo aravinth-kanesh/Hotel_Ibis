@@ -169,12 +169,6 @@ def home(request):
     return render(request, 'home.html')
 
 @login_required
-def admin_dashboard(request):
-    """Display the admin's dashboard."""
-
-    return render(request, 'admin_dashboard.html')
-
-@login_required
 def calendar_view(request, year=None, month=None):
     user = request.user
     today = date.today()
@@ -690,7 +684,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
             student_request.save()
 
-            return redirect('admin_dashboard')
+            return redirect('dashboard')
 
         messages.error(request, "There was an error processing the request. Please try again.")
 
@@ -847,7 +841,7 @@ class LessonUpdateView(LoginRequiredMixin, View):
 
                 messages.success(request, "Lesson successfully cancelled.")
 
-                return redirect('admin_dashboard')  # Redirect to the admin dashboard
+                return redirect('dashboard')  # Redirect to the admin dashboard
 
             # Update lesson fields explicitly
             lesson.date = form.cleaned_data['new_date']
@@ -857,7 +851,7 @@ class LessonUpdateView(LoginRequiredMixin, View):
             
             messages.success(request, "Lesson details successfully updated.")
 
-            return redirect('admin_dashboard')
+            return redirect('dashboard')
 
         # If the form is invalid, re-render with errors
         messages.error(request, "There was an error updating the lesson. Please try again.")
