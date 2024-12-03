@@ -179,29 +179,7 @@ class TutorLangRequest(models.Model):
         return f"Request {self.action} by {self.tutor.UserID.username}"
     
     
-class TutorAvailability(models.Model):
-    CHOICE = [
-        ('available', 'Available'),
-        ('not_available', 'Not Available'),
-    ]
-    ACTION = [
-        ('edit', 'Edit'),
-        ('delete', 'Delete')
-    ]
-    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="availability")
-    start_time = models.TimeField(default="09:00")
-    end_time = models.TimeField()
-    day = models.DateField()
-    availability_status = models.CharField(max_length=20, choices=CHOICE, default='available')
-    action = models.CharField(max_length=10, choices=ACTION, default='edit')
 
-    def __str__(self):
-        return f"{self.tutor.UserID.full_name} - {self.day} - from {self.start_time} to {self.end_time} - ({self.availability_status})"
-    
-    def clean(self):
-        """Ensure start_time is before end_time."""
-        if self.start_time >= self.end_time:
-            raise ValidationError("Start time must be before end time.")
 
 
 

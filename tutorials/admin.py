@@ -70,11 +70,7 @@ class TutorLangRequest(admin.ModelAdmin):
     list_filter = ('tutor', 'action', 'language', 'current_language', 'requested_language')
     search_fields = ('tutor__user__username', 'language__name', 'current_language__name', 'requested_language__name')
 
-@admin.register(TutorAvailability)
-class TutorAvailability(admin.ModelAdmin):
-    list_display = ('tutor', 'day', 'start_time', 'end_time', 'action', 'availability_status')
-    list_filter = ('tutor', 'action', 'availability_status', )
-    search_fields = ('tutor__UserID__username', 'day', 'availability_status')
+
 
 
 
