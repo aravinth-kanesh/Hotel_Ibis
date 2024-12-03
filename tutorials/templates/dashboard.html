@@ -4,50 +4,321 @@
 
 {% block content %}
 <div class="container">
-  <!-- Navigation Menu -->
-  <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
-    <a class="navbar-brand" href="#">Your App Name</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" 
-      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav">
-        {% if user.is_authenticated %}
-          {% if user.role == 'student' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'calendar' %}">My Calendar</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'student_invoices' %}">My Invoices</a>
-            </li>
-          {% elif user.role == 'tutor' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'tutor_calendar' %}">Teaching Calendar</a>
-            </li>
-          {% elif user.role == 'admin' %}
-            <li class="nav-item">
-              <a class="nav-link" href="{% url 'student_list' %}">Manage Students</a>
-            </li>
-            <!-- Removed tutor_list and admin_invoices links -->
-          {% endif %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'log_out' %}">Logout</a>
-          </li>
-        {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'login' %}">Login</a>
-          </li>
-        {% endif %}
-      </ul>
-    </div>
-  </nav>
-  <!-- End of Navigation Menu -->
+  <div class="col-12">
+    <h1>Welcome to your dashboard {{ user.username }}</h1>
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs">
+      {% if user.role == 'admin' and user.is_staff %}
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'accounts' %}active{% endif %}" href="?tab=accounts">All Accounts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'tutors' %}active{% endif %}" href="?tab=tutors">Tutor Info</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'students' %}active{% endif %}" href="?tab=students">Student Info</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">Lessons</a>
+        </li>
+      {% elif user.role == 'tutor' %}
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'students' %}active{% endif %}" href="?tab=students">Lessons</a>
+        </li>
+      {% elif user.role == 'student' %}
+        <li class="nav-item">
+          <a class="nav-link active" href="#">View My Lessons</a>
+        </li>
+      {% endif %}
+    </ul>
 
-  <div class="row">
-    <div class="col-12">
-      <h1>Welcome to your dashboard, {{ user.username }}</h1>
+    <!-- ADMIN Tab Content -->
+    <div class="tab-content mt-3">
+      {% if user.role == 'admin' and user.is_staff %}
+      <!-- Manage Accounts Tab -->
+      {% if tab == 'accounts' %}
+      <div id="manage-accounts">
+        <h2>Manage Accounts</h2>
+
+        <!-- Search bar -->
+        <div class="d-flex justify-content-between mb-3">
+          <form method="get" class="d-flex mb-3">
+            <input type="hidden" name="tab" value="accounts"> 
+            <input type="text" name="search" class="form-control-sm me-2" placeholder="Search for a username"
+                  value="{{ search_query }}">
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+          </form>
+
+          <!--Role Dropdown-->
+          <form method="get" class="d-flex mb-3">
+            <input type="hidden" name="tab" value="accounts"> 
+            <label for="sort_query" class="me-2">Filter by Role:</label>
+            <select name="sort_query" id="sort_query" class="form-select-sm me-2" onchange="this.form.submit()">
+              <option value="">All Roles</option>
+              {% for value, label in user.ROLE_CHOICES %}
+              <option value="{{ value }}" {% if sort_query|default:'' == value|stringformat:"s" %}selected{% endif %}>
+                {{ label }}
+              </option>
+              {% endfor %}
+            </select>
+          </form>
+        </div>
+
+        <table class="table table-bordered table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>Username</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Deletion</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td>{{ user.username }}</td>
+              <td>{{ user.email }}</td>
+              <td>
+                <form method="post" action="{% url 'update_user_role' user.id %}" class="d-flex align-items-center">
+                  {% csrf_token %}
+                  <input type="hidden" name="user_id" value="{{ user.id }}">
+                  <select name="role" class="form-select-sm me-2">
+                    {% for value, label in user.ROLE_CHOICES %}
+                      <option value="{{ value }}" {% if user.role == value %}selected{% endif %}>
+                        {{ label }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="btn btn-primary btn-sm">Update Role</button>
+                </form>
+              </td>
+              <td>
+                <!-- Delete User Form -->
+                <form method="post" action="{% url 'delete_user' user.id %}" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                  {% csrf_token %}
+                  <input type="hidden" name="user_id" value="{{ user.id }}">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete User</button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4">No users found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      <!-- Retrieve Tutor Info Tab -->
+      {% if tab == 'tutors' %}
+      <div id="all_tutor">
+        <h2>Retrieve Tutor Info</h2>
+        <table class="table table-bordered table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Languages</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for data in tutor_data %}
+            <tr>
+              <td>{{ data.tutor.user.full_name }}</td>
+              <td>{{ data.tutor.user.email }}</td>
+              <td>{{ data.tutor.language|join:", " }}</td>
+              <!-- add more tutor info here? -->
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4">No tutors found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% endif %}
+
+      <!-- Retrieve Student Info Tab -->
+      {% if tab == 'students' %}
+      <!-- filter by action -->
+      <form method="get" class="d-flex mb-3">
+        <input type="hidden" name="tab" value="students">
+        <label for="action_filter" class="me-2">Filter by Actions:</label>
+        <select name="action_filter" id="action_filter" class="form-select-sm me-2" onchange="this.form.submit()">
+            <option value="">All Students</option>
+            <option value="unallocated" {% if action_filter == "unallocated" %}selected{% endif %}>
+                Unallocated Requests
+            </option>
+            <option value="allocated" {% if action_filter == "allocated" %}selected{% endif %}>
+                Allocated Lessons
+            </option>
+            <option value="no_actions" {% if action_filter == "no_actions" %}selected{% endif %}>
+                No Actions
+            </option>
+        </select>
+      </form>
+    
+    
+      <div id="all_student">
+        <h2>Retrieve Student Info</h2>
+        <table class="table table-bordered table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for data in student_data %}
+            <tr>
+              <td>{{ data.student.user.full_name }}</td>
+              <td>{{ data.student.user.email }}</td>
+              <td>
+                {% if data.unallocated_request %}
+                  <p>Unallocated Request: {{ data.unallocated_request }}</p>
+                  <a href="{% url 'process_request' unallocated_request.id %}" class="btn btn-secondary">
+                {% elif data.allocated_lesson %}
+                  <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} at {{ data.allocated_lesson.time }}</p>
+                  <a href="{% url 'invoices' data.student.id %}" class="btn btn-secondary"></a>
+                  {% if data.invoice %}
+                    {% if not data.invoice.paid %}
+                      <form method="post" action="{% url 'approve_invoice' data.invoice.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success btn-sm">Approve Payment</button>
+                      </form>
+                    {% else %}
+                      <p>Invoice Approved</p>
+                    {% endif %}
+                  {% else %}
+                    <p>No Invoice Created</p>
+                  {% endif %}
+                {% else %}
+                  <p>No Requests or Lessons</p>
+                {% endif %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="3">No students found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+      {% if tab == 'lessons' %}
+      <div id="all_lessons">
+        <h2>Manage Lessons</h2>
+        <table class="table table-bordered table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>Lesson ID</th>
+              <th>Subject</th>
+              <th>Tutor</th>
+              <th>Student</th>
+              <th>Time</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for data in lessons_data %}
+            <tr>
+              <td>{{ data.lesson.id }}</td>
+              <td>{{  data.lesson.language.name }}</td>
+              <td>{{  data.lesson.tutor.user.full_name }}</td>
+              <td>{{  data.lesson.student.user.full_name }}</td>
+              <td>{{  data.lesson.time }}</td>
+              <td>
+                
+                <a href="{% url 'lesson_update' data.lesson.id %}" class="btn btn-secondary">
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="6">No lessons found.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
     </div>
+
+    
+  {%elif user.role == 'tutor'%}
+    <div id="lessons">
+      <h2>View Lessons</h2>
+      {% if students %}
+        <table class="table table-bordered table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>Lesson</th>
+              <th>Tutor</th>
+              <th>Time</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lesson in lessons %}
+            <tr>
+              <td>{{ lesson.language.name }}</td>
+              <td>{{ lesson.tutor.full_name }}</td>
+              <td>{{ lesson.time|time:"H:i" }}</td>
+              <td>{{ lesson.date }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4">No lessons assigned.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No lessons assigned yet.</p>
+      {% endif %}
+    </div>
+
+  {%elif user.role == 'student' %}
+    <div id="lessons">
+      <h2>View My Lessons</h2>
+      {% if lessons %}
+        <table class="table table-bordered table-striped">
+          <thead class="table-light">
+            <tr>
+              <th>Lesson</th>
+              <th>Tutor</th>
+              <th>Time</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for lesson in lessons %}
+            <tr>
+              <td>{{ lesson.language.name }}</td>
+              <td>{{ lesson.tutor.full_name }}</td>
+              <td>{{ lesson.time|time:"H:i" }}</td>
+              <td>{{ lesson.date }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="5">No lessons assigned yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+    </div>
+    {% else %}
+      <p>No lessons assigned yet.</p>
+    {% endif %}
   </div>
+  {% else %}
+    <p>Your role is not recognized.</p>
+  {% endif %}
+    
 </div>
 {% endblock %}

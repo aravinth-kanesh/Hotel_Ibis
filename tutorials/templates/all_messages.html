@@ -1,0 +1,59 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-12">
+      <h1 class="mb-4">Your Messages</h1>
+    
+      <a href="{% url 'send_message'%}" class="btn btn-primary my-2">Send a Message</a>
+     
+      <!-- Tabs for Sent and Received Messages -->
+      <ul class="nav nav-tabs mb-3" id="messageTabs" role="tablist">
+        <li class="nav-item">
+          <button class="nav-link active" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button" role="tab">Received</button>
+        </li>
+        <li class="nav-item">
+          <button class="nav-link" id="sent-tab" data-bs-toggle="tab" data-bs-target="#sent" type="button" role="tab">Sent</button>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="messageTabsContent">
+        <!-- Received Messages Tab -->
+        <div class="tab-pane fade show active" id="received" role="tabpanel" aria-labelledby="received-tab">
+          <h3>Received Messages</h3>
+          {% for message in received_messages %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">{{ message.subject }}</h5>
+              <p class="card-text">From: {{ message.sender.username }}</p>
+              <p class="card-text"><small class="text-muted">Received on {{ message.created_at }}</small></p>
+              <a href="{% url 'message_detail' message.id %}" class="btn btn-primary">View Message</a>
+            </div>
+          </div>
+          {% empty %}
+          <p>No received messages.</p>
+          {% endfor %}
+        </div>
+
+        <!-- Sent Messages Tab -->
+        <div class="tab-pane fade" id="sent" role="tabpanel" aria-labelledby="sent-tab">
+          <h3>Sent Messages</h3>
+          {% for message in sent_messages %}
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">{{ message.subject }}</h5>
+              <p class="card-text">To: {{ message.recipient.username }}</p>
+              <p class="card-text"><small class="text-muted">Sent on {{ message.created_at }}</small></p>
+              <a href="{% url 'message_detail' message.id %}" class="btn btn-primary">View Message</a>
+            </div>
+          </div>
+          {% empty %}
+          <p>No sent messages.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

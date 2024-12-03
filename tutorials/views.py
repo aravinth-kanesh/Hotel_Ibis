@@ -4,10 +4,9 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
-from django.shortcuts import redirect, render
-from django.shortcuts import get_object_or_404
+from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -18,6 +17,7 @@ from django.utils.safestring import mark_safe
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.generic.edit import CreateView
+from django.views.generic import TemplateView, DetailView
 from django.views.generic.list import ListView
 #
 from django.views.generic.edit import FormView, UpdateView
@@ -25,10 +25,11 @@ from django.urls import reverse
 from django.utils.dateparse import parse_date
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
+from django.contrib.auth import get_user_model
 from itertools import chain
 # 
-from .forms import StudentRequestForm
-from .models import StudentRequest, Student, Lesson, Tutor, Invoice
+from .forms import StudentRequestForm, MessageForm
+from .models import StudentRequest, Student, Message, Lesson, User, Invoice, Tutor, Lesson, Tutor, Invoice
 from .utils import generate_calendar, LessonCalendar
 from datetime import date, datetime, timedelta
 import calendar
@@ -39,9 +40,126 @@ from django.utils import timezone
 @login_required
 def dashboard(request):
     """Display the current user's dashboard."""
+    user = request.user
+    tab = request.GET.get('tab', 'accounts')  
 
-    current_user = request.user
-    return render(request, 'dashboard.html', {'user': current_user})
+    context = {'user': user, 'tab': tab}
+
+    if user.role == 'admin':
+
+        search_query = request.GET.get('search', '')
+        sort_query = request.GET.get('sort_query', '')
+        action_filter = request.GET.get('action_filter', '')
+
+        # Fetch users with optional filters
+        User = get_user_model()
+        users = User.objects.all()
+        if search_query:
+            users = users.filter(username__icontains=search_query)
+        if sort_query:
+            users = users.filter(role=sort_query)
+
+        # Add unallocated requests and invoices for students
+        students = Student.objects.all()
+        student_data = []
+        for student in students:
+            unallocated_request = get_unallocated_requests(student)
+            allocated_lesson = get_allocated_lesson(student)
+            invoice = get_invoice_for_lesson(allocated_lesson)
+            student_data.append({
+                'student': student,
+                'unallocated_request': unallocated_request,
+                'allocated_lesson': allocated_lesson,
+                'invoice': invoice,
+            })
+        if action_filter == 'unallocated':
+            student_data = [
+                data for data in student_data if data['unallocated_request']
+            ]
+        elif action_filter == 'allocated':
+            student_data = [
+                data for data in student_data if data['allocated_lesson']
+            ]
+        elif action_filter == 'no_actions':
+            student_data = [
+                data for data in student_data
+                if not data['unallocated_request'] and not data['allocated_lesson']
+            ]
+        
+        tutors = Tutor.objects.all()
+        tutor_data = [{'tutor': tutor} for tutor in tutors]
+
+        lessons = Lesson.objects.all()
+        lessons_data = [{'lesson': lesson} for lesson in lessons]
+
+
+        context.update({
+            'users': users,
+            'student_data': student_data,
+            'tutor_data': tutor_data,
+            'lessons_data': lessons_data,
+            'search_query': search_query,
+            'sort_query': sort_query,
+            'action_filter': action_filter,
+        })
+
+    elif user.role == 'tutor':
+        lessons = Lesson.objects.filter(tutor__user=user)
+        context.update({'lessons': lessons})
+
+    elif user.role == 'student':
+  
+        lessons = Lesson.objects.filter(student__user=user)
+        context.update({'lessons': lessons})
+
+    return render(request, 'dashboard.html', context)
+
+@login_required
+def update_user_role(request, user_id):
+    if request.method == "POST" and request.user.role == 'admin':
+        user = get_object_or_404(User, id=user_id)
+        new_role = request.POST.get('role')
+        if new_role in dict(User.ROLE_CHOICES):
+            user.role = new_role
+            user.save()
+            messages.success(request, f"Role updated for {user.username}.")
+        return redirect('dashboard')
+@login_required
+def delete_user(request, user_id):
+    if request.method == "POST" and request.user.role == 'admin':
+        user = get_object_or_404(User, id=user_id)
+        user.delete()
+        messages.success(request, f"User {user.username} deleted successfully.")
+        return redirect('dashboard')
+def get_unallocated_requests(student):
+    # Ensure we are working with a Student instance
+    if isinstance(student, Student):
+        return StudentRequest.objects.filter(student=student, is_allocated=False).order_by('-created_at').first()
+    return None
+
+def get_allocated_lesson(student):
+    if isinstance(student, Student):
+        return Lesson.objects.filter(student=student).order_by('-created_at').first()
+    return None
+
+def get_invoice_for_lesson(lesson):
+    if lesson:
+        return Invoice.objects.filter(lesson=lesson).first()
+    return None
+
+
+@login_required
+def approve_invoice(request, invoice_id):
+    invoice = get_object_or_404(Invoice, id=invoice_id)
+    if request.method == "POST" and request.user.role in ['admin']:
+        invoice.paid = True
+        invoice.date_paid = timezone.now()
+        invoice.save()
+        messages.success(request, f"Approved invoice successfully.")
+    else:
+        messages.success(request, f"Invoice already approved.")
+    return redirect('dashboard')
+
 
 
 @login_prohibited
@@ -419,10 +537,10 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         """attach the logged-in student to the form before saving."""
-        # try:
-        #     student = self.request.user.student_profile  
-        # except Student.DoesNotExist:
-        #     return redirect('error_page')
+        try:
+            student = self.request.user.student_profile  
+        except Student.DoesNotExist:
+            return redirect('error_page')
         form.instance.created_at = timezone.now()
         form.instance.student = student  
         return super().form_valid(form)
@@ -441,6 +559,75 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             return StudentRequest.objects.filter(student=student).order_by('-created_at')
         except Student.DoesNotExist:
             return StudentRequest.objects.none() 
+
+class SendMessageView(LoginRequiredMixin, CreateView):
+    model = Message
+    form_class = MessageForm
+    template_name = 'send_message.html'
+    success_url = reverse_lazy('all_messages')
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        reply_id = self.kwargs.get('reply_id')
+        if reply_id:
+            reply_message = get_object_or_404(Message, pk=reply_id)
+            context['reply_message'] = reply_message
+        return context
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        reply_id = self.kwargs.get('reply_id')
+        if reply_id:
+            reply = get_object_or_404(Message, pk=reply_id)
+            kwargs['previous_message'] = reply
+        return kwargs
+
+    def form_valid(self, form):
+        
+        form.instance.sender = self.request.user
+        messages.success(self.request, "Message sent successfully!")
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        
+        messages.error(self.request, "Failed to send the message. Please correct the errors.")
+        return super().form_invalid(form)
+
+
+class AllMessagesView(LoginRequiredMixin, TemplateView):
+    """display all sent and received messages."""
+    template_name = 'all_messages.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        context['sent_messages'] = user.sent_messages.all().order_by('-created_at')
+        context['received_messages'] = user.received_messages.all().order_by('-created_at')
+        
+        return context
+
+class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """ single message """
+    model = Message
+    template_name = 'message_detail.html'
+    context_object_name = 'message'
+
+    def test_func(self):
+        """ensure the user is authorized"""
+        message = self.get_object()
+        return self.request.user == message.sender or self.request.user == message.recipient
+    def get_context_data(self, **kwargs):
+        """Add previous message, next message (reply), and reply URL to the context."""
+        context = super().get_context_data(**kwargs)
+        message = self.get_object()
+
+        
+        context['previous_message'] = message.previous_message 
+        context['next_message'] = message.reply
+
+        
+        context['reply_url'] = reverse('reply_message', kwargs={'reply_id': message.id})
+
+        return context
         
 class StudentRequestProcessingView(LoginRequiredMixin, View):
     # Define term ranges and frequency-to-days mapping as class attributes

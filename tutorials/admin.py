@@ -1,6 +1,5 @@
 from django.contrib import admin
-from django.contrib import admin
-from .models import User, Language, Tutor, Student, Invoice, Lesson
+from .models import User, Language, Tutor, Student, Invoice, Lesson, Message
 # Register your models here.
 
 
@@ -21,9 +20,9 @@ class LanguageAdmin(admin.ModelAdmin):
 
 @admin.register(Tutor)
 class TutorAdmin(admin.ModelAdmin):
-    list_display = ('id', 'UserID', 'get_languages') 
-    search_fields = ('UserID__username', 'UserID__email')  
-    autocomplete_fields = ['UserID'] 
+    list_display = ('id', 'user', 'get_languages') 
+    search_fields = ('user__username', 'user__email')  
+    autocomplete_fields = ['user']   
     filter_horizontal = ['languages'] 
 
     def get_languages(self, obj):
@@ -34,14 +33,14 @@ class TutorAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'UserID', 'paidInvoice') 
-    search_fields = ('UserID__username', 'UserID__email')  
-    autocomplete_fields = ['UserID']  
+    list_display = ('id', 'user') 
+    search_fields = ('user__username', 'user__email')  
+    autocomplete_fields = ['user']  
 
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'tutor', 'total_amount', 'paid', 'date_issued', 'date_paid')  
+    list_display = ('id', 'student', 'tutor','lesson', 'total_amount', 'paid', 'date_issued', 'date_paid')  
     list_filter = ('paid', 'date_issued')  
     search_fields = ('student__UserID__username', 'tutor__UserID__username')  
     date_hierarchy = 'date_issued' 
@@ -64,4 +63,19 @@ class StudentRequestAdmin(admin.ModelAdmin):
     search_fields = ('student__UserID__username', 'language__name', 'description') 
     ordering = ('-created_at',)  
 
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    """Admin view for the Message model."""
+    list_display = ('sender', 'recipient', 'subject', 'created_at', 'get_previous_message','get_reply')
+    search_fields = ('subject', 'content', 'sender__username', 'recipient__username','get_previous_message', 'get_reply')
+    ordering = ('-created_at',)
+    def get_previous_message(self, obj):
+        """Display the previous message in a human-readable format."""
+        return obj.previous_message.subject if obj.previous_message else "None"
+    get_previous_message.subject = "Previous Message"
+
+    def get_reply(self, obj):
+        """Display the reply message in a human-readable format."""
+        return obj.reply.subject if obj.reply else "None"
+    get_reply.subject = "Reply Message"
 

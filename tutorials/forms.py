@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest, Student, Tutor, Lesson, Language
+from .models import User, StudentRequest, Student, Tutor, Lesson, Language, Message
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -104,9 +104,10 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
 
     def save(self, commit=True):
         """Create a new user."""
+        role = self.cleaned_data.get('role')
+        if role not in ['tutor', 'student']:
+            raise ValueError("Invalid role selected.")
 
-        user =super().save(commit=False)
-        
         user = User.objects.create_user(
             self.cleaned_data.get('username'),
             first_name=self.cleaned_data.get('first_name'),
@@ -114,16 +115,17 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             email=self.cleaned_data.get('email'),
             password=self.cleaned_data.get('new_password'),
         )
-        role = self.cleaned_data.get('role')
-        if role not in ['tutor', 'student']:
-            raise ValueError("Invalid role selected.")
-        user.role = role
+    
+        if hasattr(user, 'role'):
+            user.role = role
+
         if commit:
             user.save()
         return user
     
 
 class StudentRequestForm(forms.ModelForm):
+    is_allocated = False
     class Meta:
         model = StudentRequest
 
@@ -136,9 +138,83 @@ class StudentRequestForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'placeholder': 'Enter any other requirements here.'}),
             'time': forms.TimeInput(attrs={'type': 'time'}),
             'venue': forms.TextInput(attrs={'placeholder': 'Enter venue address'}),
+            'duration': forms.NumberInput(attrs={
+                'placeholder': 'Enter number of minutes',
+                'class': 'form-control',
+            }),
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+        def clean_duration(self):
+            value = self.cleaned_data['duration']
+            if value is None or value <= 0:
+                raise forms.ValidationError("Invalid duration.")
+            return value
+
+class MessageForm (forms.ModelForm):
+    recipient = forms.CharField(
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': '@...',
+        }),
+        label="Recipient",
+    )
+
+    class Meta:
+        model = Message
+        fields = ['recipient', 'subject', 'content']
+        widgets = {
+            'subject': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Subject',
+            }),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': '....',
+                'rows': 5,
+            }),
+        }
+    def __init__(self, *args, **kwargs):
+        """Adds intended recipient into placeholder for QOl"""
+        
+        previous_message = kwargs.pop('previous_message', None)
+        super().__init__(*args, **kwargs)
+
+        if previous_message:
+            if 'recipient' in self.fields:
+                self.fields['recipient'].widget.attrs.update({
+                    'placeholder': previous_message.sender.username
+            })
+        
+    def clean_recipient(self):
+        """Fuzzy matching for the recipient"""
+        username_input = self.cleaned_data['recipient']
+
+        try:
+            recipient_user = User.objects.get(username__iexact=username_input)
+        except User.DoesNotExist:
+            raise forms.ValidationError("No user found with that username. Please try again.")
+
+        return recipient_user
+    def save(self, commit=True):
+        """Overide save to handle recipient and reply """
+        message = super().save(commit=False)
+    
+        message.recipient = self.cleaned_data['recipient']
+
+        if self.instance.previous_message:
+            previous_message = self.instance.previous_message
+            message.previous_message = previous_message
+
+            if commit:
+                message.save()
+                previous_message.reply = message
+                previous_message.save()
+
+        if commit:
+            message.save()
+        return message
+
 
 
 class StudentRequestProcessingForm(forms.ModelForm):
