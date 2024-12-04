@@ -1,5 +1,6 @@
 {% extends 'base_content.html' %}
 {% block content %}
+<!-- depends on if reply_message exists, can reply to an existing message or send new message -->
 <div class="container">
   <div class="row">
     <div class="col-sm-12 col-md-6 offset-md-3">
@@ -10,7 +11,8 @@
         {% include 'partials/bootstrap_form.html' with form=form %}
         <input type="submit" value="Send Message" class="btn btn-primary">
       </form>
-      
+
+      <!-- shows subject and content of message being replied to -->
       {% if reply_message %}
       <div class="alert alert-info mt-3">
         <strong>Replying to:</strong> {{ reply_message.subject }} <br>
