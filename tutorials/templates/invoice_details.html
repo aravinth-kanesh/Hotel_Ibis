@@ -4,6 +4,7 @@
 
 {% block title %}Invoice {{ invoice.id }}{% endblock %}
 
+<!-- displays details of invoice (status, total amount, lessons and option to change to paid) -->
 {% block content %}
   <h1>Invoice {{ invoice.id }}</h1>
   <p>Status: {{ invoice.get_paid_display }}</p>
