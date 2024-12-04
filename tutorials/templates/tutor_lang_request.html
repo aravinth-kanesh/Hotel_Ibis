@@ -1,0 +1,45 @@
+{% extends 'base_content.html' %}
+{% block content %}
+<div class="container">
+  <h1>Manage Languages Requests</h1>
+
+  <!-- Display current languages -->
+  <h4 class="mb-3"></h4>
+  <h2>Current Languages:</h2>
+  <ul class="list-group">
+    {% for language in request.user.tutor_profile.languages.all %}
+      <li class="list-group-item">
+        {{ language.name }}
+        <form method="post" class="d-inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="language" value="{{ language.name }}">
+          <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+        </form>
+      </li>
+    {% endfor %}
+  </ul>
+ 
+  <!-- Add a new language -->
+    <h4 class="mb-3"></h4>
+  <h3>Add Language:</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="add">
+    <input type="text" name="language" class="form-control" placeholder="Enter language" required>
+    <button type="submit" class="btn btn-primary mt-2">Add Language</button>
+  </form>
+
+  <!-- Change a language -->
+  <h4 class="mb-3"></h4>
+  <h3>Change Language:</h3>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="change">
+    <input type="text" name="old_language" class="form-control" placeholder="Current language" required>
+    <input type="text" name="language" class="form-control mt-2" placeholder="New language" required>
+    <button type="submit" class="btn btn-primary mt-2">Change Language</button>
+  </form>
+  <a href="{% url 'dashboard' %}" class="btn btn-success mt-4">Back to Dashboard</a>
+</div>
+{% endblock %}

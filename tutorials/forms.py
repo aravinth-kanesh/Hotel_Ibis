@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django import forms
 from django.contrib.auth import authenticate
 from django.core.validators import RegexValidator
-from .models import User, StudentRequest, Student, Tutor, Lesson, Language, Message
+from .models import User, StudentRequest, Student, Tutor, Lesson, Language, Message, Tutor, Language, TutorLangRequest, TutorAvailability
 
 class LogInForm(forms.Form):
     """Form enabling registered users to log in."""
@@ -29,7 +29,7 @@ class UserForm(forms.ModelForm):
         """Form options."""
 
         model = User
-        fields = ['first_name', 'last_name', 'username', 'email']
+        fields = ['first_name', 'last_name', 'username', 'email', 'role']
 
 
 class NewPasswordMixin(forms.Form):
@@ -95,6 +95,13 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
     role = forms.ChoiceField(
         choices=[('tutor', 'Tutor'), ('student', 'Student')], 
         label="Role")
+    
+    language_choices = [(lang.name, lang.name) for lang in Language.objects.all()]
+    languages = forms.ChoiceField(
+        
+        choices=language_choices,
+        label = "Language"
+    )
 
     class Meta:
         """Form options."""
@@ -115,12 +122,32 @@ class SignUpForm(NewPasswordMixin, forms.ModelForm):
             email=self.cleaned_data.get('email'),
             password=self.cleaned_data.get('new_password'),
         )
-    
-        if hasattr(user, 'role'):
-            user.role = role
+        role = self.cleaned_data.get('role')
+        language = self.cleaned_data.get('languages')
+        if role not in ['tutor', 'student']:
+            raise ValueError("Invalid role selected.")
+        user.role = role
 
         if commit:
             user.save()
+
+        if user.role == 'tutor':
+            if not language:
+                raise forms.ValidationError("Tutors must select at least one language.")
+
+            try:
+                # Ensure the language exists in the database
+                language = Language.objects.get(name=language)
+            except Language.DoesNotExist:
+                raise forms.ValidationError(f"Language '{language}' does not exist.")
+
+            # Create Tutor instance and associate language
+            tutor = Tutor.objects.create(UserID=user)
+            tutor.languages.add(language)
+
+            if commit:
+                tutor.save()
+
         return user
     
 
@@ -145,11 +172,13 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
+
         def clean_duration(self):
             value = self.cleaned_data['duration']
             if value is None or value <= 0:
                 raise forms.ValidationError("Invalid duration.")
             return value
+        
 
 class MessageForm (forms.ModelForm):
     recipient = forms.CharField(
@@ -174,6 +203,7 @@ class MessageForm (forms.ModelForm):
                 'rows': 5,
             }),
         }
+
     def __init__(self, *args, **kwargs):
         """Adds intended recipient into placeholder for QOl"""
         
@@ -196,6 +226,7 @@ class MessageForm (forms.ModelForm):
             raise forms.ValidationError("No user found with that username. Please try again.")
 
         return recipient_user
+    
     def save(self, commit=True):
         """Overide save to handle recipient and reply """
         message = super().save(commit=False)
@@ -214,7 +245,6 @@ class MessageForm (forms.ModelForm):
         if commit:
             message.save()
         return message
-
 
 
 class StudentRequestProcessingForm(forms.ModelForm):
@@ -402,3 +432,45 @@ class LessonUpdateForm(forms.ModelForm):
                 raise forms.ValidationError("The tutor already has a lesson scheduled that conflicts with the new date and time.")
 
         return cleaned_data
+    
+
+class TutorLanguageRequestForm(forms.ModelForm):
+    class Meta:
+        model = TutorLangRequest
+        fields = ['tutor', 'language', 'action', 'current_language', 'requested_language']
+
+
+class TutorAvailabilityForm(forms.ModelForm):
+    class Meta:
+        model = TutorAvailability
+        fields = ['tutor', 'start_time', 'end_time', 'day', 'availability_status']
+        widgets = {
+            'tutor': forms.Select(attrs={'class': 'form-control'}),
+            'day': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'availability_status': forms.Select(attrs={'class': 'form-control'}),
+        }
+
+        def clean(self):
+            cleaned_data = super().clean()
+            start_time = cleaned_data.get('start_time')
+            end_time = cleaned_data.get('end_time')
+            day = cleaned_data.get('day')
+            tutor = self.instance.tutor  # Access the tutor instance
+
+            if start_time and end_time and start_time >= end_time:
+                raise forms.ValidationError("Start time must be earlier than end time.")
+            
+        # Check for overlapping availability
+            if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day).exists():
+                raise forms.ValidationError("This time slot is already recorded.")
+            return cleaned_data
+        
+        def save(self, commit=True):
+            instance = super().save(commit=False)
+            if self.initial.get('tutor'):
+                instance.tutor = self.initial['tutor']
+            if commit:
+                instance.save()
+            return instance

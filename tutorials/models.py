@@ -1,11 +1,13 @@
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from django.forms import ValidationError
 from libgravatar import Gravatar
 from django.contrib.auth.models import BaseUserManager
 from datetime import time  
 from django.utils import timezone
 from datetime import timedelta
+
 
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
@@ -29,7 +31,8 @@ class User(AbstractUser):
     # adding according to database schema i made
     
     id = models.AutoField(primary_key=True)
-    role = models.CharField(max_length=10, choices= ROLE_CHOICES, default='student')
+    role = models.CharField(max_length=10, choices= ROLE_CHOICES)
+
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
     # assign groups/permissions based on role
@@ -43,11 +46,8 @@ class User(AbstractUser):
             group, _ = Group.objects.get_or_create(name='Students')
             self.groups.add(group)
 
-
-
     def __str__(self):
         return self.username
-
 
     class Meta:
         """Model options."""
@@ -73,7 +73,6 @@ class User(AbstractUser):
 
 
 # model for lang, tutor, student, invoice, class
-
 class Language(models.Model):
     """ languages supported by tutors"""
     id = models.AutoField(primary_key=True)
@@ -82,29 +81,34 @@ class Language(models.Model):
     def __str__(self):
         return self.name
     
+    
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
-
+    
     def __str__(self):
         languages = ", ".join([language.name for language in self.languages.all()])
         print(languages)
         return f"{self.UserID.first_name} {self.UserID.last_name} - {languages if languages else 'No languages assigned'}"
     
+    
 class Student(models.Model):
     """Model for student"""
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
+
     def __str__(self):
         return f"Student: {self.user.username}"
-
+    
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
 # The lessons taken in one term normally continue in the next term, 
 # with the same tutor, frequency, lesson duration, time, and venue, 
 # unless the student or tutor requests a change or cancellation of the lessons.
+
+
 class Lesson(models.Model):
     FREQUENCY_CHOICES = [
         ('once a week', 'Once a week'),
@@ -196,9 +200,11 @@ class StudentRequest(models.Model):
     duration = models.IntegerField() 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
+
     def __str__(self):
         return f"Request {self.id} by {self.student.user.username} for {self.language.name}"
-    
+
+
 class Message (models.Model):
     recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,  related_name="sent_messages", db_index=True)
@@ -224,6 +230,7 @@ class Message (models.Model):
     def __str__(self):
         return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
     
+    
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
@@ -245,3 +252,47 @@ class Invoice(models.Model):
     def __str__(self):
         status = "Paid" if self.paid else "Unpaid"
         return f"Invoice {self.id} ({status})"
+    
+
+class TutorLangRequest(models.Model):
+    """Model for tutors to request adding a new language to their profile."""
+    ACTION = [
+        ('add', 'Add Language'),
+        ('remove', 'Remove Language'),
+        ('change', 'Change Language'),
+    ]
+
+    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="language_request")
+    language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, help_text="Existing language in the system.")
+    action = models.CharField(max_length=10, choices=ACTION)
+    current_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, related_name="current_language_requests")  # For 'change' and 'remove'
+    requested_language = models.ForeignKey(Language, on_delete=models.SET_NULL, null=True, blank=True, related_name="requested_language_requests")  # For 'add' and 'change'
+
+    def __str__(self):
+        return f"Request {self.action} by {self.tutor.UserID.username}"
+    
+    
+class TutorAvailability(models.Model):
+    CHOICE = [
+        ('available', 'Available'),
+        ('not_available', 'Not Available'),
+    ]
+    ACTION = [
+        ('edit', 'Edit'),
+        ('delete', 'Delete')
+    ]
+
+    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="availability")
+    start_time = models.TimeField(default="09:00")
+    end_time = models.TimeField()
+    day = models.DateField()
+    availability_status = models.CharField(max_length=20, choices=CHOICE, default='available')
+    action = models.CharField(max_length=10, choices=ACTION, default='edit')
+
+    def __str__(self):
+        return f"{self.tutor.UserID.full_name} - {self.day} - from {self.start_time} to {self.end_time} - ({self.availability_status})"
+    
+    def clean(self):
+        """Ensure start_time is before end_time."""
+        if self.start_time >= self.end_time:
+            raise ValidationError("Start time must be before end time.")

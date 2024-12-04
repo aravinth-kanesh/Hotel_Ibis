@@ -1,12 +1,15 @@
 from datetime import date, datetime, time, timedelta
 from django.db.models import Q
+from itertools import count
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
-from django.shortcuts import redirect, render, get_object_or_404
+from django.db.models.query import QuerySet
+from django.http import HttpResponseBadRequest
+from django.shortcuts import get_object_or_404, redirect, render, get_object_or_404
 from django.views import View
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -23,13 +26,14 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from django.utils.dateparse import parse_date
+from pytz import timezone
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
 from django.contrib.auth import get_user_model
 from itertools import chain
 # 
-from .forms import StudentRequestForm, MessageForm
-from .models import StudentRequest, Student, Message, Lesson, User, Invoice, Tutor, Lesson, Tutor, Invoice
+from .forms import StudentRequestForm, MessageForm, TutorAvailabilityForm, StudentRequestProcessingForm, LessonUpdateForm
+from .models import Language, StudentRequest, Student, Message, Lesson, User, Invoice, Tutor, Lesson, TutorLangRequest, TutorAvailability, Invoice
 from .utils import generate_calendar, LessonCalendar
 from datetime import date, datetime, timedelta
 import calendar
@@ -114,6 +118,7 @@ def dashboard(request):
 
     return render(request, 'dashboard.html', context)
 
+
 @login_required
 def update_user_role(request, user_id):
     if request.method == "POST" and request.user.role == 'admin':
@@ -124,6 +129,8 @@ def update_user_role(request, user_id):
             user.save()
             messages.success(request, f"Role updated for {user.username}.")
         return redirect('dashboard')
+    
+    
 @login_required
 def delete_user(request, user_id):
     if request.method == "POST" and request.user.role == 'admin':
@@ -131,16 +138,20 @@ def delete_user(request, user_id):
         user.delete()
         messages.success(request, f"User {user.username} deleted successfully.")
         return redirect('dashboard')
+    
+    
 def get_unallocated_requests(student):
     # Ensure we are working with a Student instance
     if isinstance(student, Student):
         return StudentRequest.objects.filter(student=student, is_allocated=False).order_by('-created_at').first()
     return None
 
+
 def get_allocated_lesson(student):
     if isinstance(student, Student):
         return Lesson.objects.filter(student=student).order_by('-created_at').first()
     return None
+
 
 def get_invoice_for_lesson(student):
     if student:
@@ -161,12 +172,12 @@ def approve_invoice(request, invoice_id):
     return redirect('dashboard')
 
 
-
 @login_prohibited
 def home(request):
     """Display the application's start/home screen."""
 
     return render(request, 'home.html')
+
 
 @login_required
 def calendar_view(request, year=None, month=None):
@@ -207,18 +218,20 @@ def calendar_view(request, year=None, month=None):
 
     return render(request, 'calendar.html', context)
 
+
 def next_month(year, month):
     if month == 12:
         return {'year': year + 1, 'month': 1}
     else:
         return {'year': year, 'month': month + 1}
+    
 
 def prev_month(year, month):
     if month == 1:
         return {'year': year - 1, 'month': 12}
     else:
         return {'year': year, 'month': month - 1}
-
+    
 
 @login_required
 def tutor_calendar_view(request, year=None, month=None):
@@ -257,6 +270,7 @@ def tutor_calendar_view(request, year=None, month=None):
 
     return render(request, 'tutor_calendar.html', context)
 
+
 @login_required
 def lessons_on_day(request, year, month, day):
     user = request.user
@@ -289,6 +303,7 @@ def lessons_on_day_tutor(request, year, month, day):
         date=date_obj
     )
     return render(request, 'lessons_on_day_tutor.html', {'lessons': lessons, 'date': date_obj})
+
 
 #need to add admin required decorator later
 @login_required
@@ -393,7 +408,6 @@ def student_invoices_admin(request, student_id):
         'student': student,
         'invoices': invoices,
     })
-
 
 
 class LoginProhibitedMixin:
@@ -553,12 +567,14 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             return StudentRequest.objects.filter(student=student).order_by('-created_at')
         except Student.DoesNotExist:
             return StudentRequest.objects.none() 
+        
 
 class SendMessageView(LoginRequiredMixin, CreateView):
     model = Message
     form_class = MessageForm
     template_name = 'send_message.html'
     success_url = reverse_lazy('all_messages')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         reply_id = self.kwargs.get('reply_id')
@@ -566,6 +582,7 @@ class SendMessageView(LoginRequiredMixin, CreateView):
             reply_message = get_object_or_404(Message, pk=reply_id)
             context['reply_message'] = reply_message
         return context
+    
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         reply_id = self.kwargs.get('reply_id')
@@ -575,13 +592,11 @@ class SendMessageView(LoginRequiredMixin, CreateView):
         return kwargs
 
     def form_valid(self, form):
-        
         form.instance.sender = self.request.user
         messages.success(self.request, "Message sent successfully!")
         return super().form_valid(form)
 
     def form_invalid(self, form):
-        
         messages.error(self.request, "Failed to send the message. Please correct the errors.")
         return super().form_invalid(form)
 
@@ -598,6 +613,7 @@ class AllMessagesView(LoginRequiredMixin, TemplateView):
         context['received_messages'] = user.received_messages.all().order_by('-created_at')
         
         return context
+    
 
 class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     """ single message """
@@ -609,19 +625,19 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         """ensure the user is authorized"""
         message = self.get_object()
         return self.request.user == message.sender or self.request.user == message.recipient
+    
     def get_context_data(self, **kwargs):
         """Add previous message, next message (reply), and reply URL to the context."""
         context = super().get_context_data(**kwargs)
         message = self.get_object()
-
         
         context['previous_message'] = message.previous_message 
         context['next_message'] = message.reply
 
-        
         context['reply_url'] = reverse('reply_message', kwargs={'reply_id': message.id})
 
         return context
+    
         
 class StudentRequestProcessingView(LoginRequiredMixin, View):
     # Define term ranges and frequency-to-days mapping as class attributes
@@ -811,6 +827,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
         return slots
     
+    
 class LessonUpdateView(LoginRequiredMixin, View):
     """View for changing or cancelling a lesson."""
 
@@ -857,3 +874,170 @@ class LessonUpdateView(LoginRequiredMixin, View):
         messages.error(request, "There was an error updating the lesson. Please try again.")
 
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
+    
+
+class TutorLangRequestView(LoginRequiredMixin, View):
+    """View for tutors to manage language requests."""
+    model = TutorLangRequest
+    template_name = "tutor_lang_request.html"
+
+    def get(self, request):
+        """Handle GET request to display the current languages and the form."""
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to manage languages.")
+
+        context = {
+            "tutor": tutor,
+            "languages": tutor.languages.all(),
+        }
+        return render(request, self.template_name, context)
+
+    def post(self, request):
+        """Handle POST request to manage tutor languages."""
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to manage languages.")
+
+        action = request.POST.get("action")
+        language_name = request.POST.get("language")
+
+        if action == "add":
+            # Add a new language
+            if language_name:
+                language, created = Language.objects.get_or_create(name=language_name)
+                if created:
+                    print(f"Created new language: {language.name}")
+                else:
+                    print(f"Retrieved existing language: {language.name}")
+                tutor.languages.add(language)
+            TutorLangRequest.objects.create(
+            tutor=tutor,
+            action="add",
+            requested_language=language
+        )
+
+        elif action == "delete":
+            # Delete an existing language
+            if language_name:
+                try:
+                    language = tutor.languages.get(name=language_name)
+                    tutor.languages.remove(language)
+                    TutorLangRequest.objects.create(
+                        tutor=tutor,
+                        action="remove",
+                        current_language=language
+                    )
+                except Language.DoesNotExist:
+                    pass  # Ignore if the language doesn't exist
+
+        elif action == "change":
+            # Change a language
+            old_language_name = request.POST.get("old_language")
+            if language_name and old_language_name:
+                try:
+                    old_language = tutor.languages.get(name=old_language_name)
+                    tutor.languages.remove(old_language)
+                    TutorLangRequest.objects.create(
+                        tutor=tutor,
+                        action="change",
+                        current_language=old_language,
+                        requested_language=new_language
+                    )
+                except Language.DoesNotExist:
+                    pass  # Ignore if the old language doesn't exist
+                new_language, _ = Language.objects.get_or_create(name=language_name)
+                tutor.languages.add(new_language)
+
+        return redirect("tutor_lang_request")  # Redirect to the same page to prevent form resubmission
+    
+    
+class TutorAvailabilityView(LoginRequiredMixin, View):
+    """View for tutors to manage availibility requests."""
+    model = TutorAvailability
+    template = 'tutor_availability_request.html'
+
+    def get(self, request, availability_id=None):
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to view this page")
+        
+        # Retrieve the tutor's availability
+        availabilities = TutorAvailability.objects.filter(tutor=tutor)
+
+        # Handle specific actions
+        action = request.GET.get('action')  # Retrieve the action (edit or delete)
+        if action == 'edit' and availability_id:
+            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
+            if availability:
+                form = TutorAvailabilityForm(instance=availability)  # Pre-fill form for editing
+            else:
+                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+        elif action == 'delete' and availability_id:
+            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
+            if availability:
+                availability.delete()
+                return redirect("dashboard")  # Redirect after deletion
+            else:
+                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+        else:
+            form = TutorAvailabilityForm(initial={'tutor': tutor})  # Default form for creating new requests
+
+        # Pass data to the template
+        context = {
+            "tutor": tutor,
+            "availabilities": availabilities,
+            "form": form,
+        }
+        return render(request, self.template, context)
+    
+    @staticmethod
+    def has_overlapping(tutor, day, new_start, new_end):
+        existing_slots = TutorAvailability.objects.filter(tutor=tutor, day=day)
+        for slot in existing_slots:
+            # Directly compare the times without calling another method
+            if (new_start < slot.end_time and new_end > slot.start_time):
+                return True
+        return False
+    
+    def post(self, request, availability_id=None):
+        try:
+            tutor = request.user.tutor_profile
+        except Tutor.DoesNotExist:
+            return HttpResponseBadRequest("You are not authorized to change tutor times.")
+    
+        if availability_id:
+        # If an ID is provided, retrieve the existing object for editing
+            try:
+                availability = TutorAvailability.objects.get(id=availability_id, tutor=tutor)
+                form = TutorAvailabilityForm(request.POST, instance=availability)
+            except TutorAvailability.DoesNotExist:
+                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+        else:
+        # If no ID is provided, create a new object
+            form = TutorAvailabilityForm(request.POST)
+
+        if form.is_valid():
+            new_availability = form.save(commit=False)
+            new_availability.tutor = tutor
+            new_start = form.cleaned_data['start_time']
+            new_end = form.cleaned_data['end_time']
+            day = form.cleaned_data['day']
+            if TutorAvailabilityView.has_overlapping(tutor, day, new_start, new_end):
+                form.add_error(None, "This time slot overlaps with an existing availability.")
+                return render(request, self.template, {'form': form})
+            
+            new_availability.save()
+            return redirect("dashboard")
+
+    # If the form is invalid, re-render the page with errors
+        availabilities = TutorAvailability.objects.filter(tutor=tutor)
+        context = {
+            "tutor": tutor,
+            "availabilities": availabilities,
+            "form": form,
+        }
+        return render(request, self.template, context)
