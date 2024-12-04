@@ -3,10 +3,12 @@
     <a class="navbar-brand" href="{% url 'dashboard' %}">
       Code Tutors 
     </a>
+    <!-- button to fix navbar on smaller screens -->
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
     {% if user.is_authenticated %}
+    <!-- includes the menu for users that have been authenticated -->
       {% include 'partials/menu.html' %}
     {% endif %}
   </div>
