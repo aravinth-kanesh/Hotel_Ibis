@@ -64,6 +64,7 @@
           </form>
         </div>
 
+        <!-- table where roles can be updated -->
         <table class="table table-bordered table-striped">
           <thead class="table-light">
             <tr>
@@ -162,7 +163,7 @@
         </select>
       </form>
     
-    
+    <!-- displays table to retrieve student info and manage lessons  -->
       <div id="all_student">
         <h2>Retrieve Student Info</h2>
         <table class="table table-bordered table-striped">
@@ -234,7 +235,7 @@
               <td>{{  data.lesson.student.user.full_name }}</td>
               <td>{{  data.lesson.time }}</td>
               <td>
-                
+                <!-- creates button to lessons update page and checks if no lessons found -->
                 <a href="{% url 'lesson_update' data.lesson.id %}" class="btn btn-secondary">
               </td>
             </tr>
@@ -249,7 +250,7 @@
       {% endif %}
     </div>
 
-    
+  <!-- displays table of lessons and lesson details for tutors -->
   {%elif user.role == 'tutor'%}
     <div id="lessons">
       <h2>View Lessons</h2>
@@ -283,6 +284,7 @@
       {% endif %}
     </div>
 
+  <!-- displays table of lessons and lesson details for students -->
   {%elif user.role == 'student' %}
     <div id="lessons">
       <h2>View My Lessons</h2>
