@@ -838,7 +838,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
     def find_available_slot(self, tutor, student, proposed_date, proposed_time, duration, max_days_to_search=7):
         """Finds an available slot for a lesson, resolving conflicts dynamically."""
-        
+
         day_delta = timedelta(minutes=30)  # Interval to check for free slots
         max_time = time(21, 0)  # End of the available time range (9 PM)
 
@@ -848,11 +848,21 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
             else:
                 return time(10, 0)  # 10 AM weekends
 
-        for day_offset in range(max_days_to_search):
-            check_date = proposed_date + timedelta(days=day_offset)
+        # Get the start and end of the week (Monday to Sunday)
+        start_of_week = proposed_date - timedelta(days=proposed_date.weekday())  # Monday of the week
+        end_of_week = start_of_week + timedelta(days=6)  # Sunday of the week
+
+        # Order of days to check: proposed day first, then all other days
+        days_to_check = [proposed_date] + [
+            start_of_week + timedelta(days=i) for i in range(7)
+            if start_of_week + timedelta(days=i) != proposed_date  # Exclude the proposed day
+        ]
+
+        # Check each day in the determined order
+        for check_date in days_to_check:
             earliest_start = get_earliest_start_time(check_date)
 
-            # Generate time slots before and after the proposed time
+            # Generate the time slots for this day
             slots_before = self.generate_time_slots(check_date, earliest_start, proposed_time, day_delta, duration)
             slots_after = self.generate_time_slots(check_date, proposed_time, max_time, day_delta, duration)
 
@@ -898,7 +908,6 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                     tutor_conflict_found = False
                     tutor_conflict = Lesson.objects.filter(
                         tutor=tutor,
-                        
                         date=check_start_datetime.date()  # Same date as the new lesson
                     )
 
@@ -917,7 +926,6 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                             tutor_conflict_found = True
                             break
 
-                    # If conflicts are found for both the student and tutor, skip this slot and continue
                     if student_conflict_found or tutor_conflict_found or (tutor_available == False):
                         continue  # Skip to the next available slot
 
