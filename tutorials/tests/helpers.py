@@ -2,7 +2,7 @@ from django.urls import reverse
 from with_asserts.mixin import AssertHTMLMixin
 
 def reverse_with_next(url_name, next_url):
-    """Extended version of reverse to generate URLs with redirects"""
+    """Extended version of reverse to generate URLs with redirects."""
     url = reverse(url_name)
     url += f"?next={next_url}"
     return url
@@ -24,14 +24,14 @@ class MenuTesterMixin(AssertHTMLMixin):
     ]
 
     def assert_menu(self, response):
-        """Check that menu is present."""
+        """Checks that the enu is present."""
 
         for url in self.menu_urls:
             with self.assertHTML(response, f'a[href="{url}"]'):
                 pass
 
     def assert_no_menu(self, response):
-        """Check that no menu is present."""
+        """Checks that no menu is present."""
         
         for url in self.menu_urls:
             self.assertNotHTML(response, f'a[href="{url}"]')

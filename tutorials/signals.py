@@ -7,9 +7,7 @@ User = settings.AUTH_USER_MODEL
 
 @receiver(post_save, sender=User)
 def create_or_update_profile_for_role(sender, instance, created, **kwargs):
-    """
-    Automatically create or update a Student or Tutor profile when a user's role is assigned or updated.
-    """
+    """Automatically creates or updates a Student or Tutor profile when a user's role is assigned or updated."""
     if hasattr(instance, "role"):
         if instance.role == "student":
             Student.objects.get_or_create(user=instance)

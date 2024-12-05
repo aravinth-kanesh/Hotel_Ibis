@@ -2,7 +2,7 @@
  * Alerts
  */
 
-/* removes any rounded corners from elements*/
+/* Removes any rounded corners from elements. */
 .alert {
   border-radius: 0px;
 }
@@ -12,18 +12,18 @@
  * Cover page
  */
 
-/* adds padding to top of element */
+/* Adds padding to the top of element. */
 .content {
   padding-top: 10px;
 }
 
-/* sets height to 100% of viewport height */
+/* Sets the height to 100% of the viewport height. */
 .h-100 {
   min-height: 100vh;
   height: 100vh;
 }
 
-/* centres vertically*/
+/* Centres the item vertically. */
 .vcenter-item{
     display: flex;
     align-items: center;
@@ -33,17 +33,17 @@
  * Cover page
  */
 
-/* sets font size */
+/* Sets the font size. */
 h1.cover-heading {
   font-size: 4rem;
 }
 
-/* sets font size */
+/* Sets the font size. */
 p.cover-text {
   font-size: 1.7rem;
 }
 
-/* sets background, padding and rounded corners */
+/* Sets the background, padding and rounds the corners. */
 .cover-card {
   background-color: rgba(245, 245, 245, 0.6);
   max-width: 30rem;
@@ -54,22 +54,22 @@ p.cover-text {
   border-radius: 15%;
 }
 
-/* sets opacity*/
+/* Sets the opacity. */
 .cover-card-block {
   opacity: 1
 }
 
 
 /*
- * forms
+ * Forms
  */
 
-/* hides label elements */
+/* Hides the label elements. */
 .nolabel label {
   display: none;
 }
 
-/*removes list styling */
+/* Removes the list styling. */
 ul.errorlist {
   list-style-type: none;
   padding: 0;
@@ -80,13 +80,13 @@ ul.errorlist {
  * Typefaces
  */
 
-/* sets colour and font weight */
+/* Sets the colour and font weight. */
 .low-key {
   color: #777777;
   font-weight: 300;
 }
 
-/* adds vertical margins */
+/* Adds vertical margins. */
 .list-title {
   margin-top: 10px;
   margin-bottom: 20px;
@@ -96,25 +96,25 @@ ul.errorlist {
  * Profile
  */
 
-/* sets width, clears floats and floats to left */
+/* Sets the width, clears the floats and floats it to the left. */
 .profile-image {
   width: 120px;
   clear:both;
   float:left;
 }
 
-/* prevents overflow and adds left padding */
+/* Prevents overflow and adds left padding. */
 .profile-text {
   overflow:hidden;
   padding-left:20px
 }
 
-/*removes bottom margin */
+/* Removes the bottom margin. */
 h3.profile-title {
   margin-bottom: 0px;
 }
 
-/* sets colour, weight and italic */
+/* Sets the colour, weight and italic. */
 .profile-username {
   color: #777777;
   font-weight: 300;
@@ -126,13 +126,13 @@ h3.profile-title {
  * Hyperlinks
  */
 
-/* removes underline and sets colour */
+/* Removes the underline and sets the colour. */
 .content a {
   text-decoration: none;
   color: #0d6efd;
 }
 
-/* adds underline and colour on hover */
+/* Adds an underline and a colour on hover. */
 .content a:hover {
   text-decoration: underline;
   color: #0d6efd;

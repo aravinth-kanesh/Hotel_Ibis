@@ -1,5 +1,6 @@
 from datetime import date
 
+# Defines a dictionary, with the start and end dates for the three academic terms.
 TERM_DATES = {
     'sept-christmas': {
         'start_date': date(2024, 9, 1),

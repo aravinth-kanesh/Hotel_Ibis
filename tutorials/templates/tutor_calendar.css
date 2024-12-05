@@ -1,34 +1,41 @@
 /* static/css/calendar.css */
 
+/* Container for the calendar */
 .calendar-container {
     max-width: 1000px;
     margin: 0 auto;
 }
 
+/* Header styling for the calendar */
 .calendar-header {
     text-align: center;
     margin-bottom: 10px;
 }
 
+/* Styling for the header links */
 .calendar-header a {
     margin: 0 20px;
     text-decoration: none;
     color: #007bff;
 }
 
+/* Creates a hover effect for the header links */
 .calendar-header a:hover {
     text-decoration: underline;
 }
 
+/* The grid layout for the main calendar */
 .calendar-grid {
     display: flex;
     flex-direction: column;
 }
 
+/* Row within the calendar grid */
 .calendar-row {
     display: flex;
 }
 
+/* Styling for each of the calendar cells */
 .calendar-cell {
     width: 14.28%; /* 100% divided by 7 days */
     border: 1px solid #ddd;
@@ -39,22 +46,26 @@
     background-color: #fff;
 }
 
+/* The days of the week */
 .calendar-days .calendar-cell {
     background-color: #f5f5f5;
     font-weight: bold;
     text-align: center;
 }
 
+/* The cells in other months */
 .other-month {
     background-color: #f9f9f9;
     color: #ccc;
 }
 
+/* The day numbers */
 .day-number {
     font-weight: bold;
     margin-bottom: 5px;
 }
 
+/* The event container */
 .event-container {
     background-color: #d9edf7;
     border: 1px solid #bce8f1;
@@ -68,14 +79,17 @@
     white-space: nowrap;
 }
 
+/* Creates a hover effect for the event container. */
 .event-container:hover {
     background-color: #c4e3f3;
 }
 
+/* Makes the text take up the full width of the container. */
 .event-text {
     display: block;
 }
 
+/* Creates smaller text and a smaller height for smaller screens. */
 @media screen and (max-width: 600px) {
     .calendar-cell {
         height: 80px;

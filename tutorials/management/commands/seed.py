@@ -8,7 +8,7 @@ import pytz
 from faker import Faker
 from random import randint, choice
 
-# sample user fixture data
+# Sample user fixture data
 user_fixtures = [
     {'username': '@johndoe', 'email': 'john.doe@example.org', 'first_name': 'John', 'last_name': 'Doe', 'role': 'admin'},
     {'username': '@janedoe', 'email': 'jane.doe@example.org', 'first_name': 'Jane', 'last_name': 'Doe', 'role' : 'tutor'},
@@ -21,7 +21,7 @@ tutor_fixtures = [
 
 
 class Command(BaseCommand):
-    """Build automation command to seed the database."""
+    """Builds an automation command to seed the database."""
 
     USER_COUNT = 300
     DEFAULT_PASSWORD = 'Password123'
@@ -30,12 +30,12 @@ class Command(BaseCommand):
     help = 'Seeds the database with sample data'
 
     def __init__(self, *args, **kwargs):
-        """ initialises command and sets up faker instance """
+        """ Initialises the command and sets up a faker instance. """
         super().__init__(*args, **kwargs)
         self.faker = Faker('en_GB')
 
     def handle(self, *args, **options):
-        """ main entry point for command execution """
+        """ The main entry point for command execution. """
         self.create_lang()
         self.create_users()
         self.users = User.objects.all()
@@ -45,13 +45,13 @@ class Command(BaseCommand):
             Language.objects.get_or_create(name=lang)
 
     def create_users(self):
-        """ user creation process """
+        """ User creation process. """
         self.generate_user_fixtures()
         self.generate_tutor_fixtures()
         self.generate_random_users()
 
     def generate_user_fixtures(self):
-        """ creates users on fixture data """
+        """ Creates users on the fixture data. """
         for data in user_fixtures:
             self.try_create_user(data)
 
@@ -61,7 +61,7 @@ class Command(BaseCommand):
             self.create_tutor(user)
 
     def generate_random_users(self):
-        """ generates random users till until target count """
+        """ Generates random users until the target count is reached. """
         user_count = User.objects.count()
         while  user_count < self.USER_COUNT:
             print(f"Seeding user {user_count}/{self.USER_COUNT}", end='\r')
@@ -70,7 +70,7 @@ class Command(BaseCommand):
         print("User seeding complete.      ")
 
     def generate_user(self):
-        """ generates random user using faker """
+        """ Generates a random user using the faker. """
         first_name = self.faker.first_name()
         last_name = self.faker.last_name()
         email = create_email(first_name, last_name)
@@ -82,14 +82,14 @@ class Command(BaseCommand):
             self.create_tutor(user)
         
     def try_create_user(self, data):
-        """ ignores errors to try to create user """
+        """ Ignores any errors to try to create a user. """
         try:
             return self.create_user(data)
         except:
             pass
 
     def create_user(self, data):
-        """ creates user """
+        """ Creates a user. """
         User.objects.create_user(
             username=data['username'],
             email=data['email'],
@@ -120,7 +120,7 @@ class Command(BaseCommand):
             print(f"User {user.username} is not a tutor, skipping tutor creation.")
         
 def create_username(first_name, last_name):
-    """ makes full name as username """
+    """ Sets the user's full name as their username. """
     return '@' + first_name.lower() + last_name.lower()
 
 def create_email(first_name, last_name):

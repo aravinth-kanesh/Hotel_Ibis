@@ -6,7 +6,6 @@
 <div class="container">
   <div class="col-12">
     <h1>Welcome to your dashboard {{ user.username }}</h1>
-    <!-- Navigation Tabs -->
     <ul class="nav nav-tabs">
       {% if user.role == 'admin' and user.is_staff %}
         <li class="nav-item">
@@ -32,15 +31,12 @@
       {% endif %}
     </ul>
 
-    <!-- ADMIN Tab Content -->
     <div class="tab-content mt-3">
       {% if user.role == 'admin' and user.is_staff %}
-      <!-- Manage Accounts Tab -->
       {% if tab == 'accounts' %}
       <div id="manage-accounts">
         <h2>Manage Accounts</h2>
 
-        <!-- Search bar -->
         <div class="d-flex justify-content-between mb-3">
           <form method="get" class="d-flex mb-3">
             <input type="hidden" name="tab" value="accounts"> 
@@ -49,7 +45,6 @@
             <button type="submit" class="btn btn-outline-primary">Search</button>
           </form>
 
-          <!--Role Dropdown-->
           <form method="get" class="d-flex mb-3">
             <input type="hidden" name="tab" value="accounts"> 
             <label for="sort_query" class="me-2">Filter by Role:</label>
@@ -64,7 +59,6 @@
           </form>
         </div>
 
-        <!-- table where roles can be updated -->
         <table class="table table-bordered table-striped">
           <thead class="table-light">
             <tr>
@@ -94,7 +88,6 @@
                 </form>
               </td>
               <td>
-                <!-- Delete User Form -->
                 <form method="post" action="{% url 'delete_user' user.id %}" onsubmit="return confirm('Are you sure you want to delete this user?');">
                   {% csrf_token %}
                   <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -112,7 +105,6 @@
       </div>
       {% endif %}
 
-      <!-- Retrieve Tutor Info Tab -->
       {% if tab == 'tutors' %}
       <div id="all_tutor">
         <h2>Retrieve Tutor Info</h2>
@@ -143,9 +135,7 @@
 
       {% endif %}
 
-      <!-- Retrieve Student Info Tab -->
       {% if tab == 'students' %}
-      <!-- filter by action -->
       <form method="get" class="d-flex mb-3">
         <input type="hidden" name="tab" value="students">
         <label for="action_filter" class="me-2">Filter by Actions:</label>
@@ -163,7 +153,6 @@
         </select>
       </form>
     
-    <!-- displays table to retrieve student info and manage lessons  -->
       <div id="all_student">
         <h2>Retrieve Student Info</h2>
         <table class="table table-bordered table-striped">
@@ -235,7 +224,6 @@
               <td>{{  data.lesson.student.user.full_name }}</td>
               <td>{{  data.lesson.time }}</td>
               <td>
-                <!-- creates button to lessons update page and checks if no lessons found -->
                 <a href="{% url 'lesson_update' data.lesson.id %}" class="btn btn-secondary">
               </td>
             </tr>
@@ -250,7 +238,6 @@
       {% endif %}
     </div>
 
-  <!-- displays table of lessons and lesson details for tutors -->
   {%elif user.role == 'tutor'%}
     <div id="lessons">
       <h2>View Lessons</h2>
@@ -284,7 +271,6 @@
       {% endif %}
     </div>
 
-  <!-- displays table of lessons and lesson details for students -->
   {%elif user.role == 'student' %}
     <div id="lessons">
       <h2>View My Lessons</h2>

@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 
 class StudentRequestProcessingFormTestCase(TestCase):
     def setUp(self):
-        """Set up data for the tests."""
+        """Sets up data for the tests."""
         
         # Create Language instance
         self.language_python = Language.objects.create(name="Python")
@@ -33,7 +33,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.tutor_python = Tutor.objects.create(UserID=self.tutor_user_python)
         self.tutor_python.languages.add(self.language_python)
         
-        # Create a student request instance (request for Python tutor)
+        # Creates a student request instance (requests for Python tutor).
         self.student_request = StudentRequest.objects.create(
             student=self.student,
             language=self.language_python, 
@@ -49,7 +49,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.valid_time = '14:30:00' 
     
     def test_form_valid_with_correct_language(self):
-        """Test if the form is valid when the tutor teaches the requested language."""
+        """Tests if the form is valid when the tutor teaches the requested language."""
         
         data = {
             'status': 'accepted',
@@ -64,7 +64,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertTrue(form.is_valid())  
 
     def test_form_valid_with_all_fields(self):
-        """Test if the form is valid with all required fields provided."""
+        """Tests if the form is valid with all required fields provided."""
         
         data = {
             'status': 'accepted',
@@ -84,7 +84,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertEqual(str(form.cleaned_data['first_lesson_time']), self.valid_time)
 
     def test_form_invalid_without_tutor(self):
-        """Test if the form is invalid when no tutor is selected."""
+        """Tests if the form is invalid when no tutor is selected."""
         
         data = {
             'status': 'accepted',
@@ -101,7 +101,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertIn('You must select a tutor for accepted requests.', form.errors['tutor'])
 
     def test_form_invalid_without_first_lesson_date(self):
-        """Test if the form is invalid when no first lesson date is provided."""
+        """Tests if the form is invalid when no first lesson date is provided."""
         
         data = {
             'status': 'accepted',
@@ -116,7 +116,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertEqual(form.errors['first_lesson_date'], ['You must provide the first lesson date.'])
 
     def test_form_invalid_without_first_lesson_time(self):
-        """Test if the form is invalid when no first lesson time is provided."""
+        """Tests if the form is invalid when no first lesson time is provided."""
         
         data = {
             'status': 'accepted',
@@ -131,7 +131,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertEqual(form.errors['first_lesson_time'], ['You must provide the first lesson time.'])
 
     def test_form_valid_with_status_denied_and_no_tutor_or_lesson_time(self):
-        """Test if the form is valid when status is 'denied' and no tutor or lesson date/time are provided."""
+        """Tests if the form is valid when status is 'denied' and no tutor or lesson date/time are provided."""
         
         data = {
             'status': 'denied',
@@ -148,7 +148,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertEqual(form.cleaned_data['details'], 'Scheduling conflict')
 
     def test_form_invalid_with_status_accepted_and_missing_fields(self):
-        """Test if the form is invalid when status is 'accepted' but tutor, date, or time are missing."""
+        """Tests if the form is invalid when status is 'accepted' but tutor, date, or time are missing."""
         
         data = {
             'status': 'accepted',

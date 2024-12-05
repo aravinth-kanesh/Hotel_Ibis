@@ -3,6 +3,7 @@ from tutorials.models import StudentRequest, Student, Language, User
 
 class StudentRequestModelTest(TestCase):
     def test_create_request(self):
+        """Tests creating a StudentRequest instance with valid data."""
         user = User.objects.create(username="@johndoe", email="johndoe@example.com", role="student")
         student = Student.objects.get(user=user)
         language = Language.objects.create(name="Python")

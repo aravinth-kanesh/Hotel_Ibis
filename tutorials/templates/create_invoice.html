@@ -7,7 +7,6 @@
   <p>Lessons to be invoiced:</p>
   <ul>
     {% for lesson in lessons %}
-    <!-- displays all lessons and details -->
       <li>
         {{ lesson.date }} at {{ lesson.time }} - {{ lesson.language.name }} with {{ lesson.tutor.UserID.full_name }}
       </li>
@@ -15,7 +14,6 @@
   </ul>
   <form method="post">
     {% csrf_token %}
-    <!-- submit button to create invoice -->
     <button type="submit">Create Invoice</button>
   </form>
 {% endblock %}

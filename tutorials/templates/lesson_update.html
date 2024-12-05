@@ -6,7 +6,6 @@
     <div class="container">
         <h1 class="mb-4 text-center">Update Lesson Details</h1>
 
-        <!-- Card for Original Lesson Details -->
         <div class="card mb-4">
             <div class="card-body">
                 <h3 class="mb-4">Lesson Details</h3>
@@ -51,7 +50,6 @@
             </div>
         </div>
 
-        <!-- Display form-wide errors -->
         {% if form.non_field_errors %}
             <div class="alert alert-danger mb-4">
                 <ul>
@@ -65,16 +63,13 @@
         <form method="post">
             {% csrf_token %}
             
-            <!-- Card for Updating Lesson -->
             <div class="card mb-4">
                 <div class="card-body">
-                    <!-- Cancel Lesson Checkbox -->
                     <div class="form-group mb-4 d-flex align-items-center">
                         <label for="id_cancel_lesson" class="font-weight-bold h4 mb-0 mr-3">Cancel Lesson</label>
                         {{ form.cancel_lesson }}
                     </div>
 
-                    <!-- New Date Field -->
                     <div id="new_date_field" class="form-group mb-3">
                         <label for="id_new_date" class="font-weight-bold h4">New Date</label>
                         <div class="mt-2">
@@ -89,7 +84,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- New Time Field -->
                     <div id="new_time_field" class="form-group mb-4">
                         <label for="id_new_time" class="font-weight-bold h4">New Time</label>
                         <div class="mt-2">
@@ -104,7 +98,6 @@
                         {% endif %}
                     </div>
 
-                    <!-- Submit Button -->
                     <div class="form-group mb-0">
                         <button type="submit" class="btn btn-primary">Submit</button>
                     </div>
@@ -112,7 +105,6 @@
             </div>
         </form>
 
-        <!-- Back to Dashboard Link -->
         <div class="mb-4">
             <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
         </div>

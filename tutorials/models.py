@@ -28,14 +28,14 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=50, blank=False)
     last_name = models.CharField(max_length=50, blank=False)
     email = models.EmailField(unique=True, blank=False)
-    # adding according to database schema i made
+    # Adds according to database schema.
     
     id = models.AutoField(primary_key=True)
     role = models.CharField(max_length=10, choices= ROLE_CHOICES)
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-    # assign groups/permissions based on role
+    # Assign the groups/permissions based on role.
         if self.role == 'admin':
             group, _ = Group.objects.get_or_create(name='Admins')
             self.groups.add(group)
@@ -55,26 +55,26 @@ class User(AbstractUser):
         ordering = ['last_name', 'first_name']
 
     def full_name(self):
-        """Return a string containing the user's full name."""
+        """Returns a string containing the user's full name."""
 
         return f'{self.first_name} {self.last_name}'
 
     def gravatar(self, size=120):
-        """Return a URL to the user's gravatar."""
+        """Returns a URL to the user's gravatar."""
 
         gravatar_object = Gravatar(self.email)
         gravatar_url = gravatar_object.get_image(size=size, default='mp')
         return gravatar_url
 
     def mini_gravatar(self):
-        """Return a URL to a miniature version of the user's gravatar."""
+        """Returns a URL to a miniature version of the user's gravatar."""
         
         return self.gravatar(size=60)
 
 
 # model for lang, tutor, student, invoice, class
 class Language(models.Model):
-    """ languages supported by tutors"""
+    """Languages supported by the tutors."""
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, unique=True)
 
@@ -83,7 +83,7 @@ class Language(models.Model):
     
     
 class Tutor(models.Model):
-    """Model for tutors"""
+    """Model for tutors."""
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
@@ -94,7 +94,7 @@ class Tutor(models.Model):
     
     
 class Student(models.Model):
-    """Model for student"""
+    """Model for student."""
     id = models.AutoField(primary_key=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
 
@@ -109,16 +109,18 @@ class Student(models.Model):
 
 
 class Lesson(models.Model):
+    # Defines the frequency options for lessons.
     FREQUENCY_CHOICES = [
         ('once a week', 'Once a week'),
         ('once per fortnight', 'Once per fortnight'),
     ]
+    # Defines the term options for lessons.
     TERM_CHOICES = [
         ('sept-christmas', 'September-Christmas'),
         ('jan-easter', 'January-Easter'),
         ('may-july', 'May-July'),
     ]
-
+    # Defines the fields for the Lesson model.
     id = models.AutoField(primary_key=True)
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="classes")
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="classes")
@@ -132,9 +134,11 @@ class Lesson(models.Model):
     price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now=True)
 
+    # Returns the price of the lesson.
     def get_price(self):
         return self.price
     
+    # Returns a list of dates when the lesson occurs within the term.
     def get_occurrence_dates(self):
         from .term_dates import TERM_DATES
 
@@ -142,13 +146,13 @@ class Lesson(models.Model):
         if not term_dates:
             return []
 
-        start_date = max(self.date, term_dates['start_date'])  # Ensure the lesson doesn't start before the term
+        start_date = max(self.date, term_dates['start_date'])  # Ensures the lesson doesn't start before the term.
         end_date = term_dates['end_date']
 
         occurrence_dates = []
         current_date = start_date
 
-        # Determine the interval between lessons
+        # Determines the interval between lessons.
         if self.frequency == 'once a week':
             delta = timedelta(weeks=1)
         elif self.frequency == 'once per fortnight':
@@ -156,7 +160,7 @@ class Lesson(models.Model):
         else:
             return []
 
-        # Generate dates until the end of the term
+        # Generates dates until the end of the term.
         while current_date <= end_date:
             occurrence_dates.append(current_date)
             current_date += delta
@@ -164,21 +168,21 @@ class Lesson(models.Model):
         return occurrence_dates
 
     def calculate_lesson_total(self):
-        # Calculate the total cost of this lesson over the term
+        # Calculates the total cost of this lesson over the term.
         price_per_lesson = self.get_price()
         if self.frequency == 'once a week':
-            num_lessons = 13  # 13 weeks in a term
+            num_lessons = 13  # 13 weeks in a term.
         elif self.frequency == 'once per fortnight':
-            num_lessons = 7   # Approximately 7 lessons in a term
+            num_lessons = 7   # Approximately 7 lessons in a term.
         else:
-            num_lessons = 0   # Default to 0 if frequency is unknown
+            num_lessons = 0   # Default to 0 if frequency is unknown.
         return price_per_lesson * num_lessons
 
     def __str__(self):
         return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
 
 
-# for handling student reqs
+# For handling student requests.
 class StudentRequest(models.Model):
     FREQUENCY_CHOICES = [
         ('once a week', 'Once a week'),
@@ -210,11 +214,11 @@ class Message (models.Model):
     subject = models.CharField(max_length=255)
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
-    #if object is reply
+    # If the object is reply.
     previous_message = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True, blank=True, related_name="replies"
     )
-    #replies to the object
+    # Replies to the object.
     reply = models.ForeignKey(
         'self', on_delete=models.SET_NULL, null=True, blank=True, related_name="replied_by"
     )
@@ -231,6 +235,7 @@ class Message (models.Model):
     
     
 class Invoice(models.Model):
+    # Defines the fields for the Invoice model.
     id = models.AutoField(primary_key=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
@@ -240,6 +245,7 @@ class Invoice(models.Model):
     date_issued = models.DateField(auto_now_add=True)
     date_paid = models.DateField(null=True, blank=True)
 
+    # Calculates the total amount of the invoice based on lesson totals.
     def calculate_total_amount(self):
         total = 0
         for lesson in self.lessons.all():
@@ -272,10 +278,12 @@ class TutorLangRequest(models.Model):
     
     
 class TutorAvailability(models.Model):
+    # Defines the availability status options for the tutor.
     CHOICE = [
         ('available', 'Available'),
         ('not_available', 'Not Available'),
     ]
+    # Defines the actions for the tutor's availability.
     ACTION = [
         ('edit', 'Edit'),
         ('delete', 'Delete')

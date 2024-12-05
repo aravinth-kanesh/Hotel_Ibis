@@ -1,41 +1,41 @@
 /* static/css/calendar.css */
 
-/* centres with max width */
+/* Centres the item with a maximum width. */
 .calendar-container {
     max-width: 1000px;
     margin: 0 auto;
 }
 
-/* centres and bottom margin */
+/* Centres the item and creates a bottom margin. */
 .calendar-header {
     text-align: center;
     margin-bottom: 10px;
 }
 
-/* horizontal margin and link colour */
+/* Creates a horizontal margin and a link colour. */
 .calendar-header a {
     margin: 0 20px;
     text-decoration: none;
     color: #007bff;
 }
 
-/* underlines */
+/* Creates an underline. */
 .calendar-header a:hover {
     text-decoration: underline;
 }
 
-/* stacks rows vertically */
+/* Stacks the rows vertically. */
 .calendar-grid {
     display: flex;
     flex-direction: column;
 }
 
-/* displays horizontally */
+/* Displays the rows horizontally. */
 .calendar-row {
     display: flex;
 }
 
-/*  calendar cells */
+/*  Calendar cells. */
 .calendar-cell {
     width: 14.28%; /* 100% divided by 7 days */
     border: 1px solid #ddd;
@@ -46,26 +46,26 @@
     background-color: #fff;
 }
 
-/* day header cells */
+/* Day header cells. */
 .calendar-days .calendar-cell {
     background-color: #f5f5f5;
     font-weight: bold;
     text-align: center;
 }
 
-/* days from other months */
+/* Days from other months. */
 .other-month {
     background-color: #f9f9f9;
     color: #ccc;
 }
 
-/* day numbers */
+/* Day numbers. */
 .day-number {
     font-weight: bold;
     margin-bottom: 5px;
 }
 
-/* event containers */
+/* Event containers. */
 .event-container {
     background-color: #d9edf7;
     border: 1px solid #bce8f1;
@@ -79,17 +79,17 @@
     white-space: nowrap;
 }
 
-/* changes background on hover */
+/* Changes the background on hover. */
 .event-container:hover {
     background-color: #c4e3f3;
 }
 
-/* displays as block element */
+/* Displays as a block element. */
 .event-text {
     display: block;
 }
 
-/* smaller height and font for phones */
+/* Makes a smaller height and font for phones. */
 @media screen and (max-width: 600px) {
     .calendar-cell {
         height: 80px;

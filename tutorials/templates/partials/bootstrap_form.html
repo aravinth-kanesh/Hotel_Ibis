@@ -1,8 +1,7 @@
-{% load widget_tweaks %} <!-- loads widget_tweaks for form fields -->
-{% for field in form %} <!-- loops through each form field -->
+{% load widget_tweaks %}
+{% for field in form %}
   <div class="mb-3">
     {{ field.label_tag }}
-    <!-- checks if the form is submitted and if there are any errors -->
     {% if form.is_bound %}
       {% if field.errors %}
         {% render_field field class="form-control is-invalid" %}
@@ -12,11 +11,9 @@
     {% else %}
       {% render_field field class="form-control" %}
     {% endif %}
-    <!-- success message -->
     <div class="valid-feedback">
       Looks good!
     </div>
-    <!-- error message -->
     <div class="invalid-feedback">
       {{ field.errors }}
     </div>

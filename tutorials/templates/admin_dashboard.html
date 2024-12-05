@@ -6,14 +6,12 @@
     <h2>Pending Student Requests</h2>
     <ul>
         {% for request in requests %}
-        <!-- goes through each request and displays details -->
             <li>
                 <a href="{% url 'process_student_request' request.id %}">
                     Request #{{ request.id }} - {{ request.language }} - {{ request.status }}
                 </a>
             </li>
         {% empty %}
-        <!-- displays message if no pending requests -->
             <li>No pending requests.</li>
         {% endfor %}
     </ul>

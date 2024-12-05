@@ -15,6 +15,7 @@ class PasswordViewTest(TestCase):
     ]
 
     def setUp(self):
+        """Initialises the user and password change form input."""
         self.user = User.objects.get(username='@johndoe')
         self.url = reverse('password')
         self.form_input = {
@@ -24,9 +25,11 @@ class PasswordViewTest(TestCase):
         }
 
     def test_password_url(self):
+        """Tests if the password URL is correctly resolved to '/password/'."""
         self.assertEqual(self.url, '/password/')
 
     def test_get_password(self):
+        """Tests get request to the password change page and checks the form is presented correctly."""
         self.client.login(username=self.user.username, password='Password123')
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -35,11 +38,13 @@ class PasswordViewTest(TestCase):
         self.assertTrue(isinstance(form, PasswordForm))
 
     def test_get_password_redirects_when_not_logged_in(self):
+        """Tests get request to the password page when not logged in, ensuring a redirect to the log in page."""
         redirect_url = reverse_with_next('log_in', self.url)
         response = self.client.get(self.url)
         self.assertRedirects(response, redirect_url, status_code=302, target_status_code=200)
 
     def test_succesful_password_change(self):
+        """Tests a successful password change and checks the new password is saved correctly."""
         self.client.login(username=self.user.username, password='Password123')
         response = self.client.post(self.url, self.form_input, follow=True)
         response_url = reverse('dashboard')
@@ -50,6 +55,7 @@ class PasswordViewTest(TestCase):
         self.assertTrue(is_password_correct)
 
     def test_password_change_unsuccesful_without_correct_old_password(self):
+        """Tests an unsuccessful password change when the old password is provided incorrectly."""
         self.client.login(username=self.user.username, password='Password123')
         self.form_input['password'] = 'WrongPassword123'
         response = self.client.post(self.url, self.form_input, follow=True)
@@ -62,6 +68,7 @@ class PasswordViewTest(TestCase):
         self.assertTrue(is_password_correct)
 
     def test_password_change_unsuccesful_without_password_confirmation(self):
+        """Tests an unsuccessful password change when the new password and confirmation do not match."""
         self.client.login(username=self.user.username, password='Password123')
         self.form_input['password_confirmation'] = 'WrongPassword123'
         response = self.client.post(self.url, self.form_input, follow=True)
@@ -74,6 +81,7 @@ class PasswordViewTest(TestCase):
         self.assertTrue(is_password_correct)
 
     def test_post_profile_redirects_when_not_logged_in(self):
+        """Tests post request to the password page when not logged in, ensuring a redirect to the login page."""
         redirect_url = reverse_with_next('log_in', self.url)
         response = self.client.post(self.url, self.form_input)
         self.assertRedirects(response, redirect_url, status_code=302, target_status_code=200)

@@ -9,9 +9,9 @@
     <a href="{% url 'calendar' year=prev_month.year month=prev_month.month %}">&lt; Previous Month</a>
     <span>{{ year }} - {{ month }}</span>
     <a href="{% url 'calendar' year=next_month.year month=next_month.month %}">Next Month &gt;</a>
-  </div> <!-- links to switch between months -->
+  </div> 
 
-  <div class="calendar"> <!-- renders calendar -->
+  <div class="calendar"> 
     {{ calendar|safe }}
   </div>
 
@@ -19,36 +19,36 @@
     .calendar table {
       width: 100%;
       border-collapse: collapse; 
-    } /* ensures full width and no space between borders */
+    } 
     .calendar th, .calendar td {
-      width: 14.28%; /* divides table into columns */
+      width: 14.28%;
       border: 1px solid #ddd;
       vertical-align: top;
       height: 100px;
     }
-    /* table header */
+    /* Table header */
     .calendar th {
       background: #f5f5f5;
       padding: 5px;
       text-align: center;
     }
-    /* table cells */
+    /* Table cells */
     .calendar td {
       padding: 5px;
       text-align: left;
     }
-    /* current day and date */
+    /* Current day and date */
     .calendar .today {
       background: #eaffea;
     }
     .calendar .date {
       font-weight: bold;
     }
-    /* adds margin above lessons */
+    /* Adds a margin above lessons */
     .calendar .lessons {
       margin-top: 5px;
     }
-    /* lesson names */
+    /* Lesson names */
     .calendar .lesson-name {
       font-size: 0.8em;
       color: #007aff;
