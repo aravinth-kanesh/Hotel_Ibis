@@ -14,7 +14,7 @@ class SignUpFormTestCase(TestCase):
             'last_name': 'Doe',
             'username': '@janedoe',
             'email': 'janedoe@example.org',
-            'role': 'student',
+            'role': 'tutor',
             'new_password': 'Password123',
             'password_confirmation': 'Password123'
         }
@@ -80,4 +80,4 @@ class SignUpFormTestCase(TestCase):
         is_password_correct = check_password('Password123', user.password)
         self.assertTrue(is_password_correct)
         if hasattr(user, 'role'):
-            self.assertEqual(user.role, 'student')
+            self.assertEqual(user.role, 'tutor')
