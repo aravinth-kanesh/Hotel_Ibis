@@ -722,10 +722,34 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
     """Commit test"""
 
+    today = date.today()
+    current_year = today.year
+
+    # Define fixed months and days for each term
+    sept_start = date(current_year, 9, 1)
+    christmas_end = date(current_year, 12, 25)
+    jan_start = date(current_year, 1, 1)
+    easter_end = date(current_year, 4, 12)
+    may_start = date(current_year, 5, 1)
+    july_end = date(current_year, 7, 31)
+
+    # Adjust years based on whether today is past the start of a term
+    if today >= sept_start:  
+        sept_start = date(current_year + 1, 9, 1)
+        christmas_end = date(current_year + 1, 12, 25)
+
+    if today >= may_start:  
+        may_start = date(current_year + 1, 5, 1)
+        july_end = date(current_year + 1, 7, 31)
+
+    if today >= jan_start:  
+        jan_start = date(current_year + 1, 1, 1)
+        easter_end = date(current_year + 1, 4, 12)
+
     TERM_RANGES = {
-        'sept-christmas': (date(2024, 9, 1), date(2024, 12, 25)),
-        'jan-easter': (date(2025, 1, 1), date(2025, 4, 12)),
-        'may-july': (date(2025, 5, 1), date(2025, 7, 31)),
+        'sept-christmas': (sept_start, christmas_end),
+        'jan-easter': (jan_start, easter_end),
+        'may-july': (may_start, july_end),
     }
 
     FREQUENCY_TO_DAYS = {
@@ -838,6 +862,14 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                     check_end_datetime = check_start_datetime + timedelta(minutes=duration)
                     check_end_time = check_end_datetime.time()
 
+                    tutor_available = TutorAvailability.objects.filter(
+                        tutor=tutor,
+                        day=check_start_datetime.weekday(),
+                        availability_status='available',
+                        start_time__lte=check_start_datetime.time(),
+                        end_time__gte=check_end_datetime.time()
+                    ).exists()
+
                     # Check for conflicts with student lessons
                     student_conflict = False
                     student_conflict_found = False
@@ -866,6 +898,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                     tutor_conflict_found = False
                     tutor_conflict = Lesson.objects.filter(
                         tutor=tutor,
+                        
                         date=check_start_datetime.date()  # Same date as the new lesson
                     )
 
@@ -885,7 +918,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                             break
 
                     # If conflicts are found for both the student and tutor, skip this slot and continue
-                    if student_conflict_found or tutor_conflict_found:
+                    if student_conflict_found or tutor_conflict_found or (tutor_available == False):
                         continue  # Skip to the next available slot
 
                     # If no conflicts, return the available slot
