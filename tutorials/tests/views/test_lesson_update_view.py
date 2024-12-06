@@ -42,9 +42,9 @@ class LessonUpdateViewTestCase(TestCase):
         # Create a language
         self.language = Language.objects.create(name="Python")
 
-        # Create tutor and student instances
-        self.tutor = Tutor.objects.create(UserID=self.user_tutor)
-        self.student = Student.objects.create(UserID=self.user_student)
+        self.tutor, _ = Tutor.objects.get_or_create(UserID=self.user_tutor)
+        self.student, _ = Student.objects.get_or_create(UserID=self.user_student)
+        self.tutor.languages.add(self.language)
 
         # Create a lesson instance
         self.lesson = Lesson.objects.create(

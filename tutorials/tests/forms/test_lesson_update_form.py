@@ -27,9 +27,11 @@ class LessonUpdateFormTestCase(TestCase):
         )
 
         # Create student, tutor, and language instances
-        self.student = Student.objects.create(UserID=self.user_student)
-        self.tutor = Tutor.objects.create(UserID=self.user_tutor)
-        self.language = Language.objects.create(name="Python")
+        self.student, _ = Student.objects.get_or_create(UserID=self.user_student)
+        self.tutor, _ = Tutor.objects.get_or_create(UserID=self.user_tutor)
+        
+        self.language, _ = Language.objects.get_or_create(name="Python")
+        self.tutor.languages.add(self.language)
 
         # Create a lesson
         self.lesson = Lesson.objects.create(

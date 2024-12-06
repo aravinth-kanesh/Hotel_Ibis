@@ -20,7 +20,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
             last_name='One',
             email='student1@example.com'
         )
-        self.student = Student.objects.create(UserID=self.student_user)
+        self.student, _ = Student.objects.get_or_create(UserID=self.student_user)
         
         # Create Tutor instance
         self.tutor_user_python = get_user_model().objects.create_user(
@@ -30,7 +30,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
             last_name='One',
             email='python_tutor@example.com'
         )
-        self.tutor_python = Tutor.objects.create(UserID=self.tutor_user_python)
+        self.tutor_python, _ = Tutor.objects.get_or_create(UserID=self.tutor_user_python)
         self.tutor_python.languages.add(self.language_python)
         
         # Create a student request instance (request for Python tutor)

@@ -18,7 +18,7 @@ class SignUpViewTestCase(TestCase, LogInTester):
             'last_name': 'Doe',
             'username': '@janedoe',
             'email': 'janedoe@example.org',
-            'role': 'student',
+            'role': 'tutor',
             'new_password': 'Password123',
             'password_confirmation': 'Password123'
         }
@@ -66,7 +66,7 @@ class SignUpViewTestCase(TestCase, LogInTester):
         user = User.objects.get(username='@janedoe')
         self.assertEqual(user.first_name, 'Jane')
         self.assertEqual(user.last_name, 'Doe')
-        self.assertEqual(user.role, 'student')
+        self.assertEqual(user.role, 'tutor')
         self.assertEqual(user.email, 'janedoe@example.org')
         is_password_correct = check_password('Password123', user.password)
         self.assertTrue(is_password_correct)

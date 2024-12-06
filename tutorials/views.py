@@ -28,7 +28,7 @@ from tutorials.helpers import login_prohibited
 from django.contrib.auth import get_user_model
 from itertools import chain
 # 
-from .forms import StudentRequestForm, MessageForm
+from .forms import StudentRequestForm, MessageForm, LessonUpdateForm, StudentRequestProcessingForm
 from .models import StudentRequest, Student, Message, Lesson, User, Invoice, Tutor, Lesson, Tutor, Invoice
 from .utils import generate_calendar, LessonCalendar
 from datetime import date, datetime, timedelta
@@ -104,12 +104,12 @@ def dashboard(request):
         })
 
     elif user.role == 'tutor':
-        lessons = Lesson.objects.filter(tutor__user=user)
+        lessons = Lesson.objects.filter(tutor__UserID=user)
         context.update({'lessons': lessons})
 
     elif user.role == 'student':
   
-        lessons = Lesson.objects.filter(student__user=user)
+        lessons = Lesson.objects.filter(student__UserID=user)
         context.update({'lessons': lessons})
 
     return render(request, 'dashboard.html', context)

@@ -20,9 +20,9 @@ class LanguageAdmin(admin.ModelAdmin):
 
 @admin.register(Tutor)
 class TutorAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'get_languages') 
+    list_display = ('id', 'UserID', 'get_languages') 
     search_fields = ('user__username', 'user__email')  
-    autocomplete_fields = ['user']   
+    autocomplete_fields = ['UserID']   
     filter_horizontal = ['languages'] 
 
     def get_languages(self, obj):
@@ -33,9 +33,9 @@ class TutorAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user') 
+    list_display = ('id', 'UserID') 
     search_fields = ('user__username', 'user__email')  
-    autocomplete_fields = ['user']  
+    autocomplete_fields = ['UserID']  
 
 
 @admin.register(Invoice)

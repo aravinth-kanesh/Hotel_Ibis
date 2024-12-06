@@ -31,19 +31,9 @@ class User(AbstractUser):
     id = models.AutoField(primary_key=True)
     role = models.CharField(max_length=10, choices= ROLE_CHOICES, default='student')
     def save(self, *args, **kwargs):
+        if self.role not in dict(self.ROLE_CHOICES):
+            raise ValueError(f"Invalid role: {self.role}. Choose from: {[choice[0] for choice in self.ROLE_CHOICES]}")
         super().save(*args, **kwargs)
-    # assign groups/permissions based on role
-        if self.role == 'admin':
-            group, _ = Group.objects.get_or_create(name='Admins')
-            self.groups.add(group)
-        elif self.role == 'tutor':
-            group, _ = Group.objects.get_or_create(name='Tutors')
-            self.groups.add(group)
-        elif self.role == 'student':
-            group, _ = Group.objects.get_or_create(name='Students')
-            self.groups.add(group)
-
-
 
     def __str__(self):
         return self.username
@@ -85,7 +75,7 @@ class Language(models.Model):
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
+    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
 
     def __str__(self):
@@ -96,9 +86,9 @@ class Tutor(models.Model):
 class Student(models.Model):
     """Model for student"""
     id = models.AutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
+    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
-        return f"Student: {self.user.username}"
+        return f"Student: {self.UserID.username}"
 
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
@@ -172,7 +162,7 @@ class Lesson(models.Model):
         return price_per_lesson * num_lessons
 
     def __str__(self):
-        return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
+        return f"Lesson {self.id} ({self.language.name}) with {self.student.UserID.username} on {self.date} at {self.time}"
 
 
 # for handling student reqs
@@ -197,7 +187,7 @@ class StudentRequest(models.Model):
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
     def __str__(self):
-        return f"Request {self.id} by {self.student.user.username} for {self.language.name}"
+        return f"Request {self.id} by {self.student.UserID.username} for {self.language.name}"
     
 class Message (models.Model):
     recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)

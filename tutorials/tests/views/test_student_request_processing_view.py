@@ -44,10 +44,11 @@ class StudentRequestProcessingViewTestCase(TestCase):
 
         # Create a language
         self.language = Language.objects.create(name="Python")
+        self.student, _ = Student.objects.get_or_create(UserID=self.user_student)
+        self.tutor, _ = Tutor.objects.get_or_create(UserID=self.user_tutor)
+        self.tutor.languages.add(self.language)
+        
 
-        # Create tutor and student instances
-        self.tutor = Tutor.objects.create(UserID=self.user_tutor)
-        self.student = Student.objects.create(UserID=self.user_student)
 
         # Create a student request
         self.student_request = StudentRequest.objects.create(
