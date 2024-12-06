@@ -610,14 +610,14 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
     model = StudentRequest
     form_class = StudentRequestForm
     template_name = 'student_request_form.html'
-    success_url = reverse_lazy('my_requests') 
+    success_url = reverse_lazy('view_request') 
 
     def form_valid(self, form):
         """attach the logged-in student to the form before saving."""
         try:
             student = self.request.user.student_profile  
         except Student.DoesNotExist:
-            return redirect('error_page')
+            return redirect('dashboard')
         form.instance.created_at = timezone.now()
         form.instance.student = student  
         return super().form_valid(form)
