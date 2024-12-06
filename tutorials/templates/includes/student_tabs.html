@@ -1,3 +1,4 @@
+
 <div id="lessons">
     <h2>View My Lessons</h2>
     {% if lessons %}
@@ -20,12 +21,12 @@
                     </tr>
                 {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center">No lessons assigned yet.</td>
+                        <td colspan="4" class="text-center">No lessons yet.</td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
     {% else %}
-        <p>No lessons assigned yet.</p>
+        <p>No lessons yet.</p>
     {% endif %}
 </div>

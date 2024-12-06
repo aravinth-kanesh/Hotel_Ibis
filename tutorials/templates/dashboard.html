@@ -5,7 +5,40 @@
 {% block content %}
 <div class="container">
   <div class="col-12">
-    <h1>Welcome to your dashboard {{ user.username }}</h1>
+    <h1>Welcome to your dashboard, {{ user.username }}!</h1>
+    <hr style="border: 1px solid grey;">
+    <style>
+      .btn-xs {
+        font-size: 0.85rem; /* Adjust font size */
+        padding: 0.15rem 0.3rem; /* Adjust padding */
+        line-height: 1.2rem;
+      }
+    </style>
+    <div class="d-flex justify-content-center gap-2 mt-2 w-100">
+      
+      {% if user.role == 'admin' and user.is_staff %}
+        <a href="{% url 'send_message' %}" class="btn btn-light btn-sm">Send Message</a>
+        <a href="{% url 'all_messages' %}" class="btn btn-light btn-sm">View Messages</a>
+
+  
+      {% elif user.role == 'tutor' %}
+        <a href="{% url 'manage_languages' %}" class="btn btn-light btn-sm">Manage Languages</a>
+        <a href="{% url 'send_message' %}" class="btn btn-light btn-sm">Send Message</a>
+      
+        
+      {%elif user.role == 'student' %}
+        <a href="{% url 'create_request' %}" class="btn btn-light btn-xs">Request Lesson </a>
+        <a href="{% url 'view_request' %}" class="btn btn-light btn-xs">View Requests</a>
+        <a href="{% url 'send_message' %}" class="btn btn-light btn-xs">Send Message</a>
+        <a href="{% url 'all_messages' %}" class="btn btn-light btn-xs">View Messages</a>
+        <a href="{% url 'student_invoices' %}" class="btn btn-light btn-xs">View Invoices</a>
+               
+        {% else %}
+        <p>Your role is not recognized.</p>
+      {% endif %}
+    </div>
+    <br>
+    
     <!-- Navigation Tabs -->
     <ul class="nav nav-tabs">
       {% if user.role == 'admin' and user.is_staff %}
@@ -23,15 +56,15 @@
         </li>
       {% elif user.role == 'tutor' %}
         <li class="nav-item">
-          <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">Lessons</a>
+          <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">My Lessons</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link {% if tab == 'availability' %}active{% endif %}" href="?tab=availability">Availability</a>
+          <a class="nav-link {% if tab == 'availability' %}active{% endif %}" href="?tab=availability">My Availability</a>
         </li>
       {% elif user.role == 'student' %}
-        <li class="nav-item">
-          <a class="nav-link active" href="#">View My Lessons</a>
-        </li>
+      <li class="nav-item">
+        <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">My Lessons</a>
+      </li>
       {% endif %}
     </ul>
 

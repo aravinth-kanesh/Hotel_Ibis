@@ -228,6 +228,7 @@ class Invoice(models.Model):
     lessons = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="invoices", default=1)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     paid = models.BooleanField(default=False)
+    approved = models.BooleanField(default=False)
     date_issued = models.DateField(auto_now_add=True)
     date_paid = models.DateField(null=True, blank=True)
 

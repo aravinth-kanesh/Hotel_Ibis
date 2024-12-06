@@ -91,7 +91,11 @@
       <tr>
         <td>{{ data.tutor.UserID.full_name }}</td>
         <td>{{ data.tutor.UserID.email }}</td>
-        <td>{{ data.tutor.language|join:", " }}</td>
+        <td>
+          {% for language in data.tutor.languages.all %}
+            {{ language.name }}{% if not forloop.last %}, {% endif %}
+          {% endfor %}
+        </td>
         <!-- add more tutor info here? -->
       </tr>
       {% empty %}
@@ -144,18 +148,20 @@
         <td>
           {% if data.unallocated_request %}
             <p>Unallocated Request: {{ data.unallocated_request }}</p>
-            <a href="{% url 'process_request' unallocated_request.id %}" class="btn btn-secondary">
+            <a href="{% url 'process_request' unallocated_request.id %}" class="btn btn-secondary">Process Request</a>
           {% elif data.allocated_lesson %}
-            <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} at {{ data.allocated_lesson.time }}</p>
-            <a href="{% url 'create_invoice' data.student.id %}" class="btn btn-secondary"></a>
+            <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} - #{{ data.allocated_lesson.id }}</p>
+            <a href="{% url 'create_invoice' data.student.id %}" class="btn btn-secondary">Create Invoice</a>
             {% if data.invoice %}
-              {% if not data.invoice.paid %}
+              {% if data.invoice.paid %}
+              <p> Paid on {{data.invoice.date_paid}}. </p>
                 <form method="post" action="{% url 'approve_invoice' data.invoice.id %}" style="display: inline;">
                   {% csrf_token %}
                   <button type="submit" class="btn btn-success btn-sm">Approve Payment</button>
                 </form>
               {% else %}
-                <p>Invoice Approved</p>
+                <p>Invoice Not Yet Paid</p>
+                <a href="{% url 'student_invoices_admin' data.student.id %}" class="btn btn-secondary">View Invoice</a>
               {% endif %}
             {% else %}
               <p>No Invoice Created</p>
@@ -198,7 +204,7 @@
         <td>{{  data.lesson.time }}</td>
         <td>
           
-          <a href="{% url 'lesson_update' data.lesson.id %}" class="btn btn-secondary">
+          <a href="{% url 'lesson_update' data.lesson.id %}" class="btn btn-secondary">Update</a>
         </td>
       </tr>
       {% empty %}

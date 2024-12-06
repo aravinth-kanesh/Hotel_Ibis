@@ -156,8 +156,7 @@ def get_invoice_for_lesson(student):
 def approve_invoice(request, invoice_id):
     invoice = get_object_or_404(Invoice, id=invoice_id)
     if request.method == "POST" and request.user.role in ['admin']:
-        invoice.paid = True
-        invoice.date_paid = timezone.now()
+        invoice.approved = True
         invoice.save()
         messages.success(request, f"Approved invoice successfully.")
     else:
