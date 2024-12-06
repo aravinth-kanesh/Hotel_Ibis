@@ -24,6 +24,7 @@
       {% elif user.role == 'tutor' %}
         <a href="{% url 'manage_languages' %}" class="btn btn-light btn-sm">Manage Languages</a>
         <a href="{% url 'send_message' %}" class="btn btn-light btn-sm">Send Message</a>
+        <a href="{% url 'calendar' %}" class="btn btn-light btn-xs">Calendar</a>
       
         
       {%elif user.role == 'student' %}
@@ -32,6 +33,7 @@
         <a href="{% url 'send_message' %}" class="btn btn-light btn-xs">Send Message</a>
         <a href="{% url 'all_messages' %}" class="btn btn-light btn-xs">View Messages</a>
         <a href="{% url 'student_invoices' %}" class="btn btn-light btn-xs">View Invoices</a>
+        <a href="{% url 'calendar' %}" class="btn btn-light btn-xs">Calendar</a>
                
         {% else %}
         <p>Your role is not recognized.</p>

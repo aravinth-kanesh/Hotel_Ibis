@@ -148,7 +148,7 @@
         <td>
           {% if data.unallocated_request %}
             <p>Unallocated Request: {{ data.unallocated_request }}</p>
-            <a href="{% url 'process_request' unallocated_request.id %}" class="btn btn-secondary">Process Request</a>
+            <a href="{% url 'process_request' data.unallocated_request.id %}" class="btn btn-secondary">Process Request</a>
           {% elif data.allocated_lesson %}
             <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} - #{{ data.allocated_lesson.id }}</p>
             <a href="{% url 'create_invoice' data.student.id %}" class="btn btn-secondary">Create Invoice</a>
