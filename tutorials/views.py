@@ -1,5 +1,6 @@
 from datetime import date, datetime, time, timedelta
 from django.db.models import Q
+from difflib import get_close_matches
 from itertools import count
 from django.conf import settings
 from django.contrib import messages
@@ -409,7 +410,7 @@ def student_invoices_admin(request, student_id):
 
 @login_required
 def manage_languages(request):
-    """View to implement autocompleting dropdown and manage languages."""
+    """View to implement fuzzy and filtering for search to add languages and logic for removing with cleaning orphans."""
 
     if not request.user.is_authenticated or not hasattr(request.user, 'tutor_profile'):
         messages.warning(request, "You must be a tutor to manage languages.")
@@ -417,42 +418,77 @@ def manage_languages(request):
     
     tutor = request.user.tutor_profile
     query = request.GET.get('query', '').strip()
-    languages = tutor.languages.all()  
-
-
-    if request.method == "POST" and 'add_language' in request.POST:
-        add_form = TutorLanguageForm(request.POST, initial_query=query)
-        if add_form.is_valid():
-            language = add_form.save_or_create_language()
-            if language:
-                tutor.languages.add(language)
-                messages.success(request, f"{language.name} has been added to your languages.")
-            else:
-                messages.error(request, "Failed to add the language. Please try again.")
-        else:
-            messages.error(request, "Invalid input. Please check your form and try again.")
-    else:
-        add_form = TutorLanguageForm(initial_query=query)
-
-
-    if request.method == "POST" and 'remove_language' in request.POST:
-        remove_form = RemoveLanguageForm(request.POST, tutor=tutor)
-        if remove_form.is_valid():
-            language = remove_form.cleaned_data['language']
-            tutor.languages.remove(language)
-            messages.success(request, f"{language.name} has been removed.")
-            if language.taught_by.count() == 0:
-                language.delete()
-                messages.info(request, f"{language.name} has been deleted as no tutors teach it anymore.")
-        else:
-            messages.error(request, "An error occurred while removing the language.")
-
+    languages = tutor.languages.all() 
+    search_results = Language.objects.none()
+    
+    add_form = TutorLanguageForm(initial_query=query)
     remove_form = RemoveLanguageForm(tutor=tutor)
+    if query:
+
+        existing_languages = list(Language.objects.values_list('name', flat=True))
+        close_matches = get_close_matches(query, existing_languages, n=5, cutoff=0.4)  # Adjust cutoff for similarity
+        
+  
+        search_results = Language.objects.filter(
+            Q(name__icontains=query) | Q(name__in=close_matches)
+        ).exclude(id__in=languages)
+
+        
+        if not search_results.exists():
+            new_language, created = Language.objects.get_or_create(name=query)
+            tutor.languages.add(new_language)
+            if created:
+                messages.success(request, f"New language '{new_language.name}' created and added to your languages.")
+            else:
+                messages.info(request, f"Language '{new_language.name}' already exists and has been added to your languages.")
+    
+    if request.method == "POST":
+        if 'add_language' in request.POST:
+            language_name = request.POST.get('language_name', '').strip()
+            if language_name:
+                language, created = Language.objects.get_or_create(name=language_name)
+                tutor.languages.add(language)
+                if created:
+                    messages.success(request, f"New language '{language.name}' created and added to your languages.")
+                else:
+                    messages.success(request, f"Language '{language.name}' added to your languages.")
+            else:
+                add_form = TutorLanguageForm(request.POST, initial_query=query)
+                if add_form.is_valid():
+                    language = add_form.save_or_create_language()
+                    if language:
+                        tutor.languages.add(language)
+                        messages.success(request, f"{language.name} has been added to your languages.")
+                    else:
+                        messages.error(request, "Failed to add the language. Please try again.")
+                else:
+                    messages.error(request, "Invalid input. Please check your form and try again.")
+
+
+        elif 'remove_language' in request.POST:
+            remove_form = RemoveLanguageForm(request.POST, tutor=tutor)
+            if remove_form.is_valid():
+                language = remove_form.cleaned_data['language_id']
+                tutor.languages.remove(language)
+                messages.success(request, f"{language.name} has been removed.")
+
+                # Delete language if no tutors are associated
+                if language.taught_by.count() == 0:
+                    language.delete()
+                    messages.info(request, f"{language.name} has been deleted as no tutors teach it anymore.")
+            else:
+                print(remove_form.errors)  # Debugging
+                messages.error(request, "An error occurred while removing the language.")
+
+
+        
 
     return render(request, "manage_languages.html", {
         'query': query,
         'languages': languages,
-        'remove_form': remove_form,})
+        'add_form': add_form,
+        'remove_form': remove_form,
+        'search_results': search_results,})
 
 class LoginProhibitedMixin:
     """Mixin that redirects when a user is logged in."""

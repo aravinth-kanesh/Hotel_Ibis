@@ -70,14 +70,20 @@ class Language(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100, unique=True)
 
+    def save(self, *args, **kwargs):
+        # Normalize the name to lowercase before saving
+        self.name = self.name.lower()
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.name
+        return self.name.title()
     
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
+    
     
     def __str__(self):
         languages = ", ".join([language.name for language in self.languages.all()])

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Language, Tutor, Student, Invoice, Lesson, TutorAvailability, Message
+from .models import User, Language, Tutor, Student, Invoice, Lesson, TutorAvailability, Message, StudentRequest
 # Register your models here.
 
 
@@ -53,9 +53,6 @@ class ClassAdmin(admin.ModelAdmin):
     search_fields = ('tutor__UserID__username', 'student__UserID__username', 'language__name')  
     autocomplete_fields = ['tutor', 'student', 'language'] 
 
-from django.contrib import admin
-from .models import StudentRequest, TutorLangRequest
-
 @admin.register(StudentRequest)
 class StudentRequestAdmin(admin.ModelAdmin):
     list_display = ('student', 'language', 'is_allocated', 'created_at', 'term', 'frequency')  
@@ -78,11 +75,6 @@ class MessageAdmin(admin.ModelAdmin):
         """Display the reply message in a human-readable format."""
         return obj.reply.subject if obj.reply else "None"
     get_reply.subject = "Reply Message"
-@admin.register(TutorLangRequest)
-class TutorLangRequest(admin.ModelAdmin):
-    list_display = ('tutor', 'language', 'action')
-    list_filter = ('tutor', 'action', 'language', 'current_language', 'requested_language')
-    search_fields = ('tutor__user__username', 'language__name', 'current_language__name', 'requested_language__name')
 
 @admin.register(TutorAvailability)
 class TutorAvailability(admin.ModelAdmin):

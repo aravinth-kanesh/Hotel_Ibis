@@ -457,7 +457,7 @@ class TutorLanguageForm(forms.Form):
         widget=forms.TextInput(attrs={'placeholder': 'Type to search or create a new language'}),
     )
     existing_language = forms.ModelChoiceField(
-        queryset=Language.objects.none(),
+        queryset=Language.objects.all(),
         required=False,
         empty_label="Select an existing language",
     )
@@ -467,13 +467,14 @@ class TutorLanguageForm(forms.Form):
         super().__init__(*args, **kwargs)
         # Dynamically filter the queryset based on the input query
         if initial_query:
-            self.fields['existing_language'].queryset = Language.objects.filter(name__icontains=initial_query)
+           
+            self.fields['existing_language'].queryset = Language.objects.filter(name__icontains=initial_query.lower())
         else:
             self.fields['existing_language'].queryset = Language.objects.all()
 
     def save_or_create_language(self):
         """Handle saving the selected or creating a new language."""
-        query = self.cleaned_data.get('query')
+        query = self.cleaned_data.get('query').strip()
         existing_language = self.cleaned_data.get('existing_language')
 
         if existing_language:
@@ -484,14 +485,20 @@ class TutorLanguageForm(forms.Form):
         return None
     
 class RemoveLanguageForm(forms.Form):
-    language = forms.ModelChoiceField(
-        queryset=Language.objects.none(),
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label="Select a language to remove",
-    )
+    language_id = forms.IntegerField(widget=forms.HiddenInput)
 
     def __init__(self, *args, **kwargs):
-        tutor = kwargs.pop('tutor', None)
+        self.tutor = kwargs.pop('tutor', None)
         super().__init__(*args, **kwargs)
-        if tutor:
-            self.fields['language'].queryset = tutor.languages.all()
+
+    def clean_language_id(self):
+        language_id = self.cleaned_data.get('language_id')
+        try:
+            language = Language.objects.get(id=language_id)
+        except Language.DoesNotExist:
+            raise forms.ValidationError("The selected language does not exist.")
+
+        if self.tutor and language not in self.tutor.languages.all():
+            raise forms.ValidationError("You do not have permission to remove this language.")
+        return language
+
