@@ -106,20 +106,10 @@ def dashboard(request):
         })
 
     elif user.role == 'tutor':
-        # try:
-        #     tutor = current_user.tutor_profile
-        #     availabilities = TutorAvailability.objects.filter(tutor=tutor)
-        # except Tutor.DoesNotExist:
-        #     return HttpResponseBadRequest("You are not authorized to view this page")
-
-        # context = {
-        #     'user': current_user,
-        #     'role': user_role,
-        #     'tutor': tutor,
-        #     'availabilities': availabilities,  # Pass availability data to the template
-        # }
+        availabilities = TutorAvailability.objects.filter(tutor__UserID=user)
         lessons = Lesson.objects.filter(tutor__UserID=user)
-        context.update({'lessons': lessons})
+        context.update({'lessons': lessons,
+                        'availabilities': availabilities,})
 
     elif user.role == 'student':
   

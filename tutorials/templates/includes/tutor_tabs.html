@@ -1,0 +1,80 @@
+{% if tab == 'lessons' %}
+<div id="lessons">
+    <h2>View Lessons</h2>
+    {% if lessons %}
+      <table class="table table-bordered table-striped">
+        <thead class="table-light">
+          <tr>
+            <th>Lesson</th>
+            <th>Tutor</th>
+            <th>Time</th>
+            <th>Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for lesson in lessons %}
+            <tr>
+              <td>{{ lesson.language.name }}</td>
+              <td>{{ lesson.tutor.full_name }}</td>
+              <td>{{ lesson.time|time:"H:i" }}</td>
+              <td>{{ lesson.date }}</td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">No lessons assigned.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No lessons assigned yet.</p>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if tab == 'availability' %}
+<div id="availability">
+    <h2>Your Availability Requests</h2>
+    <table class="table table-bordered table-striped">
+      <thead class="table-light">
+        <tr>
+          <th>Date</th>
+          <th>Start Time</th>
+          <th>End Time</th>
+          <th>Status</th>
+          <th>Edit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for availability in availabilities %}
+          <tr>
+            <td>{{ availability.day }}</td>
+            <td>{{ availability.start_time }}</td>
+            <td>{{ availability.end_time }}</td>
+            <td>
+              {% if availability.availability_status == "available" %}
+                <span class="badge bg-success">Available</span>
+              {% else %}
+                <span class="badge bg-danger">Not Available</span>
+              {% endif %}
+            </td>
+            <td>
+              <a href="{% url 'edit_tutor_availability' availability.id %}" class="btn btn-warning btn-sm">Edit</a>
+              <a href="{% url 'delete_tutor_availability' availability.id %}?action=delete" class="btn btn-danger btn-sm"
+                onclick="return confirm('Are you sure you want to delete this availability?');">
+                Delete
+              </a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="5" class="text-center">No availability requests found.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="d-flex justify-content-end">
+      <a class="btn btn-primary" href="{% url 'tutor_availability_request' %}">Add Availability Request</a>
+    </div>
+</div>
+{% endif %}
