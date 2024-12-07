@@ -8,6 +8,7 @@
             <th>Lesson</th>
             <th>Student</th>
             <th>Time</th>
+            <th>Venue</th>
             <th>Date</th>
           </tr>
         </thead>
@@ -17,6 +18,7 @@
               <td>{{ lesson.language.name }}</td>
               <td>{{ lesson.student.UserID.full_name }}</td>
               <td>{{ lesson.time|time:"H:i" }}</td>
+              <td>{{ lesson.venue }} </td>
               <td>{{ lesson.date }}</td>
             </tr>
           {% empty %}
