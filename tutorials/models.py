@@ -6,6 +6,7 @@ from libgravatar import Gravatar
 from django.contrib.auth.models import BaseUserManager
 from datetime import time  
 from django.utils import timezone
+from django.utils.timezone import now
 from datetime import timedelta
 
 class User(AbstractUser):
@@ -87,7 +88,6 @@ class Tutor(models.Model):
     
     def __str__(self):
         languages = ", ".join([language.name for language in self.languages.all()])
-        print(languages)
         return f"{self.UserID.first_name} {self.UserID.last_name} - {languages if languages else 'No languages assigned'}"
     
 class Student(models.Model):
@@ -118,7 +118,7 @@ class Lesson(models.Model):
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="classes")
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name="classes")
     time = models.TimeField(default=time(9, 0))
-    date = models.DateField(default=timezone.now())
+    date = models.DateField(default=now)
     venue = models.CharField(max_length=255, default="TBD")
     duration = models.IntegerField(default=60)  # Duration in minutes
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='once a week')
@@ -130,12 +130,14 @@ class Lesson(models.Model):
         return self.price
     
     def get_occurrence_dates(self):
-        from .term_dates import TERM_DATES
+        from .term_dates import TERM_DATES, get_term
 
-        term_dates = TERM_DATES.get(self.term)
+        term_dates = get_term(self.date)
         if not term_dates:
             return []
-
+        if self.term != term_dates['term']:
+            return []
+        
         start_date = max(self.date, term_dates['start_date'])  # Ensure the lesson doesn't start before the term
         end_date = term_dates['end_date']
 

@@ -8,6 +8,8 @@ from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models.query import QuerySet
+from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.http import JsonResponse
@@ -25,6 +27,7 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from django.utils.dateparse import parse_date
+from pytz import timezone
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
 from django.contrib.auth import get_user_model
@@ -182,7 +185,6 @@ def calendar_view(request, year=None, month=None):
     try:
         student = Student.objects.get(UserID=user)
     except Student.DoesNotExist:
-        print("Student Doesn't exist")
         # Handle the case where the student profile doesn't exist
         return redirect('dashboard')  # Or an appropriate page
 
@@ -466,7 +468,6 @@ def manage_languages(request):
                     language.delete()
                     messages.info(request, f"{language.name} has been deleted as no tutors teach it anymore.")
             else:
-                print(remove_form.errors)  # Debugging
                 messages.error(request, "An error occurred while removing the language.")
 
 
@@ -819,7 +820,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                     )
                     scheduled_lessons.append(lesson)
                 else:
-                    break  
+                    messages.error(request, "No available times for {current_datetime.date()}.")  
 
             current_datetime += timedelta(days=days_between_lessons)
 
@@ -830,6 +831,11 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
         day_delta = timedelta(minutes=30)  # Interval to check for free slots
         max_time = time(21, 0)  # End of the available time range (9 PM)
+        
+        if isinstance(proposed_date, str):
+            proposed_date = datetime.strptime(proposed_date, "%Y-%m-%d").date()
+        if isinstance(proposed_time, str):
+            proposed_time = datetime.strptime(proposed_time, "%H:%M").time()
 
         def get_earliest_start_time(date):
             if date.weekday() < 5:
@@ -863,7 +869,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
                     tutor_available = TutorAvailability.objects.filter(
                         tutor=tutor,
-                        day=check_start_datetime.weekday(),
+                        day=check_start_datetime.date(),
                         availability_status='available',
                         start_time__lte=check_start_datetime.time(),
                         end_time__gte=check_end_datetime.time()
@@ -981,78 +987,121 @@ class LessonUpdateView(LoginRequiredMixin, View):
         messages.error(request, "There was an error updating the lesson. Please try again.")
 
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
+
+
+    def post(self, request, lesson_id):
+        """Handle the form submission for changing or cancelling a lesson."""
+
+        lesson = get_object_or_404(Lesson, id=lesson_id)
+
+        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
+        form = LessonUpdateForm(request.POST, instance=lesson)
+
+        if form.is_valid():
+            cancel_lesson = form.cleaned_data.get('cancel_lesson')
+
+            if cancel_lesson:
+                # If the lesson is cancelled, delete it and redirect
+                lesson.delete()
+
+                messages.success(request, "Lesson successfully cancelled.")
+
+                return redirect('dashboard')  # Redirect to the admin dashboard
+
+            # Update lesson fields explicitly
+            lesson.date = form.cleaned_data['new_date']
+            lesson.time = form.cleaned_data['new_time']
+
+            lesson.save()
+            
+            messages.success(request, "Lesson details successfully updated.")
+
+            return redirect('dashboard')
+
+        # If the form is invalid, re-render with errors
+        messages.error(request, "There was an error updating the lesson. Please try again.")
+
+        return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
     
 class TutorAvailabilityView(LoginRequiredMixin, View):
-    """View for tutors to manage availibility requests."""
+    """View for tutors to manage availability requests."""
     model = TutorAvailability
     template = 'tutor_availability_request.html'
 
     def get(self, request, availability_id=None):
         try:
-            tutor = request.user.tutor_profile
+            tutor = Tutor.objects.get(UserID=request.user)
         except Tutor.DoesNotExist:
-            return HttpResponseBadRequest("You are not authorized to view this page")
+            return redirect("dashboard")
         
-        # Retrieve the tutor's availability
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
 
-        # Handle specific actions
-        action = request.GET.get('action')  # Retrieve the action (edit or delete)
-        if action == 'edit' and availability_id:
-            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
-            if availability:
-                form = TutorAvailabilityForm(instance=availability)  # Pre-fill form for editing
-            else:
-                return HttpResponseBadRequest("Availability not found or unauthorized access.")
-        elif action == 'delete' and availability_id:
-            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
-            if availability:
+        if availability_id:
+            action = request.GET.get('action')
+            if action == 'edit':
+                availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
+                form = TutorAvailabilityForm(instance=availability)
+            elif action == 'delete':
+                availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
                 availability.delete()
-                return redirect("dashboard")  # Redirect after deletion
+                return redirect(f"{reverse('dashboard')}?tab=availability")
             else:
-                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+                return HttpResponseBadRequest("Invalid action.")
         else:
-            form = TutorAvailabilityForm(initial={'tutor': tutor})  # Default form for creating new requests
+            form = TutorAvailabilityForm(initial={'tutor': tutor})
 
-        # Pass data to the template
         context = {
             "tutor": tutor,
             "availabilities": availabilities,
             "form": form,
         }
         return render(request, self.template, context)
-    
+
+    @staticmethod
+    def has_overlapping(tutor, day, new_start, new_end):
+        return TutorAvailability.objects.filter(
+            tutor=tutor,
+            day=day,
+            start_time__lt=new_end,
+            end_time__gt=new_start
+        ).exists()
+
     def post(self, request, availability_id=None):
         try:
-            tutor = request.user.tutor_profile
+            tutor = Tutor.objects.get(UserID=request.user)
         except Tutor.DoesNotExist:
-            return HttpResponseBadRequest("You are not authorized to change tutor times.")
-    
-        if availability_id:
-        # If an ID is provided, retrieve the existing object for editing
-            try:
-                availability = TutorAvailability.objects.get(id=availability_id, tutor=tutor)
-                form = TutorAvailabilityForm(request.POST, instance=availability)
-            except TutorAvailability.DoesNotExist:
-                return HttpResponseBadRequest("Availability not found or unauthorized access.")
-        else:
-        # If no ID is provided, create a new object
-            form = TutorAvailabilityForm(request.POST)
-    
-        if form.is_valid():
-        # Save the form and associate it with the tutor
-            availability = form.save(commit=False)
-            availability.tutor = tutor
-            availability.save()
-            return redirect("dashboard")  # Redirect to the dashboard after submission
-        if not form.is_valid():
-            print(form.errors)
+            return redirect("dashboard")
 
-    # If the form is invalid, re-render the page with errors
+        if availability_id:
+            availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
+            form = TutorAvailabilityForm(request.POST, instance=availability)
+        else:
+            form = TutorAvailabilityForm(request.POST, initial={'tutor': Tutor.objects.get(UserID=request.user)})
+
+        if form.is_valid():
+            print("Form is valid")
+            new_availability = form.save(commit=False)
+            new_availability.tutor = tutor
+            day = form.cleaned_data['day']
+            start_time = form.cleaned_data['start_time']
+            end_time = form.cleaned_data['end_time']
+
+            if self.has_overlapping(tutor, day, start_time, end_time):
+                form.add_error(None, "This time slot overlaps with an existing availability.")
+                availabilities = TutorAvailability.objects.filter(tutor=tutor)
+                return render(request, self.template, {
+                    "tutor": tutor,
+                    "availabilities": availabilities,
+                    "form": form,
+                })
+
+            new_availability.save()
+            return redirect("dashboard")
+        print("Form is not valid")
+        print(form.errors)
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
-        context = {
+        return render(request, self.template, {
             "tutor": tutor,
             "availabilities": availabilities,
             "form": form,
-        }
-        return render(request, self.template, context)
+        })
