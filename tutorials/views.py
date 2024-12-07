@@ -686,6 +686,7 @@ class SendMessageView(LoginRequiredMixin, CreateView):
         if reply_id:
             reply_message = get_object_or_404(Message, pk=reply_id)
             context['reply_message'] = reply_message
+        context['admin_users'] = User.objects.filter(role = 'admin')
         return context
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
