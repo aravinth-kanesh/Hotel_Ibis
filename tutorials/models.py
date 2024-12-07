@@ -96,6 +96,28 @@ class Student(models.Model):
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
         return f"Student: {self.UserID.username}"
+    
+class Invoice(models.Model):
+    id = models.AutoField(primary_key=True)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
+    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid = models.BooleanField(default=False)
+    approved = models.BooleanField(default=False)
+    date_issued = models.DateField(auto_now_add=True)
+    date_paid = models.DateField(null=True, blank=True)
+
+    def calculate_total_amount(self):
+        total = 0
+        lesson_count = Lesson.objects.filter(invoice=self).count()
+        lesson = Lesson.objects.filter(invoice=self).first()
+        total = lesson.price * lesson_count
+        self.total_amount = total
+        self.save()
+
+    def __str__(self):
+        status = "Paid" if self.paid else "Unpaid"
+        return f"Invoice {self.id} ({status})"
 
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
@@ -117,6 +139,7 @@ class Lesson(models.Model):
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="classes")
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="classes")
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name="classes")
+    invoice = models.ForeignKey(Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name="lessons")
     time = models.TimeField(default=time(9, 0))
     date = models.DateField(default=now)
     venue = models.CharField(max_length=255, default="TBD")
@@ -158,17 +181,6 @@ class Lesson(models.Model):
             current_date += delta
 
         return occurrence_dates
-
-    def calculate_lesson_total(self):
-        # Calculate the total cost of this lesson over the term
-        price_per_lesson = self.get_price()
-        if self.frequency == 'once a week':
-            num_lessons = 13  # 13 weeks in a term
-        elif self.frequency == 'once per fortnight':
-            num_lessons = 7   # Approximately 7 lessons in a term
-        else:
-            num_lessons = 0   # Default to 0 if frequency is unknown
-        return price_per_lesson * num_lessons
 
     def __str__(self):
         return f"Lesson {self.id} ({self.language.name}) with {self.student.UserID.username} on {self.date} at {self.time}"
@@ -223,28 +235,6 @@ class Message (models.Model):
     def __str__(self):
         return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
     
-class Invoice(models.Model):
-    id = models.AutoField(primary_key=True)
-    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
-    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
-    lessons = models.OneToOneField(Lesson, on_delete=models.CASCADE, related_name="invoices", default=1)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    paid = models.BooleanField(default=False)
-    approved = models.BooleanField(default=False)
-    date_issued = models.DateField(auto_now_add=True)
-    date_paid = models.DateField(null=True, blank=True)
-
-    def calculate_total_amount(self):
-        total = 0
-        for lesson in self.lessons.all():
-            lesson_total = lesson.calculate_lesson_total()
-            total += lesson_total
-        self.total_amount = total
-        self.save()
-
-    def __str__(self):
-        status = "Paid" if self.paid else "Unpaid"
-        return f"Invoice {self.id} ({status})"
     
 
 class TutorAvailability(models.Model):

@@ -55,7 +55,9 @@ urlpatterns = [
     # Admin URLs
     path('students/', views.student_list, name='student_list'),
     path('invoices/create/<int:student_id>/', views.create_invoice, name='create_invoice'),
-    path('admin/students/<int:student_id>/invoices/', views.student_invoices_admin, name='student_invoices_admin'),
+    path('view/<int:student_id>/invoices/', views.student_invoices_admin, name='student_invoices_admin'),
+    path('set-price/<int:student_id>/', views.set_price, name='set_price'),
+    
     # Invoice URLs
     path('invoices/<int:invoice_id>/', views.invoice_detail, name='invoice_detail'),
     path('invoices/pay/<int:invoice_id>/', views.pay_invoice, name='pay_invoice'),

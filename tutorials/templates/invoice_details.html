@@ -5,7 +5,7 @@
 {% block title %}Invoice {{ invoice.id }}{% endblock %}
 
 {% block content %}
-  <h1>Invoice {{ invoice.id }}</h1>
+  <h1>Invoice #{{ invoice.id }}</h1>
   <p>Status: {{ invoice.get_paid_display }}</p>
   <p>Total Amount: ${{ invoice.total_amount }}</p>
   <p>Date Issued: {{ invoice.date_issued }}</p>
@@ -14,7 +14,7 @@
   {% endif %}
   <h2>Lessons</h2>
   <ul>
-    {% for lesson in invoice.lessons.all %}
+    {% for lesson in lessons %}
       <li>
         {{ lesson.date }} at {{ lesson.time }} - {{ lesson.language.name }} with {{ lesson.tutor.UserID.full_name }}
       </li>

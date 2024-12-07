@@ -246,6 +246,7 @@ class StudentRequestProcessingForm(forms.ModelForm):
     tutor = forms.ModelChoiceField(
         queryset=Tutor.objects.all(), 
         label="Select Tutor",
+        required=False,
         widget=forms.Select(attrs={'placeholder': 'Select a tutor'})
     )
 
@@ -291,11 +292,10 @@ class StudentRequestProcessingForm(forms.ModelForm):
         first_lesson_time = self.cleaned_data.get('first_lesson_time')
 
         # Enforce details for denied lessons
-        if status == 'denied' and not details:
-            self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
-
-        # Enforce tutor, date, and time for accepted lessons
-        if status == 'accepted':
+        if status == 'denied':
+            if not details:
+                self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
+        else:
             if not tutor:
                 self.add_error('tutor', 'You must select a tutor for accepted requests.')
             if not first_lesson_date:

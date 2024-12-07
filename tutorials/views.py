@@ -40,6 +40,8 @@ from datetime import date, datetime, timedelta
 import calendar
 from calendar import HTMLCalendar, monthrange
 from django.utils import timezone
+from decimal import Decimal
+
 
 
 @login_required
@@ -96,6 +98,9 @@ def dashboard(request):
 
         lessons = Lesson.objects.all()
         lessons_data = [{'lesson': lesson} for lesson in lessons]
+        
+        invoices = Invoice.objects.all()
+        invoices_data = [{'invoice': invoice} for invoice in invoices]
 
 
         context.update({
@@ -103,6 +108,7 @@ def dashboard(request):
             'student_data': student_data,
             'tutor_data': tutor_data,
             'lessons_data': lessons_data,
+            'invoices_data': invoices_data,
             'search_query': search_query,
             'sort_query': sort_query,
             'action_filter': action_filter,
@@ -117,7 +123,8 @@ def dashboard(request):
     elif user.role == 'student':
   
         lessons = Lesson.objects.filter(student__UserID=user)
-        context.update({'lessons': lessons})
+        invoice = lessons.first().invoice
+        context.update({'lessons': lessons, 'invoice': invoice})
 
     return render(request, 'dashboard.html', context)
 
@@ -295,7 +302,7 @@ def lessons_on_day_tutor(request, year, month, day):
     )
     return render(request, 'lessons_on_day_tutor.html', {'lessons': lessons, 'date': date_obj})
 
-#need to add admin required decorator later
+
 @login_required
 def student_list(request):
     if request.user.role != 'admin':
@@ -306,18 +313,41 @@ def student_list(request):
     )
     return render(request, 'student_list.html', {'students': students})
 
+@login_required
+def set_price(request, student_id):
+    if request.user.role != 'admin':
+        return redirect('dashboard')
+    student = get_object_or_404(Student, id=student_id)
+    if request.method == 'POST':
+        try:
+            price = Decimal(request.POST.get('price'))
+            if price < 0:
+                raise ValueError("Price must be a positive number.")
+        except (TypeError, ValueError, Decimal.InvalidOperation):
+            return HttpResponseBadRequest("Invalid price value.")
+        
+        lessons = Lesson.objects.filter(student=student, invoice__isnull=True)
+        if lessons.exists():
+            lessons.update(price=price)
+            messages.success(request, f"Price for {student.UserID.first_name} updated successfully.")
+        else:
+            return HttpResponse("No uninvoiced lessons found for this student.")
+    return redirect(f"{reverse('dashboard')}?tab=students")
 
-#need to add admin decorator here also
+@login_required
 def create_invoice(request, student_id):
+    if request.user.role != 'admin':
+        return redirect('dashboard')
     student = get_object_or_404(Student, id=student_id)
     # Fetch lessons not yet invoiced
-    lessons = Lesson.objects.filter(student=student, invoices__isnull=True)
+    lessons = Lesson.objects.filter(student=student, invoice__isnull=True)
     tutor = None
     if lessons.exists():
         tutor = lessons.first().tutor
     else:
         messages.error(request, "No lessons to invoice for this student.")
         return redirect('student_list')
+    total_amount = lessons.count() * lessons.first().price
 
     if request.method == 'POST':
         # Create the invoice
@@ -327,22 +357,26 @@ def create_invoice(request, student_id):
             paid=False,
             total_amount = 0.0,
         )
-        invoice.lessons.set(lessons)
+        for lesson in lessons:
+            lesson.invoice = invoice
+            lesson.save()
+            
         invoice.calculate_total_amount()
         messages.success(request, f"Invoice {invoice.id} created for {student.UserID.full_name()}.")
-        return redirect('invoice_details', invoice_id=invoice.id)
+        return redirect('invoice_detail', invoice_id=invoice.id)
 
     return render(request, 'create_invoice.html', {
         'student': student,
         'lessons': lessons,
+        'total_amount':total_amount
     })
+    
 
 
 @login_required
 def invoice_detail(request, invoice_id):
-    invoice = get_object_or_404(Invoice, id=invoice_id)
-
     # Access Control
+    invoice = get_object_or_404(Invoice, id=invoice_id)
     if request.user.role == 'student':
         if request.user != invoice.student.UserID:
             return redirect('dashboard')
@@ -352,8 +386,11 @@ def invoice_detail(request, invoice_id):
     else:
         # Other roles are not allowed
         return redirect('dashboard')
+    
+    lessons = Lesson.objects.filter(invoice=invoice)
 
-    return render(request, 'invoice_details.html', {'invoice': invoice})
+    
+    return render(request, 'invoice_details.html', {'invoice': invoice , 'lessons': lessons})
 
 
 @login_required
