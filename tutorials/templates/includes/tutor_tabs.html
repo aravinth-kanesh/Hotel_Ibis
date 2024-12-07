@@ -1,11 +1,12 @@
 {% if tab == 'lessons' %}
 <div id="lessons">
-    {% if lessons %}
+    {% if lessons and invoice.approved %}
+    
       <table class="table table-bordered table-striped">
         <thead class="table-light">
           <tr>
             <th>Lesson</th>
-            <th>Tutor</th>
+            <th>Student</th>
             <th>Time</th>
             <th>Date</th>
           </tr>
@@ -14,7 +15,7 @@
           {% for lesson in lessons %}
             <tr>
               <td>{{ lesson.language.name }}</td>
-              <td>{{ lesson.tutor.full_name }}</td>
+              <td>{{ lesson.student.UserID.full_name }}</td>
               <td>{{ lesson.time|time:"H:i" }}</td>
               <td>{{ lesson.date }}</td>
             </tr>

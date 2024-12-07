@@ -117,8 +117,10 @@ def dashboard(request):
     elif user.role == 'tutor':
         availabilities = TutorAvailability.objects.filter(tutor__UserID=user)
         lessons = Lesson.objects.filter(tutor__UserID=user)
+        invoice = lessons.first().invoice
         context.update({'lessons': lessons,
-                        'availabilities': availabilities,})
+                        'availabilities': availabilities,
+                        'invoice': invoice})
 
     elif user.role == 'student':
   
@@ -202,7 +204,7 @@ def calendar_view(request, year=None, month=None):
         date__month=month
     )
 
-    cal = LessonCalendar(lessons, year=2024, month=12)
+    cal = LessonCalendar(lessons, year, month)
     html_cal = cal.formatmonth(year, month)
 
     # Style adjustments
@@ -252,7 +254,7 @@ def tutor_calendar_view(request, year=None, month=None):
         date__month=month
     )
 
-    cal = LessonCalendar(lessons)
+    cal = LessonCalendar(lessons, year, month)
     html_cal = cal.formatmonth(year, month)
 
     # Style adjustments
@@ -268,6 +270,18 @@ def tutor_calendar_view(request, year=None, month=None):
     }
 
     return render(request, 'tutor_calendar.html', context)
+def next_month(year, month):
+    if month == 12:
+        return {'year': year + 1, 'month': 1}
+    else:
+        return {'year': year, 'month': month + 1}
+
+def prev_month(year, month):
+    if month == 1:
+        return {'year': year - 1, 'month': 12}
+    else:
+        return {'year': year, 'month': month - 1}
+
 
 @login_required
 def lessons_on_day(request, year, month, day):
