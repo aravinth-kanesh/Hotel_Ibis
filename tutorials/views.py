@@ -1070,7 +1070,7 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
         try:
             tutor = Tutor.objects.get(UserID=request.user)
         except Tutor.DoesNotExist:
-            return redirect("dashboard")
+            return redirect(f"{reverse('dashboard')}?tab=availability")
 
         if availability_id:
             availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
@@ -1096,7 +1096,7 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
                 })
 
             new_availability.save()
-            return redirect("dashboard")
+            return redirect(f"{reverse('dashboard')}?tab=availability")
         print("Form is not valid")
         print(form.errors)
         availabilities = TutorAvailability.objects.filter(tutor=tutor)

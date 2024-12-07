@@ -491,7 +491,9 @@ class TutorAvailabilityForm(forms.ModelForm):
             
             if not start_date <= current_date <= end_date:
                 raise ValueError(f"Not in term time.")
-                
+            
+            
+            current_date += timedelta(days=interval)
             while current_date <= end_date:
                 if not TutorAvailability.objects.filter(
                     tutor=instance.tutor,
