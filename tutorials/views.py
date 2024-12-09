@@ -252,7 +252,7 @@ def tutor_calendar_view(request, year=None, month=None):
         date__month=month
     )
 
-    cal = LessonCalendar(lessons)
+    cal = LessonCalendar(lessons, year=2024, month=12)
     html_cal = cal.formatmonth(year, month)
 
     # Style adjustments
@@ -747,8 +747,6 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 class StudentRequestProcessingView(LoginRequiredMixin, View):
     # Define term ranges and frequency-to-days mapping as class attributes
 
-    """Commit test"""
-
     today = date.today()
     current_year = today.year
 
@@ -788,7 +786,6 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         student_request = get_object_or_404(StudentRequest, id=request_id)
 
         form = StudentRequestProcessingForm(student_request=student_request)
-
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
 
     def post(self, request, request_id):
@@ -828,11 +825,9 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                 messages.warning(request, f"Request rejected. {details}")
 
             student_request.save()
-
             return redirect('dashboard')
 
         messages.error(request, "There was an error processing the request. Please try again.")
-
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
 
     def schedule_lessons_for_term(self, tutor, student, language, start_datetime, frequency, duration, term_start, term_end, venue):
@@ -983,10 +978,8 @@ class LessonUpdateView(LoginRequiredMixin, View):
 
     def get(self, request, lesson_id):
         """Display the form for changing or cancelling a lesson."""
-        
-        lesson = get_object_or_404(Lesson, id=lesson_id)
 
-        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
+        lesson = get_object_or_404(Lesson, id=lesson_id)
         form = LessonUpdateForm(instance=lesson)
 
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
@@ -995,70 +988,41 @@ class LessonUpdateView(LoginRequiredMixin, View):
         """Handle the form submission for changing or cancelling a lesson."""
 
         lesson = get_object_or_404(Lesson, id=lesson_id)
-
-        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
         form = LessonUpdateForm(request.POST, instance=lesson)
 
         if form.is_valid():
-            cancel_lesson = form.cleaned_data.get('cancel_lesson')
+            if self._is_cancellation_requested(form):
+                return self._handle_cancellation(request, lesson)
 
-            if cancel_lesson:
-                # If the lesson is cancelled, delete it and redirect
-                lesson.delete()
+            return self._handle_update(request, form, lesson)
 
-                messages.success(request, "Lesson successfully cancelled.")
-
-                return redirect('dashboard')  # Redirect to the admin dashboard
-
-            # Update lesson fields explicitly
-            lesson.date = form.cleaned_data['new_date']
-            lesson.time = form.cleaned_data['new_time']
-
-            lesson.save()
-            
-            messages.success(request, "Lesson details successfully updated.")
-
-            return redirect('dashboard')
-
-        # If the form is invalid, re-render with errors
+        # If the form is invalid
         messages.error(request, "There was an error updating the lesson. Please try again.")
-
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
 
+    def _is_cancellation_requested(self, form):
+        """Determine if the cancellation checkbox is selected."""
 
-    def post(self, request, lesson_id):
-        """Handle the form submission for changing or cancelling a lesson."""
+        return form.cleaned_data.get('cancel_lesson', False)
 
-        lesson = get_object_or_404(Lesson, id=lesson_id)
+    def _handle_cancellation(self, request, lesson):
+        """Handle cancellation logic: delete the lesson and redirect."""
+        
+        lesson.delete()
 
-        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
-        form = LessonUpdateForm(request.POST, instance=lesson)
+        messages.success(request, "Lesson successfully cancelled.")
+        return redirect('dashboard')
 
-        if form.is_valid():
-            cancel_lesson = form.cleaned_data.get('cancel_lesson')
+    def _handle_update(self, request, form, lesson):
+        """Handle lesson rescheduling logic: save the updated date/time."""
+        
+        lesson.date = form.cleaned_data['new_date']
+        lesson.time = form.cleaned_data['new_time']
+        lesson.save()
 
-            if cancel_lesson:
-                # If the lesson is cancelled, delete it and redirect
-                lesson.delete()
+        messages.success(request, "Lesson details successfully updated.")
+        return redirect('dashboard')
 
-                messages.success(request, "Lesson successfully cancelled.")
-
-                return redirect('dashboard')  # Redirect to the admin dashboard
-
-            # Update lesson fields explicitly
-            lesson.date = form.cleaned_data['new_date']
-            lesson.time = form.cleaned_data['new_time']
-
-            lesson.save()
-            
-            messages.success(request, "Lesson details successfully updated.")
-
-            return redirect('dashboard')
-
-        # If the form is invalid, re-render with errors
-        messages.error(request, "There was an error updating the lesson. Please try again.")
-
-        return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
     
 class TutorAvailabilityView(LoginRequiredMixin, View):
     """View for tutors to manage availability requests."""
