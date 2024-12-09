@@ -216,7 +216,6 @@ class MessageForm (forms.ModelForm):
         return message
 
 
-
 class StudentRequestProcessingForm(forms.ModelForm):
     """Form for the admin to process student lesson requests."""
 
@@ -244,7 +243,7 @@ class StudentRequestProcessingForm(forms.ModelForm):
 
     # Tutor field (using ModelChoiceField to allow selection of a tutor)
     tutor = forms.ModelChoiceField(
-        queryset=Tutor.objects.all(), 
+        queryset=Tutor.objects.all(),
         label="Select Tutor",
         required=False,
         widget=forms.Select(attrs={'placeholder': 'Select a tutor'})
@@ -270,7 +269,7 @@ class StudentRequestProcessingForm(forms.ModelForm):
         """Initialise the form and dynamically filter tutors."""
         
         # Extract student_request from kwargs and handle it separately
-        student_request = kwargs.pop('student_request', None)  
+        student_request = kwargs.pop('student_request', None)
         super().__init__(*args, **kwargs)
 
         if student_request:
@@ -280,30 +279,48 @@ class StudentRequestProcessingForm(forms.ModelForm):
             self.fields['tutor'].queryset = Tutor.objects.filter(languages=requested_language)
 
     def clean(self):
-        """Validate the form fields."""
+        """Custom validation logic."""
 
-        super().clean()
+        cleaned_data = super().clean()
 
-        # Retrieve cleaned data
-        status = self.cleaned_data.get('status')
-        details = self.cleaned_data.get('details')
-        tutor = self.cleaned_data.get('tutor')
-        first_lesson_date = self.cleaned_data.get('first_lesson_date')
-        first_lesson_time = self.cleaned_data.get('first_lesson_time')
+        # Call the individual validation checks
+        self._validate_status_and_details(cleaned_data)
+        self._validate_accepted_request(cleaned_data)
 
-        # Enforce details for denied lessons
-        if status == 'denied':
-            if not details:
-                self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
-        else:
+        return cleaned_data
+
+    def _validate_status_and_details(self, cleaned_data):
+        """Ensure details are provided if the status is 'denied'."""
+        
+        status = cleaned_data.get('status')
+        details = cleaned_data.get('details')
+
+        if status == 'denied' and not details:
+            raise forms.ValidationError({
+                'details': 'You must provide a reason in the Details field when denying a request.'
+            })
+
+    def _validate_accepted_request(self, cleaned_data):
+        """Ensure tutor and lesson details are provided if status is 'accepted'."""
+        
+        status = cleaned_data.get('status')
+        tutor = cleaned_data.get('tutor')
+        first_lesson_date = cleaned_data.get('first_lesson_date')
+        first_lesson_time = cleaned_data.get('first_lesson_time')
+
+        if status == 'accepted':
             if not tutor:
-                self.add_error('tutor', 'You must select a tutor for accepted requests.')
+                raise forms.ValidationError({
+                    'tutor': 'You must select a tutor for accepted requests.'
+                })
             if not first_lesson_date:
-                self.add_error('first_lesson_date', 'You must provide the first lesson date.')
+                raise forms.ValidationError({
+                    'first_lesson_date': 'You must provide the first lesson date.'
+                })
             if not first_lesson_time:
-                self.add_error('first_lesson_time', 'You must provide the first lesson time.')
-
-        return self.cleaned_data
+                raise forms.ValidationError({
+                    'first_lesson_time': 'You must provide the first lesson time.'
+                })
 
 
 class LessonUpdateForm(forms.ModelForm):
@@ -311,29 +328,30 @@ class LessonUpdateForm(forms.ModelForm):
 
     # The checkbox to cancel the lesson
     cancel_lesson = forms.BooleanField(
-        label="Cancel Lesson", 
-        required=False, 
+        label="Cancel Lesson",
+        required=False,
         initial=False
     )
-    
+
     # Fields for new date and time to reschedule the lesson
     new_date = forms.DateField(
-        label="New Date", 
-        required=False, 
+        label="New Date",
+        required=False,
         widget=forms.SelectDateWidget(attrs={'class': 'form-control'})
     )
     new_time = forms.TimeField(
-        label="New Time", 
-        required=False, 
+        label="New Time",
+        required=False,
         widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'})
     )
-    
+
     class Meta:
         model = Lesson
         fields = ['cancel_lesson', 'new_date', 'new_time']
 
     def __init__(self, *args, **kwargs):
-        """Initialize the form and pre-fill date and time."""
+        """Initialise the form and pre-fill date and time."""
+
         instance = kwargs.get('instance', None)
         super().__init__(*args, **kwargs)
 
@@ -343,9 +361,12 @@ class LessonUpdateForm(forms.ModelForm):
             self.fields['new_time'].initial = instance.time
 
     def clean(self):
-        """Custom validation to check if either cancel_lesson is selected or new_date & new_time are provided."""
+        """
+        Custom validation to check if either cancel_lesson is selected or new_date & new_time are provided.
+        Check for scheduling conflicts for the new proposed lesson
+        """
         cleaned_data = super().clean()
-        
+
         cancel_lesson = cleaned_data.get('cancel_lesson')
         new_date = cleaned_data.get('new_date')
         new_time = cleaned_data.get('new_time')
@@ -364,63 +385,79 @@ class LessonUpdateForm(forms.ModelForm):
 
         # Convert new date and time to datetime objects
         new_start_datetime = datetime.combine(new_date, new_time)
-        new_end_datetime = new_start_datetime + timedelta(minutes=self.instance.duration)  
+        new_end_datetime = new_start_datetime + timedelta(minutes=self.instance.duration)
 
         # Check if the tutor is available at the new time
-        tutor_availability = TutorAvailability.objects.filter(
-            tutor=self.instance.tutor,
-            day=new_date.weekday(),  
-            start_time__lte=new_time,  # Tutor should be available at or before the start of the new lesson
-            end_time__gte=new_time + timedelta(minutes=self.instance.duration)  # Tutor should be available for the full duration
-        )
-
-        # If no availability found, raise a validation error
-        if not tutor_availability.exists():
+        if not self._is_tutor_available(new_date, new_time):
             raise forms.ValidationError("The tutor is not available at the new proposed time.")
 
-        # Check if there are any conflicts with the student's existing lessons
-        student_conflict = Lesson.objects.filter(
-            student=self.instance.student
-        ).exclude(id=self.instance.id).filter(
-            date=new_date
-        )
-
-        # Check if there are any conflicts with the tutor's existing lessons
-        tutor_conflict = Lesson.objects.filter(
-            tutor=self.instance.tutor  
-        ).exclude(id=self.instance.id).filter(
-            date=new_date
-        )
-
-        # Check for overlap conditions with the student's timetable
-        for existing_lesson in student_conflict:
-            existing_start_datetime = datetime.combine(existing_lesson.date, existing_lesson.time)
-            existing_end_datetime = existing_start_datetime + timedelta(minutes=existing_lesson.duration)
-
-            # Check for overlap conditions with the student's timetable
-            if (
-                (new_start_datetime < existing_end_datetime and new_end_datetime > existing_start_datetime and new_end_datetime < existing_end_datetime) or
-                (new_start_datetime < existing_start_datetime and new_end_datetime > existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime)
-            ):
-                raise forms.ValidationError("The student already has a lesson scheduled that conflicts with the new date and time.")
-
-        # Check for overlap conditions with the tutor's timetable
-        for existing_lesson in tutor_conflict:
-            existing_start_datetime = datetime.combine(existing_lesson.date, existing_lesson.time)
-            existing_end_datetime = existing_start_datetime + timedelta(minutes=existing_lesson.duration)
-
-            # Check for overlap conditions with the tutor's timetable
-            if (
-                (new_start_datetime < existing_end_datetime and new_end_datetime > existing_start_datetime and new_end_datetime < existing_end_datetime) or
-                (new_start_datetime < existing_start_datetime and new_end_datetime > existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime)
-            ):
-                raise forms.ValidationError("The tutor already has a lesson scheduled that conflicts with the new date and time.")
+        # Check for conflicts with both student and tutor schedules
+        if self._has_conflict(new_start_datetime, new_end_datetime):
+            raise forms.ValidationError("The new date and time conflict with existing schedules.")
 
         return cleaned_data
+
+    def _is_tutor_available(self, new_date, new_time):
+        """Check if the tutor is available for the new proposed date/time."""
+
+        tutor_availability = TutorAvailability.objects.filter(
+            tutor=self.instance.tutor,
+            day=new_date.weekday(),
+            start_time__lte=new_time,
+            end_time__gte=new_time + timedelta(minutes=self.instance.duration)
+        )
+
+        return tutor_availability.exists()
+
+    def _has_conflict(self, new_start_datetime, new_end_datetime):
+        """Check for conflicts with student and tutor schedules."""
+
+        # Check for student conflicts
+        student_conflict = self._get_conflicting_lessons(
+            Lesson.objects.filter(student=self.instance.student)
+            .exclude(id=self.instance.id)
+            .filter(date=new_start_datetime.date()),
+            new_start_datetime,
+            new_end_datetime,
+            "The student already has a lesson scheduled that conflicts with the new date and time."
+        )
+
+        if student_conflict:
+            return True
+
+        # Check for tutor conflicts
+        tutor_conflict = self._get_conflicting_lessons(
+            Lesson.objects.filter(tutor=self.instance.tutor)
+            .exclude(id=self.instance.id)
+            .filter(date=new_start_datetime.date()),
+            new_start_datetime,
+            new_end_datetime,
+            "The tutor already has a lesson scheduled that conflicts with the new date and time."
+        )
+
+        if tutor_conflict:
+            return True
+
+        return False
+
+    def _get_conflicting_lessons(self, lessons, new_start_datetime, new_end_datetime, error_message):
+        """Generic logic to check conflicts for overlapping lessons. Used for both student and tutor conflicts."""
+    
+        for existing_lesson in lessons:
+            existing_start_datetime = datetime.combine(existing_lesson.date, existing_lesson.time)
+            existing_end_datetime = existing_start_datetime + timedelta(minutes=existing_lesson.duration)
+
+            # Check for overlap conditions
+            if (
+                (new_start_datetime < existing_end_datetime and new_end_datetime > existing_start_datetime and new_end_datetime < existing_end_datetime) or
+                (new_start_datetime < existing_start_datetime and new_end_datetime > existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime)
+            ):
+                return True
+            
+        return False
+    
 
 class TutorAvailabilityForm(forms.ModelForm):
     REPEAT_CHOICES = [
