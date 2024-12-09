@@ -243,7 +243,7 @@ def tutor_calendar_view(request, year=None, month=None):
         date__month=month
     )
 
-    cal = LessonCalendar(lessons)
+    cal = LessonCalendar(lessons, year=2024, month=12)
     html_cal = cal.formatmonth(year, month)
 
     # Style adjustments
