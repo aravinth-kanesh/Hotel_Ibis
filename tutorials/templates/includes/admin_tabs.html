@@ -149,9 +149,10 @@
           {% if data.unallocated_request %}
             <p>Unallocated Request: {{ data.unallocated_request }}</p>
             <a href="{% url 'process_request' data.unallocated_request.id %}" class="btn btn-secondary">Process Request</a>
-          {% elif data.allocated_lesson %}
-            <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} with {{data.allocated_lesson.tutor.UserID.full_name}}</p>
-            {% if data.invoice %}
+          {% endif %}
+          {% if data.allocated_lesson %}
+            <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} with {{data.allocated_lesson.tutor.UserID.full_name}} on {{ data.allocated_lesson.date }}</p>
+            {% if data.invoice != null %}
               {% if data.invoice.paid %}
                 {% if not data.invoice.approved %}
                   <p> Paid on {{data.invoice.date_paid}}. </p>
@@ -195,6 +196,26 @@
 {% if tab == 'lessons' %}
 <div id="all_lessons">
   <h2>Manage Lessons</h2>
+  <div class="d-flex justify-content-between mb-3">
+    <form method="get" class="d-flex mb-3">
+      <input type="hidden" name="tab" value="lessons"> 
+      <input type="text" name="search" class="form-control-sm me-2" placeholder="Search for a name"
+            value="{{ search_all }}">
+      <button type="submit" class="btn btn-outline-primary">Search</button>
+    </form>
+
+    <!--Role Dropdown-->
+    <form method="get" class="d-flex mb-3">
+      <input type="hidden" name="tab" value="lessons"> 
+      <label for="sort" class="me-2">Filter by:</label>
+      <select name="sort" id="sort" class="form-select-sm me-2" onchange="this.form.submit()">
+        <option value="invoice" {% if sort == 'invoice' %}selected{% endif %}>Unique Invoice</option>
+        <option value="this month" {% if sort == 'this month' %}selected{% endif %}>This Month</option>
+        <option value="all" {% if sort == 'all' %}selected{% endif %}>All</option>
+      </select>
+    </form>
+  </div>
+  
   <table class="table table-bordered table-striped">
     <thead class="table-light">
       <tr>
@@ -205,6 +226,7 @@
         <th>Date</th>
         <th>Time</th>
         <th>Price</th>
+        <th>Invoice</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -218,6 +240,7 @@
         <td>{{  data.lesson.date }}</td>
         <td>{{  data.lesson.time }}</td>
         <td>{{ data.lesson.price }} </td>
+        <td>{{ data.lesson.invoice }}
         <td>
           
           <a href="{% url 'lesson_update' data.lesson.id %}" class="btn btn-secondary">Update</a>

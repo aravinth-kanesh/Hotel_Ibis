@@ -57,6 +57,8 @@ def dashboard(request):
         search_query = request.GET.get('search', '')
         sort_query = request.GET.get('sort_query', '')
         action_filter = request.GET.get('action_filter', '')
+        search_all = request.GET.get('search', '')
+        sort = request.GET.get('sort', '')
 
         # Fetch users with optional filters
         User = get_user_model()
@@ -98,6 +100,33 @@ def dashboard(request):
 
         lessons = Lesson.objects.all()
         lessons_data = [{'lesson': lesson} for lesson in lessons]
+        if search_all:
+            filtered_lessons = lessons.filter(
+            Q(student__UserID__first_name__icontains=search_all) |
+            Q(student__UserID__last_name__icontains=search_all) |
+            Q(tutor__UserID__first_name__icontains=search_all) |
+            Q(tutor__UserID__last_name__icontains=search_all)
+            )
+            lessons_data = [{'lesson': lesson} for lesson in filtered_lessons]
+        if sort == 'invoice':
+            unique_invoices = Lesson.objects.values_list('invoice', flat=True).distinct()
+            lessons_data = []
+            for invoice in unique_invoices:
+                lesson = lessons.filter(invoice=invoice).first()  # Get the first lesson for each unique invoice
+                if lesson:
+                    lessons_data.append({'lesson': lesson})
+        elif sort == "all":
+            lessons_data = [{'lesson': lesson} for lesson in lessons.all()]
+        elif  sort == 'this month':
+            now = datetime.now()
+            lessons_data = [
+                {'lesson': lesson}
+                for lesson in lessons.filter(date__year=now.year, date__month=now.month).order_by('date')
+            ]
+                                    
+                
+
+        
         
         invoices = Invoice.objects.all()
         invoices_data = [{'invoice': invoice} for invoice in invoices]
@@ -112,12 +141,15 @@ def dashboard(request):
             'search_query': search_query,
             'sort_query': sort_query,
             'action_filter': action_filter,
+            'search_all' : search_all,
+            'sort' : sort
         })
 
     elif user.role == 'tutor':
         availabilities = TutorAvailability.objects.filter(tutor__UserID=user)
         lessons = Lesson.objects.filter(tutor__UserID=user)
-        invoice = lessons.first().invoice
+        invoice = lessons.first().invoice if lessons.exists() else None
+        
         context.update({'lessons': lessons,
                         'availabilities': availabilities,
                         'invoice': invoice})
@@ -125,7 +157,8 @@ def dashboard(request):
     elif user.role == 'student':
   
         lessons = Lesson.objects.filter(student__UserID=user)
-        invoice = lessons.first().invoice
+        if lessons.exists():
+            invoice = lessons.first().invoice
         context.update({'lessons': lessons, 'invoice': invoice})
 
     return render(request, 'dashboard.html', context)
@@ -673,7 +706,13 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
         form.instance.created_at = timezone.now()
         form.instance.student = student  
         return super().form_valid(form)
-
+    def get_context_data(self, **kwargs) -> dict[str, any]:
+        context = super().get_context_data(**kwargs)
+        if get_allocated_lesson(student).invoice != null:
+            existing = get_allocated_lesson(student).invoice
+        context["invoice"] = existing.invoice
+        return context
+    
 
 class StudentRequestListView(LoginRequiredMixin, ListView):
     """view to display all requests made by the logged-in student."""
@@ -872,7 +911,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                     )
                     scheduled_lessons.append(lesson)
                 else:
-                    messages.error(request, "No available times for {current_datetime.date()}.")  
+                    return HttpResponseBadRequest(f"No available times for {current_datetime.date()}.")
 
             current_datetime += timedelta(days=days_between_lessons)
 
