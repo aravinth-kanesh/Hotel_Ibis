@@ -47,8 +47,8 @@ class InvoiceAdmin(admin.ModelAdmin):
 
 
 @admin.register(Lesson)
-class ClassAdmin(admin.ModelAdmin):
-    list_display = ('id', 'tutor', 'student', 'invoice','language', 'date', 'time', 'venue', 'duration', 'frequency', 'term')
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ('id', 'tutor', 'student', 'invoice','language', 'date', 'time', 'venue', 'duration', 'frequency', 'term', 'created_at')
     list_filter = ('frequency', 'term', 'date') 
     search_fields = ('tutor__UserID__username', 'student__UserID__username', 'language__name')  
     autocomplete_fields = ['tutor', 'student', 'language'] 

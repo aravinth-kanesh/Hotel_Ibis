@@ -137,7 +137,7 @@
       <tr>
         <th>Name</th>
         <th>Email</th>
-        <th>Actions</th>
+        <th style="width: 55%;">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -151,7 +151,7 @@
             <a href="{% url 'process_request' data.unallocated_request.id %}" class="btn btn-secondary">Process Request</a>
           {% endif %}
           {% if data.allocated_lesson %}
-            <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} with {{data.allocated_lesson.tutor.UserID.full_name}} on {{ data.allocated_lesson.date }}</p>
+            <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} with {{data.allocated_lesson.tutor.UserID.full_name}} on {{ data.allocated_lesson.created_at }}</p>
             {% if data.invoice != null %}
               {% if data.invoice.paid %}
                 {% if not data.invoice.approved %}
@@ -171,7 +171,7 @@
                 <div class="form-group me-3">
                     <input type="text" name="price" class="form-control form-control-sm" placeholder="Enter Price" required>
                 </div>
-                <button type="submit" class="btn btn-primary btn-sm">Set Price</button>
+                <button type="submit" class="btn btn-outline-primary btn-sm">Set Price</button>
               </form>
               {% if data.allocated_lesson.price == 0.0 %}
               <p> Warning! Price is 0.0 </p>
