@@ -747,6 +747,8 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
 class StudentRequestProcessingView(LoginRequiredMixin, View):
     # Define term ranges and frequency-to-days mapping as class attributes
 
+    """Commit test"""
+
     today = date.today()
     current_year = today.year
 
@@ -786,6 +788,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         student_request = get_object_or_404(StudentRequest, id=request_id)
 
         form = StudentRequestProcessingForm(student_request=student_request)
+
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
 
     def post(self, request, request_id):
@@ -812,7 +815,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                 # Schedule lessons for the term
                 scheduled_lessons = self.schedule_lessons_for_term(
                     tutor, student_request.student, student_request.language,
-                    first_lesson_datetime, frequency, duration, term_start, term_end, venue
+                    first_lesson_datetime, frequency, duration, term_start, term_end, venue, request
                 )
 
                 if scheduled_lessons:
@@ -825,12 +828,14 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                 messages.warning(request, f"Request rejected. {details}")
 
             student_request.save()
+
             return redirect('dashboard')
 
         messages.error(request, "There was an error processing the request. Please try again.")
+
         return render(request, 'process_request.html', {'form': form, 'request': student_request})
 
-    def schedule_lessons_for_term(self, tutor, student, language, start_datetime, frequency, duration, term_start, term_end, venue):
+    def schedule_lessons_for_term(self, tutor, student, language, start_datetime, frequency, duration, term_start, term_end, venue, request):
         """Schedules lessons for the requested term, resolving conflicts dynamically."""
 
         scheduled_lessons = []
