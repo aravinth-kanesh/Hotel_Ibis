@@ -386,9 +386,10 @@ class LessonUpdateForm(forms.ModelForm):
         # Convert new date and time to datetime objects
         new_start_datetime = datetime.combine(new_date, new_time)
         new_end_datetime = new_start_datetime + timedelta(minutes=self.instance.duration)
+        new_end_time = new_end_datetime.time()
 
         # Check if the tutor is available at the new time
-        if not self._is_tutor_available(new_date, new_time):
+        if not self._is_tutor_available(new_date, new_time, new_end_time):
             raise forms.ValidationError("The tutor is not available at the new proposed time.")
 
         # Check for conflicts with both student and tutor schedules
@@ -397,14 +398,14 @@ class LessonUpdateForm(forms.ModelForm):
 
         return cleaned_data
 
-    def _is_tutor_available(self, new_date, new_time):
+    def _is_tutor_available(self, new_date, new_time, new_end_time):
         """Check if the tutor is available for the new proposed date/time."""
 
         tutor_availability = TutorAvailability.objects.filter(
             tutor=self.instance.tutor,
-            day=new_date.weekday(),
+            day=new_date,
             start_time__lte=new_time,
-            end_time__gte=new_time + timedelta(minutes=self.instance.duration)
+            end_time__gte=new_end_time
         )
 
         return tutor_availability.exists()
