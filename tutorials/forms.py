@@ -365,13 +365,14 @@ class LessonUpdateForm(forms.ModelForm):
         # Convert new date and time to datetime objects
         new_start_datetime = datetime.combine(new_date, new_time)
         new_end_datetime = new_start_datetime + timedelta(minutes=self.instance.duration)  
-
+        new_end_time = new_end_datetime.time()
+        
         # Check if the tutor is available at the new time
         tutor_availability = TutorAvailability.objects.filter(
             tutor=self.instance.tutor,
-            day=new_date.weekday(),  
+            day=new_date,  
             start_time__lte=new_time,  # Tutor should be available at or before the start of the new lesson
-            end_time__gte=new_time + timedelta(minutes=self.instance.duration)  # Tutor should be available for the full duration
+            end_time__gte=new_end_time  # Tutor should be available for the full duration
         )
 
         # If no availability found, raise a validation error
