@@ -978,6 +978,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
         return slots
     
+    
 class LessonUpdateView(LoginRequiredMixin, View):
     """View for changing or cancelling a lesson."""
 
