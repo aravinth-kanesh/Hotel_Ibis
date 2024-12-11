@@ -16,6 +16,7 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count
 from django.utils.safestring import mark_safe
+from django.core.paginator import Paginator
 
 #
 from django.urls import reverse_lazy
@@ -74,7 +75,7 @@ def dashboard(request):
         for student in students:
             unallocated_request = get_unallocated_requests(student)
             allocated_lesson = get_allocated_lesson(student)
-            invoice = allocated_lesson.invoice if allocated_lesson.invoice else None
+            invoice = allocated_lesson.invoice if allocated_lesson and allocated_lesson.invoice else None
             student_data.append({
                 'student': student,
                 'unallocated_request': unallocated_request,
@@ -107,32 +108,38 @@ def dashboard(request):
             Q(tutor__UserID__first_name__icontains=search_all) |
             Q(tutor__UserID__last_name__icontains=search_all)
             )
-            lessons_data = [{'lesson': lesson} for lesson in filtered_lessons]
+            lessons = [{'lesson': lesson} for lesson in filtered_lessons] 
         if sort == 'invoice':
             unique_invoices = Lesson.objects.values_list('invoice', flat=True).distinct()
-            lessons_data = []
+            filtered_lessons = []
             for invoice in unique_invoices:
                 lesson = lessons.filter(invoice=invoice).first()  # Get the first lesson for each unique invoice
                 if lesson:
-                    lessons_data.append({'lesson': lesson})
+                    filtered_lessons.append({'lesson': lesson})
+            lessons = [{'lesson': lesson} for lesson in filtered_lessons]         
         elif sort == "all":
-            lessons_data = [{'lesson': lesson} for lesson in lessons.all()]
+            filtered_lessons = [{'lesson': lesson} for lesson in lessons.all()]
+            lessons = [{'lesson': lesson} for lesson in filtered_lessons] 
         elif  sort == 'this month':
             now = datetime.now()
-            lessons_data = [
+            filtered_lessons = [
                 {'lesson': lesson}
                 for lesson in lessons.filter(date__year=now.year, date__month=now.month).order_by('date')
             ]
-                                    
-                
+            lessons = [{'lesson': lesson} for lesson in filtered_lessons] 
+                                      
+        paginator = Paginator(lessons, 70)  # Show 10 lessons per page
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
 
-        
+        lessons_data = [{'lesson': lesson} for lesson in page_obj.object_list]
         
         invoices = Invoice.objects.all()
         invoices_data = [{'invoice': invoice} for invoice in invoices]
 
 
         context.update({
+            'tab': tab,
             'users': users,
             'student_data': student_data,
             'tutor_data': tutor_data,
@@ -142,7 +149,9 @@ def dashboard(request):
             'sort_query': sort_query,
             'action_filter': action_filter,
             'search_all' : search_all,
-            'sort' : sort
+            'sort' : sort,
+            'page_obj': page_obj,
+            'paginator': paginator
         })
 
     elif user.role == 'tutor':
@@ -703,9 +712,10 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
     def get_context_data(self, **kwargs) -> dict[str, any]:
         context = super().get_context_data(**kwargs)
-        if get_allocated_lesson(student).invoice != null:
+        student = self.request.user.student_profile 
+        if get_allocated_lesson(student).invoice != None:
             existing = get_allocated_lesson(student).invoice
-        context["invoice"] = existing.invoice
+        context["invoice"] = existing
         return context
     
 

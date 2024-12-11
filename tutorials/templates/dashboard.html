@@ -16,7 +16,7 @@
     </style>
     <div class="d-flex justify-content-center gap-2 mt-2 w-100">
       
-      {% if user.role == 'admin' and user.is_staff %}
+      {% if user.role == 'admin' or user.is_staff %}
         <a href="{% url 'send_message' %}" class="btn btn-light btn-sm">Send Message</a>
         <a href="{% url 'all_messages' %}" class="btn btn-light btn-sm">View Messages</a>
 
@@ -43,7 +43,7 @@
     
     <!-- Navigation Tabs -->
     <ul class="nav nav-tabs">
-      {% if user.role == 'admin' and user.is_staff %}
+      {% if user.role == 'admin' or user.is_staff %}
         <li class="nav-item">
           <a class="nav-link {% if tab == 'accounts' %}active{% endif %}" href="?tab=accounts">All Accounts</a>
         </li>
@@ -74,7 +74,7 @@
     </ul>
 
     <div class="tab-content mt-3">
-      {% if user.role == 'admin' and user.is_staff %}
+      {% if user.role == 'admin' or user.is_staff %}
         {% include 'includes/admin_tabs.html' %}
   
       {% elif user.role == 'tutor' %}

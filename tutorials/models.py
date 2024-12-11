@@ -202,6 +202,7 @@ class StudentRequest(models.Model):
     description = models.TextField()
     is_allocated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    date = models.DateField(default=now)
     time = models.TimeField()
     venue = models.TextField()
     duration = models.IntegerField() 

@@ -130,12 +130,17 @@ class StudentRequestForm(forms.ModelForm):
         model = StudentRequest
 
         fields = [
-            'language', 'description', 'time', 'venue',
+            'language', 'description','date', 'time', 'venue',
             'duration', 'frequency', 'term'
         ]
 
         widgets = {
             'description': forms.Textarea(attrs={'placeholder': 'Enter any other requirements here.'}),
+            'date': forms.DateInput(attrs={
+                'type': 'date',
+                'placeholder': 'YYYY-MM-DD',
+                'class': 'form-control',
+            }),
             'time': forms.TimeInput(attrs={'type': 'time'}),
             'venue': forms.TextInput(attrs={'placeholder': 'Enter venue address'}),
             'duration': forms.NumberInput(attrs={
@@ -471,7 +476,7 @@ class TutorAvailabilityForm(forms.ModelForm):
     
     def save(self, commit=True):
         instance = super().save(commit=False)
-        print("saving")
+    
         
         if not instance.tutor:
             instance.tutor = self.initial.get('tutor')
@@ -479,7 +484,7 @@ class TutorAvailabilityForm(forms.ModelForm):
                 raise ValueError("A tutor instance is required to save this form.")
 
         repeat_option = self.cleaned_data['repeat']
-        print({repeat_option})
+    
         if repeat_option in ['weekly', 'biweekly']:
             from tutorials.term_dates import TERM_DATES, get_term
 
@@ -510,8 +515,6 @@ class TutorAvailabilityForm(forms.ModelForm):
                         availability_status=instance.availability_status,
                     )
                 current_date += timedelta(days=interval)
-                print({current_date})
-
         else:
             if commit:
                 instance.save()

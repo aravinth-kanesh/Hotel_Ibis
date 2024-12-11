@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
 
 TERM_DATES = {
     'sept-christmas': {
@@ -19,6 +19,8 @@ def get_term(input_date):
     """
     Calculate term start and end dates for the given term and reference year.
     """
+    if isinstance(input_date, datetime):
+        input_date = input_date.date()
     reference_year = input_date.year
 
     for term, dates in TERM_DATES.items():
