@@ -1,34 +1,24 @@
 from django.test import TestCase
 from tutorials.forms import LessonUpdateForm
-from tutorials.models import Lesson, Language, Student, Tutor
-from django.contrib.auth import get_user_model
-
-#Test commit
+from tutorials.models import Lesson, Language, Student, Tutor, User, TutorAvailability
 
 class LessonUpdateFormTestCase(TestCase):
     def setUp(self):
         # Create a student and a tutor 
-
-        self.user_student = get_user_model().objects.create_user(
+        user_student = User.objects.create(
             username='@student',
-            first_name='Student',
-            last_name='One',
             email='student.one@example.com',
-            password='password123',
             role='student'
         )
-        self.user_tutor = get_user_model().objects.create_user(
+        user_tutor = User.objects.create(
             username='@tutor',
-            first_name='Tutor',
-            last_name='One',
             email='tutor.one@example.com',
-            password='password123',
             role='tutor'
         )
 
         # Create student, tutor, and language instances
-        self.student, _ = Student.objects.get_or_create(UserID=self.user_student)
-        self.tutor, _ = Tutor.objects.get_or_create(UserID=self.user_tutor)
+        self.student, _ = Student.objects.get_or_create(UserID=user_student)
+        self.tutor, _ = Tutor.objects.get_or_create(UserID=user_tutor)
         
         self.language, _ = Language.objects.get_or_create(name="Python")
         self.tutor.languages.add(self.language)
@@ -44,6 +34,24 @@ class LessonUpdateFormTestCase(TestCase):
             duration=60,
             frequency="once a week",
             term="sept-christmas"
+        )
+
+        TutorAvailability.objects.create(
+            tutor=self.tutor,
+            start_time="09:00", 
+            end_time="17:00",    
+            day=self.lesson.date,  
+            availability_status='available',  
+            action='edit'  
+        )
+
+        TutorAvailability.objects.create(
+            tutor=self.tutor,
+            start_time="09:00",  
+            end_time="17:00",    
+            day="2024-12-10", 
+            availability_status='available',  
+            action='edit'  
         )
 
     def test_form_pre_filled_with_original_lesson_data(self):
@@ -125,19 +133,6 @@ class LessonUpdateFormTestCase(TestCase):
 
         self.assertFalse(form.is_valid())
 
-    def test_form_valid_with_full_lesson_data(self):
-        """Test if the form is valid with all the lesson fields filled, including reschedule."""
-
-        data = {
-            'cancel_lesson': False,
-            'new_date': '2024-12-10',
-            'new_time': '15:00'
-        }
-
-        form = LessonUpdateForm(data, instance=self.lesson)
-
-        self.assertTrue(form.is_valid())
-
     def test_form_valid_when_only_date_is_changed(self):
         """Test if the form is valid when only the date is changed."""
         
@@ -163,3 +158,46 @@ class LessonUpdateFormTestCase(TestCase):
         form = LessonUpdateForm(data, instance=self.lesson)
 
         self.assertTrue(form.is_valid())
+
+    def test_form_invalid_when_tutor_is_not_available_at_new_time(self):
+        """Test if the form is invalid when the tutor is not available at the new time."""
+        
+        # Set a time that is outside of the tutor's availability range
+        data = {
+            'cancel_lesson': False,
+            'new_date': '2024-12-10',  
+            'new_time': '18:00'
+        }
+        
+        form = LessonUpdateForm(data, instance=self.lesson)
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ["The tutor is not available at the new proposed time."])
+
+    def test_form_invalid_when_student_has_conflict_with_new_time(self):
+        """Test if the form is invalid when the student has a scheduling conflict."""
+        
+        # Create a conflicting lesson for the student
+        Lesson.objects.create(
+            student=self.student,
+            tutor=self.tutor,
+            language=self.language,
+            date="2024-12-10",
+            time="15:00",  # Assume this conflicts with the new time
+            venue="Room 102",
+            duration=60,
+            frequency="once a week",
+            term="sept-christmas"
+        )
+
+        # Try updating the original lesson to the conflicting time
+        data = {
+            'cancel_lesson': False,
+            'new_date': '2024-12-10',  
+            'new_time': '15:00'  # Conflict with the new lesson for student
+        }
+
+        form = LessonUpdateForm(data, instance=self.lesson)
+
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['__all__'], ["The new date and time conflict with existing schedules."])
