@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
@@ -8,6 +9,7 @@ from datetime import time
 from django.utils import timezone
 from django.utils.timezone import now
 from datetime import timedelta
+
 
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
@@ -67,28 +69,39 @@ class User(AbstractUser):
 # model for lang, tutor, student, invoice, class
 
 class Language(models.Model):
-    """ languages supported by tutors"""
+    """Languages supported by tutors"""
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True, blank=False)
+
+    def clean(self):
+        # Check for empty name
+        if not self.name:
+            raise ValidationError('Name cannot be empty')
+
+        # Check that the name does not exceed max length
+        if len(self.name) > 100:
+            raise ValidationError('Name exceeds the maximum length of 100 characters')
 
     def save(self, *args, **kwargs):
         # Normalize the name to lowercase before saving
-        self.name = self.name.lower()
+        self.name = self.name.lower().strip()
+        self.clean()  # Perform validation before saving
         super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name.title()
     
+
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
     
-    
     def __str__(self):
         languages = ", ".join([language.name for language in self.languages.all()])
         return f"{self.UserID.first_name} {self.UserID.last_name} - {languages if languages else 'No languages assigned'}"
+    
     
 class Student(models.Model):
     """Model for student"""
@@ -96,6 +109,7 @@ class Student(models.Model):
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
         return f"Student: {self.UserID.username}"
+    
     
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
@@ -108,16 +122,16 @@ class Invoice(models.Model):
     date_paid = models.DateField(null=True, blank=True)
 
     def calculate_total_amount(self):
-        total = 0
-        lesson_count = Lesson.objects.filter(invoice=self).count()
-        lesson = Lesson.objects.filter(invoice=self).first()
-        total = lesson.price * lesson_count
-        self.total_amount = total
+        lessons = Lesson.objects.filter(invoice=self)
+        total = sum(lesson.price for lesson in lessons)
+        total = Decimal(total)
+        self.total_amount = round(total, 2)
         self.save()
 
     def __str__(self):
         status = "Paid" if self.paid else "Unpaid"
         return f"Invoice {self.id} ({status})"
+    
 
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
@@ -210,6 +224,7 @@ class StudentRequest(models.Model):
     def __str__(self):
         return f"Request {self.id} by {self.student.UserID.username} for {self.language.name}"
     
+    
 class Message (models.Model):
     recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,  related_name="sent_messages", db_index=True)
@@ -234,7 +249,6 @@ class Message (models.Model):
 
     def __str__(self):
         return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
-    
     
 
 class TutorAvailability(models.Model):
