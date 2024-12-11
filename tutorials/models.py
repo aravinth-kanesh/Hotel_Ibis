@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
@@ -67,18 +68,29 @@ class User(AbstractUser):
 # model for lang, tutor, student, invoice, class
 
 class Language(models.Model):
-    """ languages supported by tutors"""
+    """Languages supported by tutors"""
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True, blank=False)
+
+    def clean(self):
+        # Check for empty name
+        if not self.name:
+            raise ValidationError('Name cannot be empty')
+
+        # Check that the name does not exceed max length
+        if len(self.name) > 100:
+            raise ValidationError('Name exceeds the maximum length of 100 characters')
 
     def save(self, *args, **kwargs):
         # Normalize the name to lowercase before saving
-        self.name = self.name.lower()
+        self.name = self.name.lower().strip()
+        self.clean()  # Perform validation before saving
         super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name.title()
     
+
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
@@ -108,11 +120,10 @@ class Invoice(models.Model):
     date_paid = models.DateField(null=True, blank=True)
 
     def calculate_total_amount(self):
-        total = 0
-        lesson_count = Lesson.objects.filter(invoice=self).count()
-        lesson = Lesson.objects.filter(invoice=self).first()
-        total = lesson.price * lesson_count
-        self.total_amount = total
+        lessons = Lesson.objects.filter(invoice=self)
+        total = sum(lesson.price for lesson in lessons)
+        total = Decimal(total)
+        self.total_amount = round(total, 2)
         self.save()
 
     def __str__(self):
