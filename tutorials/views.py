@@ -37,7 +37,7 @@ from datetime import date, datetime, timedelta
 import calendar
 from calendar import HTMLCalendar, monthrange
 from django.utils import timezone
-from decimal import Decimal
+
 
 @login_required
 def dashboard(request):
