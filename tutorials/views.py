@@ -306,6 +306,7 @@ def student_list(request):
 
 
 #need to add admin decorator here also
+@login_required
 def create_invoice(request, student_id):
     student = get_object_or_404(Student, id=student_id)
     # Fetch lessons not yet invoiced
