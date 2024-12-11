@@ -2,28 +2,31 @@ from datetime import date, datetime, timedelta
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from tutorials.models import StudentRequest, Tutor, Student, Language, Lesson
-from django.utils import timezone
-
-#Test commit
+from tutorials.models import StudentRequest, Tutor, Student, Language, Lesson, TutorAvailability
 
 class StudentRequestProcessingViewTestCase(TestCase):
     """Test suite for the StudentRequestProcessingView where the admin user processes student requests."""
-    """Commit test"""
 
     def setUp(self):
-        # Create an admin 
-        self.user_admin = get_user_model().objects.create_user(
+        """Set up test data and environment."""
+        self.create_users()
+        self.create_language_and_associations()
+        self.create_student_request()
+        self.create_tutor_availability()
+
+    def create_users(self):
+        """Create admin, tutor, and student users."""
+        User = get_user_model()
+        self.user_admin = User.objects.create_user(
             username='@admin_user',
             first_name='Admin',
             last_name='User',
             email='admin.user@example.com',
             password='adminpassword',
-            role='admin'  
+            role='admin'
         )
 
-        # Create a tutor 
-        self.user_tutor = get_user_model().objects.create_user(
+        self.user_tutor = User.objects.create_user(
             username='@john_doe',
             first_name='John',
             last_name='Doe',
@@ -32,8 +35,7 @@ class StudentRequestProcessingViewTestCase(TestCase):
             role='tutor'
         )
 
-        # Create a student 
-        self.user_student = get_user_model().objects.create_user(
+        self.user_student = User.objects.create_user(
             username='@jane_smith',
             first_name='Jane',
             last_name='Smith',
@@ -42,15 +44,15 @@ class StudentRequestProcessingViewTestCase(TestCase):
             role='student'
         )
 
-        # Create a language
+    def create_language_and_associations(self):
+        """Create a language and associate it with the tutor and student."""
         self.language = Language.objects.create(name="Python")
         self.student, _ = Student.objects.get_or_create(UserID=self.user_student)
         self.tutor, _ = Tutor.objects.get_or_create(UserID=self.user_tutor)
         self.tutor.languages.add(self.language)
-        
 
-
-        # Create a student request
+    def create_student_request(self):
+        """Create a student request."""
         self.student_request = StudentRequest.objects.create(
             student=self.student,
             language=self.language,
@@ -62,6 +64,23 @@ class StudentRequestProcessingViewTestCase(TestCase):
             frequency="once a week",
             term="sept-christmas"
         )
+
+    def create_tutor_availability(self):
+        """Create weekly tutor availability from 4th September 2025 to 25th December 2025."""
+        start_date = datetime.strptime("2025-09-04", "%Y-%m-%d").date()
+        end_date = datetime.strptime("2025-12-25", "%Y-%m-%d").date()
+        current_date = start_date
+
+        while current_date <= end_date:
+            TutorAvailability.objects.create(
+                tutor=self.tutor,
+                start_time="09:00",
+                end_time="18:00",
+                day=current_date,
+                availability_status='available',
+                action='edit'
+            )
+            current_date += timedelta(weeks=1)
 
     def test_admin_can_access_student_request_processing_form(self):
         """Test that the admin can access the student request processing form."""
@@ -103,18 +122,18 @@ class StudentRequestProcessingViewTestCase(TestCase):
             'status': 'accepted',
             'details': '',
             'tutor': self.tutor.id,
-            'first_lesson_date': "2024-09-04",  
+            'first_lesson_date': "2025-09-04",  
             'first_lesson_time': "15:00",  
         })
 
         lessons = Lesson.objects.filter(student=self.student, tutor=self.tutor)
 
-        term_start = date(2024, 9, 1)
-        term_end = date(2024, 12, 25)
+        term_start = date(2025, 9, 1)
+        term_end = date(2025, 12, 25)
         days_between_lessons = 7 if self.student_request.frequency == "once a week" else 14
 
         # Start date from the request
-        current_date = datetime.strptime("2024-09-04", "%Y-%m-%d").date()
+        current_date = datetime.strptime("2025-09-04", "%Y-%m-%d").date()
         expected_dates = []
 
         # Generate expected lesson dates
@@ -152,7 +171,7 @@ class StudentRequestProcessingViewTestCase(TestCase):
             tutor=self.tutor,
             language=self.language,
             time=datetime.strptime("15:00", "%H:%M").time(),
-            date=date(2024, 9, 4),
+            date=date(2025, 9, 4),
             venue='Existing Venue',
             duration=60,
             frequency='once a week',
@@ -164,17 +183,17 @@ class StudentRequestProcessingViewTestCase(TestCase):
             'status': 'accepted',
             'details': '',
             'tutor': self.tutor.id,
-            'first_lesson_date': "2024-09-04",  
+            'first_lesson_date': "2025-09-04",  
             'first_lesson_time': "15:00",  
         })
 
         lessons = Lesson.objects.filter(student=self.student, tutor=self.tutor)
 
-        term_start = date(2024, 9, 1)
-        term_end = date(2024, 12, 25)
+        term_start = date(2025, 9, 1)
+        term_end = date(2025, 12, 25)
         days_between_lessons = 7 if self.student_request.frequency == "once a week" else 14
 
-        current_date = datetime.strptime("2024-09-04", "%Y-%m-%d").date()
+        current_date = datetime.strptime("2025-09-04", "%Y-%m-%d").date()
         expected_dates = []
 
         while current_date <= term_end:
@@ -189,7 +208,7 @@ class StudentRequestProcessingViewTestCase(TestCase):
         conflicting_lesson = Lesson.objects.get(
             student=self.student,
             tutor=self.tutor,
-            date=date(2024, 9, 4),
+            date=date(2025, 9, 4),
             time=datetime.strptime("16:00", "%H:%M").time()
         )
 
@@ -198,7 +217,7 @@ class StudentRequestProcessingViewTestCase(TestCase):
 
         # Ensure that the rescheduled lesson is within the correct time range and does not conflict
         self.assertTrue(conflicting_lesson.time > datetime.strptime("15:00", "%H:%M").time())
-        self.assertEqual(conflicting_lesson.date, date(2024, 9, 4))  # Same day but a different time
+        self.assertEqual(conflicting_lesson.date, date(2025, 9, 4))  # Same day but a different time
 
         self.student_request.refresh_from_db()
         self.assertEqual(self.student_request.is_allocated, True)

@@ -24,7 +24,7 @@
       {% elif user.role == 'tutor' %}
         <a href="{% url 'manage_languages' %}" class="btn btn-light btn-sm">Manage Languages</a>
         <a href="{% url 'send_message' %}" class="btn btn-light btn-sm">Send Message</a>
-        <a href="{% url 'tutor_calendar' %}" class="btn btn-light btn-sm">Calendar</a>
+        <a href="{% url 'calendar' %}" class="btn btn-light btn-xs">Calendar</a>
       
         
       {%elif user.role == 'student' %}
@@ -55,6 +55,9 @@
         </li>
         <li class="nav-item">
           <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">Lessons</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'invoices' %}active{% endif %}" href="?tab=invoices">Invoices</a>
         </li>
       {% elif user.role == 'tutor' %}
         <li class="nav-item">

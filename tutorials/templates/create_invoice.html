@@ -12,8 +12,10 @@
       </li>
     {% endfor %}
   </ul>
+  <p>Total lessons = {{lessons.count}}</p>
+  <p>Total to be paid = £{{ total_amount }} </p>
   <form method="post">
     {% csrf_token %}
-    <button type="submit">Create Invoice</button>
+    <button type="submit">Confirm</button>
   </form>
 {% endblock %}

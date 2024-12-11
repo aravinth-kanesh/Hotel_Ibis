@@ -8,6 +8,8 @@ from django.contrib.auth import login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
+from django.db.models.query import QuerySet
+from django.http import HttpResponseBadRequest
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
@@ -25,6 +27,7 @@ from django.views.generic.list import ListView
 from django.views.generic.edit import FormView, UpdateView
 from django.urls import reverse
 from django.utils.dateparse import parse_date
+from pytz import timezone
 from tutorials.forms import LogInForm, PasswordForm, UserForm, SignUpForm
 from tutorials.helpers import login_prohibited
 from django.contrib.auth import get_user_model
@@ -38,6 +41,11 @@ import calendar
 from calendar import HTMLCalendar, monthrange
 from django.utils import timezone
 from decimal import Decimal
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> origin/refactor_lesson_scheduling
 
 @login_required
 def dashboard(request):
@@ -93,6 +101,9 @@ def dashboard(request):
 
         lessons = Lesson.objects.all()
         lessons_data = [{'lesson': lesson} for lesson in lessons]
+        
+        invoices = Invoice.objects.all()
+        invoices_data = [{'invoice': invoice} for invoice in invoices]
 
 
         context.update({
@@ -100,6 +111,7 @@ def dashboard(request):
             'student_data': student_data,
             'tutor_data': tutor_data,
             'lessons_data': lessons_data,
+            'invoices_data': invoices_data,
             'search_query': search_query,
             'sort_query': sort_query,
             'action_filter': action_filter,
@@ -114,7 +126,8 @@ def dashboard(request):
     elif user.role == 'student':
   
         lessons = Lesson.objects.filter(student__UserID=user)
-        context.update({'lessons': lessons})
+        invoice = lessons.first().invoice
+        context.update({'lessons': lessons, 'invoice': invoice})
 
     return render(request, 'dashboard.html', context)
 
@@ -182,7 +195,6 @@ def calendar_view(request, year=None, month=None):
     try:
         student = Student.objects.get(UserID=user)
     except Student.DoesNotExist:
-        print("Student Doesn't exist")
         # Handle the case where the student profile doesn't exist
         return redirect('dashboard')  # Or an appropriate page
 
@@ -293,7 +305,7 @@ def lessons_on_day_tutor(request, year, month, day):
     )
     return render(request, 'lessons_on_day_tutor.html', {'lessons': lessons, 'date': date_obj})
 
-#need to add admin required decorator later
+
 @login_required
 def student_list(request):
     if request.user.role != 'admin':
@@ -324,20 +336,27 @@ def set_price(request, student_id):
         else:
             return HttpResponse("No uninvoiced lessons found for this student.")
     return redirect(f"{reverse('dashboard')}?tab=students")
+<<<<<<< HEAD
 
 
 #need to add admin decorator here also
+=======
+
+>>>>>>> origin/refactor_lesson_scheduling
 @login_required
 def create_invoice(request, student_id):
+    if request.user.role != 'admin':
+        return redirect('dashboard')
     student = get_object_or_404(Student, id=student_id)
     # Fetch lessons not yet invoiced
-    lessons = Lesson.objects.filter(student=student, invoices__isnull=True)
+    lessons = Lesson.objects.filter(student=student, invoice__isnull=True)
     tutor = None
     if lessons.exists():
         tutor = lessons.first().tutor
     else:
         messages.error(request, "No lessons to invoice for this student.")
         return redirect('student_list')
+    total_amount = lessons.count() * lessons.first().price
 
     if request.method == 'POST':
         # Create the invoice
@@ -347,22 +366,26 @@ def create_invoice(request, student_id):
             paid=False,
             total_amount = 0.0,
         )
-        invoice.lessons.set(lessons)
+        for lesson in lessons:
+            lesson.invoice = invoice
+            lesson.save()
+            
         invoice.calculate_total_amount()
         messages.success(request, f"Invoice {invoice.id} created for {student.UserID.full_name()}.")
-        return redirect('invoice_details', invoice_id=invoice.id)
+        return redirect('invoice_detail', invoice_id=invoice.id)
 
     return render(request, 'create_invoice.html', {
         'student': student,
         'lessons': lessons,
+        'total_amount':total_amount
     })
+    
 
 
 @login_required
 def invoice_detail(request, invoice_id):
-    invoice = get_object_or_404(Invoice, id=invoice_id)
-
     # Access Control
+    invoice = get_object_or_404(Invoice, id=invoice_id)
     if request.user.role == 'student':
         if request.user != invoice.student.UserID:
             return redirect('dashboard')
@@ -372,8 +395,11 @@ def invoice_detail(request, invoice_id):
     else:
         # Other roles are not allowed
         return redirect('dashboard')
+    
+    lessons = Lesson.objects.filter(invoice=invoice)
 
-    return render(request, 'invoice_details.html', {'invoice': invoice})
+    
+    return render(request, 'invoice_details.html', {'invoice': invoice , 'lessons': lessons})
 
 
 @login_required
@@ -488,7 +514,6 @@ def manage_languages(request):
                     language.delete()
                     messages.info(request, f"{language.name} has been deleted as no tutors teach it anymore.")
             else:
-                print(remove_form.errors)  # Debugging
                 messages.error(request, "An error occurred while removing the language.")
 
 
@@ -632,14 +657,14 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
     model = StudentRequest
     form_class = StudentRequestForm
     template_name = 'student_request_form.html'
-    success_url = reverse_lazy('my_requests') 
+    success_url = reverse_lazy('view_request') 
 
     def form_valid(self, form):
         """attach the logged-in student to the form before saving."""
         try:
             student = self.request.user.student_profile  
         except Student.DoesNotExist:
-            return redirect('error_page')
+            return redirect('dashboard')
         form.instance.created_at = timezone.now()
         form.instance.student = student  
         return super().form_valid(form)
@@ -729,38 +754,24 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         return context
         
 class StudentRequestProcessingView(LoginRequiredMixin, View):
-    # Define term ranges and frequency-to-days mapping as class attributes
-
-    """Commit test"""
-
+    """View for processing student requests."""
     today = date.today()
     current_year = today.year
 
     # Define fixed months and days for each term
-    sept_start = date(current_year, 9, 1)
-    christmas_end = date(current_year, 12, 25)
-    jan_start = date(current_year, 1, 1)
-    easter_end = date(current_year, 4, 12)
-    may_start = date(current_year, 5, 1)
-    july_end = date(current_year, 7, 31)
-
-    # Adjust years based on whether today is past the start of a term
-    if today >= sept_start:  
-        sept_start = date(current_year + 1, 9, 1)
-        christmas_end = date(current_year + 1, 12, 25)
-
-    if today >= may_start:  
-        may_start = date(current_year + 1, 5, 1)
-        july_end = date(current_year + 1, 7, 31)
-
-    if today >= jan_start:  
-        jan_start = date(current_year + 1, 1, 1)
-        easter_end = date(current_year + 1, 4, 12)
-
     TERM_RANGES = {
-        'sept-christmas': (sept_start, christmas_end),
-        'jan-easter': (jan_start, easter_end),
-        'may-july': (may_start, july_end),
+        'sept-christmas': (
+            date(current_year + 1 if today >= date(current_year, 9, 1) else current_year, 9, 1),
+            date(current_year + 1 if today >= date(current_year, 9, 1) else current_year, 12, 25),
+        ),
+        'jan-easter': (
+            date(current_year + 1 if today >= date(current_year, 1, 1) else current_year, 1, 1),
+            date(current_year + 1 if today >= date(current_year, 1, 1) else current_year, 4, 12),
+        ),
+        'may-july': (
+            date(current_year + 1 if today >= date(current_year, 5, 1) else current_year, 5, 1),
+            date(current_year + 1 if today >= date(current_year, 5, 1) else current_year, 7, 31),
+        ),
     }
 
     FREQUENCY_TO_DAYS = {
@@ -769,66 +780,83 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
     }
 
     def get(self, request, request_id):
+        """Display the form for processing a student request."""
         student_request = get_object_or_404(StudentRequest, id=request_id)
-
         form = StudentRequestProcessingForm(student_request=student_request)
 
-        return render(request, 'process_request.html', {'form': form, 'request': student_request})
+        return render(request, 'process_request.html', {
+            'form': form,
+            'request': student_request,
+        })
 
     def post(self, request, request_id):
+        """Handle the form submission for processing a student request."""
         student_request = get_object_or_404(StudentRequest, id=request_id)
-
         form = StudentRequestProcessingForm(request.POST, student_request=student_request)
 
         if form.is_valid():
-            status = form.cleaned_data['status']
-            details = form.cleaned_data.get('details', '')
-            tutor = form.cleaned_data['tutor']
-            first_lesson_date = form.cleaned_data['first_lesson_date']
-            first_lesson_time = form.cleaned_data['first_lesson_time']
-
-            if status == 'accepted':
-                first_lesson_datetime = datetime.combine(first_lesson_date, first_lesson_time)
-                frequency = student_request.frequency
-                term = student_request.term
-                duration = student_request.duration
-                venue = student_request.venue
-
-                term_start, term_end = self.TERM_RANGES.get(term, (None, None))
-
-                # Schedule lessons for the term
-                scheduled_lessons = self.schedule_lessons_for_term(
-                    tutor, student_request.student, student_request.language,
-                    first_lesson_datetime, frequency, duration, term_start, term_end, venue
-                )
-
-                if scheduled_lessons:
-                    messages.success(request, f"Request accepted! {len(scheduled_lessons)} lessons have been scheduled.")
-                    student_request.is_allocated = True
-                else:
-                    messages.error(request, "Unable to schedule lessons due to conflicts.")
-            else:
-                student_request.is_allocated = False
-                messages.warning(request, f"Request rejected. {details}")
-
-            student_request.save()
-
-            return redirect('dashboard')
+            return self._handle_request_processing(request, form, student_request)
 
         messages.error(request, "There was an error processing the request. Please try again.")
+        return render(request, 'process_request.html', {
+            'form': form,
+            'request': student_request,
+        })
 
-        return render(request, 'process_request.html', {'form': form, 'request': student_request})
+    def _handle_request_processing(self, request, form, student_request):
+        """Process the student request based on the form data."""
+        status = form.cleaned_data['status']
+        details = form.cleaned_data.get('details', '')
+        tutor = form.cleaned_data['tutor']
+        first_lesson_date = form.cleaned_data['first_lesson_date']
+        first_lesson_time = form.cleaned_data['first_lesson_time']
 
-    def schedule_lessons_for_term(self, tutor, student, language, start_datetime, frequency, duration, term_start, term_end, venue):
+        if status == 'accepted':
+            self._process_accepted_request(
+                request, student_request, tutor, first_lesson_date, first_lesson_time
+            )
+        else:
+            self._process_denied_request(request, student_request, details)
+
+        student_request.save()
+        return redirect('dashboard')
+
+    def _process_accepted_request(self, request, student_request, tutor, first_lesson_date, first_lesson_time):
+        """Handle logic for accepted student requests."""
+        first_lesson_datetime = datetime.combine(first_lesson_date, first_lesson_time)
+        frequency = student_request.frequency
+        term = student_request.term
+        duration = student_request.duration
+        venue = student_request.venue
+        term_start, term_end = self.TERM_RANGES.get(term, (None, None))
+
+        scheduled_lessons = self.schedule_lessons_for_term(
+            tutor, student_request.student, student_request.language,
+            first_lesson_datetime, frequency, duration, term_start, term_end, venue, request
+        )
+
+        if scheduled_lessons:
+            messages.success(request, f"Request accepted! {len(scheduled_lessons)} lessons have been scheduled.")
+            student_request.is_allocated = True
+        else:
+            messages.error(request, "Unable to schedule lessons due to conflicts.")
+
+    def _process_denied_request(self, request, student_request, details):
+        """Handle logic for denied student requests."""
+        student_request.is_allocated = False
+        messages.warning(request, f"Request rejected. {details}")
+
+    def schedule_lessons_for_term(self, tutor, student, language, start_datetime, frequency, duration, term_start, term_end, venue, request):
         """Schedules lessons for the requested term, resolving conflicts dynamically."""
-
         scheduled_lessons = []
         current_datetime = start_datetime
         days_between_lessons = self.FREQUENCY_TO_DAYS.get(frequency, 7)
 
         while current_datetime.date() <= term_end:
             if current_datetime.date() >= term_start:
-                available_slot = self.find_available_slot(tutor, student, current_datetime.date(), current_datetime.time(), duration)
+                available_slot = self.find_available_slot(
+                    tutor, student, current_datetime.date(), current_datetime.time(), duration
+                )
                 if available_slot:
                     lesson = Lesson.objects.create(
                         student=student,
@@ -841,7 +869,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
                     )
                     scheduled_lessons.append(lesson)
                 else:
-                    break  
+                    messages.error(request, f"No available times for {current_datetime.date()}.")
 
             current_datetime += timedelta(days=days_between_lessons)
 
@@ -849,105 +877,84 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
     def find_available_slot(self, tutor, student, proposed_date, proposed_time, duration, max_days_to_search=7):
         """Finds an available slot for a lesson, resolving conflicts dynamically."""
-
         day_delta = timedelta(minutes=30)  # Interval to check for free slots
         max_time = time(21, 0)  # End of the available time range (9 PM)
+        
+        proposed_date = self._parse_to_date(proposed_date)
+        proposed_time = self._parse_to_time(proposed_time)
 
         def get_earliest_start_time(date):
-            if date.weekday() < 5:
-                return time(15, 0)  # 3 PM weekdays
-            else:
-                return time(10, 0)  # 10 AM weekends
+            return time(15, 0) if date.weekday() < 5 else time(10, 0)  # Weekdays start at 3 PM, weekends at 10 AM
 
-        # Get the start and end of the week (Monday to Sunday)
-        start_of_week = proposed_date - timedelta(days=proposed_date.weekday())  # Monday of the week
-        end_of_week = start_of_week + timedelta(days=6)  # Sunday of the week
+        # Generate the list of days to check: proposed day first, then the rest of the week
+        days_to_check = self._generate_days_to_check(proposed_date)
 
-        # Order of days to check: proposed day first, then all other days
-        days_to_check = [proposed_date] + [
-            start_of_week + timedelta(days=i) for i in range(7)
-            if start_of_week + timedelta(days=i) != proposed_date  # Exclude the proposed day
-        ]
-
-        # Check each day in the determined order
+        # Check each day for available slots
         for check_date in days_to_check:
             earliest_start = get_earliest_start_time(check_date)
 
-            # Generate the time slots for this day
-            slots_before = self.generate_time_slots(check_date, earliest_start, proposed_time, day_delta, duration)
-            slots_after = self.generate_time_slots(check_date, proposed_time, max_time, day_delta, duration)
-
-            for slots in (slots_before, slots_after):
-                for check_start_datetime in slots:
-                    # Calculate the end time of the new proposed lesson
-                    check_end_datetime = check_start_datetime + timedelta(minutes=duration)
-                    check_end_time = check_end_datetime.time()
-
-                    tutor_available = TutorAvailability.objects.filter(
-                        tutor=tutor,
-                        day=check_start_datetime.weekday(),
-                        availability_status='available',
-                        start_time__lte=check_start_datetime.time(),
-                        end_time__gte=check_end_datetime.time()
-                    ).exists()
-
-                    # Check for conflicts with student lessons
-                    student_conflict = False
-                    student_conflict_found = False
-                    student_conflict = Lesson.objects.filter(
-                        student=student,
-                        date=check_start_datetime.date()  # Same date as the new lesson
-                    )
-
-                    # Iterate over the existing lessons for the student
-                    for existing_lesson in student_conflict:
-                        # Calculate the end time of the existing lesson
-                        existing_end_time = (datetime.combine(existing_lesson.date, existing_lesson.time) + timedelta(minutes=existing_lesson.duration)).time()
-
-                        # Check for the four types of conflicts
-                        if (
-                            (check_start_datetime.time() < existing_end_time and check_end_time > existing_lesson.time) or  # 1. New lesson starts before, ends after
-                            (check_start_datetime.time() < existing_lesson.time and check_end_time > existing_lesson.time and check_end_time <= existing_end_time) or  # 2. New lesson starts before and ends during
-                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time <= existing_end_time) or  # 3. New lesson starts during and ends during
-                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time > existing_end_time)  # 4. New lesson starts during and ends after
-                        ):
-                            student_conflict_found = True
-                            break
-
-                    # Check for conflicts with tutor lessons
-                    tutor_conflict = False
-                    tutor_conflict_found = False
-                    tutor_conflict = Lesson.objects.filter(
-                        tutor=tutor,
-                        date=check_start_datetime.date()  # Same date as the new lesson
-                    )
-
-                    # Iterate over the existing lessons for the tutor
-                    for existing_lesson in tutor_conflict:
-                        # Calculate the end time of the existing lesson
-                        existing_end_time = (datetime.combine(existing_lesson.date, existing_lesson.time) + timedelta(minutes=existing_lesson.duration)).time()
-
-                        # Check for the four types of conflicts
-                        if (
-                            (check_start_datetime.time() < existing_end_time and check_end_time > existing_lesson.time) or  # 1. New lesson starts before, ends after
-                            (check_start_datetime.time() < existing_lesson.time and check_end_time > existing_lesson.time and check_end_time <= existing_end_time) or  # 2. New lesson starts before and ends during
-                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time <= existing_end_time) or  # 3. New lesson starts during and ends during
-                            (check_start_datetime.time() >= existing_lesson.time and check_start_datetime.time() < existing_end_time and check_end_time > existing_end_time)  # 4. New lesson starts during and ends after
-                        ):
-                            tutor_conflict_found = True
-                            break
-
-                    if student_conflict_found or tutor_conflict_found or (tutor_available == False):
-                        continue  # Skip to the next available slot
-
-                    # If no conflicts, return the available slot
-                    return check_start_datetime 
+            # Generate and check slots before and after the proposed time
+            for slots in (self.generate_time_slots(check_date, earliest_start, proposed_time, day_delta, duration),
+                        self.generate_time_slots(check_date, proposed_time, max_time, day_delta, duration)):
+                for slot in slots:
+                    if self._is_slot_available(slot, tutor, student, duration):
+                        return slot
 
         return None
 
+    def _parse_to_date(self, proposed_date):
+        """Parse a string date to a datetime.date object if needed."""
+        return datetime.strptime(proposed_date, "%Y-%m-%d").date() if isinstance(proposed_date, str) else proposed_date
+
+    def _parse_to_time(self, proposed_time):
+        """Parse a string time to a datetime.time object if needed."""
+        return datetime.strptime(proposed_time, "%H:%M").time() if isinstance(proposed_time, str) else proposed_time
+
+    def _generate_days_to_check(self, proposed_date):
+        """Generate a list of days to check, starting with the proposed date."""
+        start_of_week = proposed_date - timedelta(days=proposed_date.weekday())  # Monday of the week
+        return [proposed_date] + [
+            start_of_week + timedelta(days=i) for i in range(7) if start_of_week + timedelta(days=i) != proposed_date
+        ]
+
+    def _is_slot_available(self, slot, tutor, student, duration):
+        """Check if a given slot is available for a lesson."""
+        end_time = (slot + timedelta(minutes=duration)).time()
+
+        if not TutorAvailability.objects.filter(
+            tutor=tutor,
+            day=slot.date(),
+            availability_status='available',
+            start_time__lte=slot.time(),
+            end_time__gte=end_time
+        ).exists():
+            return False
+
+        return not self._has_conflicts(slot, student, tutor, duration)
+
+    def _has_conflicts(self, slot, student, tutor, duration):
+        """Check if the slot conflicts with existing lessons."""
+        end_time = (slot + timedelta(minutes=duration)).time()
+
+        def conflicts_with_lessons(lessons):
+            for lesson in lessons:
+                lesson_end_time = (datetime.combine(lesson.date, lesson.time) + timedelta(minutes=lesson.duration)).time()
+                if (
+                    (slot.time() < lesson_end_time and end_time > lesson.time) or  # New starts before, ends after
+                    (slot.time() < lesson.time and end_time > lesson.time and end_time <= lesson_end_time) or  # New starts before, ends during
+                    (slot.time() >= lesson.time and slot.time() < lesson_end_time and end_time <= lesson_end_time) or  # New starts during, ends during
+                    (slot.time() >= lesson.time and slot.time() < lesson_end_time and end_time > lesson_end_time)  # New starts during, ends after
+                ):
+                    return True
+            return False
+
+        student_lessons = Lesson.objects.filter(student=student, date=slot.date())
+        tutor_lessons = Lesson.objects.filter(tutor=tutor, date=slot.date())
+
+        return conflicts_with_lessons(student_lessons) or conflicts_with_lessons(tutor_lessons)
+
     def generate_time_slots(self, date, start_time, end_time, interval, duration):
         """Generate time slots for a given date within a specified start and end range."""
-
         slots = []
         current_time = datetime.combine(date, start_time)
 
@@ -957,15 +964,14 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
 
         return slots
     
+    
 class LessonUpdateView(LoginRequiredMixin, View):
     """View for changing or cancelling a lesson."""
 
     def get(self, request, lesson_id):
         """Display the form for changing or cancelling a lesson."""
-        
-        lesson = get_object_or_404(Lesson, id=lesson_id)
 
-        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
+        lesson = get_object_or_404(Lesson, id=lesson_id)
         form = LessonUpdateForm(instance=lesson)
 
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
@@ -974,107 +980,126 @@ class LessonUpdateView(LoginRequiredMixin, View):
         """Handle the form submission for changing or cancelling a lesson."""
 
         lesson = get_object_or_404(Lesson, id=lesson_id)
-
-        # Pass the lesson instance to the form (change 'lesson_instance' to 'instance')
         form = LessonUpdateForm(request.POST, instance=lesson)
 
         if form.is_valid():
-            cancel_lesson = form.cleaned_data.get('cancel_lesson')
+            if self._is_cancellation_requested(form):
+                return self._handle_cancellation(request, lesson)
 
-            if cancel_lesson:
-                # If the lesson is cancelled, delete it and redirect
-                lesson.delete()
+            return self._handle_update(request, form, lesson)
 
-                messages.success(request, "Lesson successfully cancelled.")
-
-                return redirect('dashboard')  # Redirect to the admin dashboard
-
-            # Update lesson fields explicitly
-            lesson.date = form.cleaned_data['new_date']
-            lesson.time = form.cleaned_data['new_time']
-
-            lesson.save()
-            
-            messages.success(request, "Lesson details successfully updated.")
-
-            return redirect('dashboard')
-
-        # If the form is invalid, re-render with errors
+        # If the form is invalid
         messages.error(request, "There was an error updating the lesson. Please try again.")
-
         return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
+
+    def _is_cancellation_requested(self, form):
+        """Determine if the cancellation checkbox is selected."""
+
+        return form.cleaned_data.get('cancel_lesson', False)
+
+    def _handle_cancellation(self, request, lesson):
+        """Handle cancellation logic: delete the lesson and redirect."""
+        
+        lesson.delete()
+
+        messages.success(request, "Lesson successfully cancelled.")
+        return redirect('dashboard')
+
+    def _handle_update(self, request, form, lesson):
+        """Handle lesson rescheduling logic: save the updated date/time."""
+        
+        lesson.date = form.cleaned_data['new_date']
+        lesson.time = form.cleaned_data['new_time']
+        lesson.save()
+
+        messages.success(request, "Lesson details successfully updated.")
+        return redirect('dashboard')
+
     
 class TutorAvailabilityView(LoginRequiredMixin, View):
-    """View for tutors to manage availibility requests."""
+    """View for tutors to manage availability requests."""
     model = TutorAvailability
     template = 'tutor_availability_request.html'
 
     def get(self, request, availability_id=None):
         try:
-            tutor = request.user.tutor_profile
+            tutor = Tutor.objects.get(UserID=request.user)
         except Tutor.DoesNotExist:
-            return HttpResponseBadRequest("You are not authorized to view this page")
+            return redirect("dashboard")
         
-        # Retrieve the tutor's availability
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
 
-        # Handle specific actions
-        action = request.GET.get('action')  # Retrieve the action (edit or delete)
-        if action == 'edit' and availability_id:
-            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
-            if availability:
-                form = TutorAvailabilityForm(instance=availability)  # Pre-fill form for editing
-            else:
-                return HttpResponseBadRequest("Availability not found or unauthorized access.")
-        elif action == 'delete' and availability_id:
-            availability = TutorAvailability.objects.filter(id=availability_id, tutor=tutor).first()
-            if availability:
+        if availability_id:
+            action = request.GET.get('action')
+            if action == 'edit':
+                availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
+                form = TutorAvailabilityForm(instance=availability)
+            elif action == 'delete':
+                availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
                 availability.delete()
-                return redirect("dashboard")  # Redirect after deletion
+                return redirect(f"{reverse('dashboard')}?tab=availability")
             else:
-                return HttpResponseBadRequest("Availability not found or unauthorized access.")
+                return HttpResponseBadRequest("Invalid action.")
         else:
-            form = TutorAvailabilityForm(initial={'tutor': tutor})  # Default form for creating new requests
+            form = TutorAvailabilityForm(initial={'tutor': tutor})
 
-        # Pass data to the template
         context = {
             "tutor": tutor,
             "availabilities": availabilities,
             "form": form,
         }
         return render(request, self.template, context)
-    
+
+    @staticmethod
+    def has_overlapping(tutor, day, new_start, new_end):
+        return TutorAvailability.objects.filter(
+            tutor=tutor,
+            day=day,
+            start_time__lt=new_end,
+            end_time__gt=new_start
+        ).exists()
+
     def post(self, request, availability_id=None):
         try:
-            tutor = request.user.tutor_profile
+            tutor = Tutor.objects.get(UserID=request.user)
         except Tutor.DoesNotExist:
-            return HttpResponseBadRequest("You are not authorized to change tutor times.")
-    
-        if availability_id:
-        # If an ID is provided, retrieve the existing object for editing
-            try:
-                availability = TutorAvailability.objects.get(id=availability_id, tutor=tutor)
-                form = TutorAvailabilityForm(request.POST, instance=availability)
-            except TutorAvailability.DoesNotExist:
-                return HttpResponseBadRequest("Availability not found or unauthorized access.")
-        else:
-        # If no ID is provided, create a new object
-            form = TutorAvailabilityForm(request.POST)
-    
-        if form.is_valid():
-        # Save the form and associate it with the tutor
-            availability = form.save(commit=False)
-            availability.tutor = tutor
-            availability.save()
-            return redirect("dashboard")  # Redirect to the dashboard after submission
-        if not form.is_valid():
-            print(form.errors)
+            return redirect(f"{reverse('dashboard')}?tab=availability")
 
-    # If the form is invalid, re-render the page with errors
+        if availability_id:
+            availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
+            form = TutorAvailabilityForm(request.POST, instance=availability)
+        else:
+            form = TutorAvailabilityForm(request.POST, initial={'tutor': Tutor.objects.get(UserID=request.user)})
+
+        if form.is_valid():
+            print("Form is valid")
+            new_availability = form.save(commit=False)
+            new_availability.tutor = tutor
+            day = form.cleaned_data['day']
+            start_time = form.cleaned_data['start_time']
+            end_time = form.cleaned_data['end_time']
+
+            if self.has_overlapping(tutor, day, start_time, end_time):
+                form.add_error(None, "This time slot overlaps with an existing availability.")
+                availabilities = TutorAvailability.objects.filter(tutor=tutor)
+                return render(request, self.template, {
+                    "tutor": tutor,
+                    "availabilities": availabilities,
+                    "form": form,
+                })
+
+            new_availability.save()
+            return redirect(f"{reverse('dashboard')}?tab=availability")
+        print("Form is not valid")
+        print(form.errors)
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
-        context = {
+        return render(request, self.template, {
             "tutor": tutor,
             "availabilities": availabilities,
             "form": form,
+<<<<<<< HEAD
         }
         return render(request, self.template, context)
+=======
+        })
+>>>>>>> origin/refactor_lesson_scheduling

@@ -13,5 +13,15 @@ def create_or_update_profile_for_role(sender, instance, created, **kwargs):
     if hasattr(instance, "role"):
         if instance.role == "student":
             Student.objects.get_or_create(UserID=instance)
+            if Tutor.objects.filter(UserID=instance).exists():
+                Tutor.objects.filter(UserID=instance).delete()
         elif instance.role == "tutor":
             Tutor.objects.get_or_create(UserID=instance)
+            if Student.objects.filter(UserID=instance).exists():
+                Student.objects.filter(UserID=instance).delete()
+        elif instance.role == "admin":
+            if Student.objects.filter(UserID=instance).exists():
+                Student.objects.filter(UserID=instance).delete()
+                
+            if Tutor.objects.filter(UserID=instance).exists():
+                Tutor.objects.filter(UserID=instance).delete()
