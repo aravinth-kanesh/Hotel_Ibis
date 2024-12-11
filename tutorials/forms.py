@@ -337,12 +337,12 @@ class LessonUpdateForm(forms.ModelForm):
     new_date = forms.DateField(
         label="New Date",
         required=False,
-        widget=forms.SelectDateWidget(attrs={'class': 'form-control'})
+        widget=forms.SelectDateWidget()
     )
     new_time = forms.TimeField(
         label="New Time",
         required=False,
-        widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'})
+        widget=forms.TimeInput(attrs={'type': 'time'})
     )
 
     class Meta:
