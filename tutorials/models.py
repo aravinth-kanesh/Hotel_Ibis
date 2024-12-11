@@ -97,7 +97,6 @@ class Tutor(models.Model):
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
     
-    
     def __str__(self):
         languages = ", ".join([language.name for language in self.languages.all()])
         return f"{self.UserID.first_name} {self.UserID.last_name} - {languages if languages else 'No languages assigned'}"
