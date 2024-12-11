@@ -17,4 +17,4 @@ class StudentRequestModelTest(TestCase):
             term="sept-christmas",
         )
         self.assertEqual(request.is_allocated, False)
-        self.assertEqual(str(request), f"Request {request.id} by @student1 for Python")
+        self.assertEqual(str(request), f"Request {request.id} by @student1 for python")

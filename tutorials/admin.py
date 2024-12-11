@@ -40,15 +40,15 @@ class StudentAdmin(admin.ModelAdmin):
 
 @admin.register(Invoice)
 class InvoiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'student', 'tutor','lessons', 'total_amount', 'paid', 'date_issued', 'date_paid')  
+    list_display = ('id', 'student', 'tutor', 'total_amount', 'paid', 'date_issued', 'date_paid')  
     list_filter = ('paid', 'date_issued')  
     search_fields = ('student__UserID__username', 'tutor__UserID__username')  
     date_hierarchy = 'date_issued' 
 
 
 @admin.register(Lesson)
-class ClassAdmin(admin.ModelAdmin):
-    list_display = ('id', 'tutor', 'student', 'language', 'date', 'time', 'venue', 'duration', 'frequency', 'term')
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ('id', 'tutor', 'student', 'invoice','language', 'date', 'time', 'venue', 'duration', 'frequency', 'term', 'created_at')
     list_filter = ('frequency', 'term', 'date') 
     search_fields = ('tutor__UserID__username', 'student__UserID__username', 'language__name')  
     autocomplete_fields = ['tutor', 'student', 'language'] 
