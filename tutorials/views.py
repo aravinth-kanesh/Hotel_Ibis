@@ -9,10 +9,10 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.query import QuerySet
-from django.http import HttpResponseBadRequest
+from django.http import HttpResponseBadRequest, HttpResponse
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count
 from django.utils.safestring import mark_safe
@@ -41,11 +41,8 @@ import calendar
 from calendar import HTMLCalendar, monthrange
 from django.utils import timezone
 from decimal import Decimal
-<<<<<<< HEAD
-=======
 
 
->>>>>>> origin/refactor_lesson_scheduling
 
 @login_required
 def dashboard(request):
@@ -336,13 +333,7 @@ def set_price(request, student_id):
         else:
             return HttpResponse("No uninvoiced lessons found for this student.")
     return redirect(f"{reverse('dashboard')}?tab=students")
-<<<<<<< HEAD
 
-
-#need to add admin decorator here also
-=======
-
->>>>>>> origin/refactor_lesson_scheduling
 @login_required
 def create_invoice(request, student_id):
     if request.user.role != 'admin':
@@ -1097,9 +1088,4 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
             "tutor": tutor,
             "availabilities": availabilities,
             "form": form,
-<<<<<<< HEAD
-        }
-        return render(request, self.template, context)
-=======
         })
->>>>>>> origin/refactor_lesson_scheduling
