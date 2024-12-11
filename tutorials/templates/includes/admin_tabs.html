@@ -1,3 +1,4 @@
+
 <!-- Manage Accounts Tab -->
 {% if tab == 'accounts' %}
 <div id="manage-accounts">
@@ -137,7 +138,7 @@
       <tr>
         <th>Name</th>
         <th>Email</th>
-        <th>Actions</th>
+        <th style="width: 55%;">Actions</th>
       </tr>
     </thead>
     <tbody>
@@ -148,25 +149,39 @@
         <td>
           {% if data.unallocated_request %}
             <p>Unallocated Request: {{ data.unallocated_request }}</p>
-            <a href="{% url 'process_request' unallocated_request.id %}" class="btn btn-secondary">Process Request</a>
-          {% elif data.allocated_lesson %}
-            <p>Allocated Lesson: {{ data.allocated_lesson.language.name }} - #{{ data.allocated_lesson.id }}</p>
-            <a href="{% url 'create_invoice' data.student.id %}" class="btn btn-secondary">Create Invoice</a>
-            {% if data.invoice %}
+            <a href="{% url 'process_request' data.unallocated_request.id %}" class="btn btn-secondary">Process Request</a>
+          {% endif %}
+          {% if data.allocated_lesson %}
+            <p>{{ data.allocated_lesson.language.name|capfirst }} with {{data.allocated_lesson.tutor.UserID.full_name}} allocated on {{ data.allocated_lesson.created_at }}</p>
+            {% if data.invoice != null %}
               {% if data.invoice.paid %}
-              <p> Paid on {{data.invoice.date_paid}}. </p>
-                <form method="post" action="{% url 'approve_invoice' data.invoice.id %}" style="display: inline;">
-                  {% csrf_token %}
-                  <button type="submit" class="btn btn-success btn-sm">Approve Payment</button>
-                </form>
+                {% if not data.invoice.approved %}
+                  <p> Paid on {{data.invoice.date_paid}}. </p>
+                  <form method="post" action="{% url 'approve_invoice' data.invoice.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-sm">Approve Payment</button>
+                  </form>
+                {%endif%}
               {% else %}
                 <p>Invoice Not Yet Paid</p>
                 <a href="{% url 'student_invoices_admin' data.student.id %}" class="btn btn-secondary">View Invoice</a>
               {% endif %}
-            {% else %}
-              <p>No Invoice Created</p>
+            {%else%} 
+              <form method="post" action="{% url 'set_price' data.student.id %}" class="d-flex align-items-center">
+                {% csrf_token %}
+                <div class="form-group me-3">
+                    <input type="text" name="price" class="form-control form-control-sm" placeholder="Enter Price" required>
+                </div>
+                <button type="submit" class="btn btn-outline-secondary btn-sm">Set Price</button>
+              </form>
+              {% if data.allocated_lesson.price == 0.0 %}
+              <p> Warning! Price is 0.0 </p>
+              {% endif %}
+              <br>
+              <a href="{% url 'create_invoice' data.student.id %}" class="btn btn-secondary">Create Invoice</a>
             {% endif %}
-          {% else %}
+          {% endif %} 
+          {% if not data.unallocated_request and not data.allocated_lesson %}
             <p>No Requests or Lessons</p>
           {% endif %}
         </td>
@@ -183,6 +198,26 @@
 {% if tab == 'lessons' %}
 <div id="all_lessons">
   <h2>Manage Lessons</h2>
+  <div class="d-flex justify-content-between mb-3">
+    <form method="get" class="d-flex mb-3">
+      <input type="hidden" name="tab" value="lessons"> 
+      <input type="text" name="search" class="form-control-sm me-2" placeholder="Search for a name"
+            value="{{ search_all }}">
+      <button type="submit" class="btn btn-outline-primary">Search</button>
+    </form>
+
+    <!--Role Dropdown-->
+    <form method="get" class="d-flex mb-3">
+      <input type="hidden" name="tab" value="lessons"> 
+      <label for="sort" class="me-2">Filter by:</label>
+      <select name="sort" id="sort" class="form-select-sm me-2" onchange="this.form.submit()">
+        <option value="invoice" {% if sort == 'invoice' %}selected{% endif %}>Unique Invoice</option>
+        <option value="this month" {% if sort == 'this month' %}selected{% endif %}>This Month</option>
+        <option value="all" {% if sort == 'all' %}selected{% endif %}>All</option>
+      </select>
+    </form>
+  </div>
+  
   <table class="table table-bordered table-striped">
     <thead class="table-light">
       <tr>
@@ -190,7 +225,10 @@
         <th>Subject</th>
         <th>Tutor</th>
         <th>Student</th>
+        <th>Date</th>
         <th>Time</th>
+        <th>Price</th>
+        <th>Invoice</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -201,7 +239,10 @@
         <td>{{  data.lesson.language.name }}</td>
         <td>{{  data.lesson.tutor.UserID.full_name }}</td>
         <td>{{  data.lesson.student.UserID.full_name }}</td>
+        <td>{{  data.lesson.date }}</td>
         <td>{{  data.lesson.time }}</td>
+        <td>{{ data.lesson.price }} </td>
+        <td>{{ data.lesson.invoice }}
         <td>
           
           <a href="{% url 'lesson_update' data.lesson.id %}" class="btn btn-secondary">Update</a>
@@ -210,6 +251,87 @@
       {% empty %}
       <tr>
         <td colspan="6">No lessons found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <nav aria-label="Page navigation">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?tab=lessons&page=1&search_all={{ search_all }}&sort={{ sort }}">First</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?tab=lessons&page={{ page_obj.previous_page_number }}&search_all={{ search_all }}&sort={{ sort }}">Previous</a>
+            </li>
+        {% endif %}
+        <li class="page-item disabled">
+            <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?tab=lessons&page={{ page_obj.next_page_number }}&search_all={{ search_all }}&sort={{ sort }}">Next</a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?tab=lessons&page={{ page_obj.paginator.num_pages }}&search_all={{ search_all }}&sort={{ sort }}">Last</a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+</div>
+{% endif %}
+{% if tab == 'invoices' %}
+<div id="all_invoices">
+  <h2>Manage Invoices</h2>
+  <table class="table table-bordered table-striped">
+    <thead class="table-light">
+      <tr>
+        <th>Invoice ID</th>
+        <th>Student</th>
+        <th>Total Amount</th>
+        <th>Status</th>
+        <th>Date Issued</th>
+        <th>Date Paid</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for data in invoices_data %}
+      <tr>
+        <td>{{ data.invoice.id }}</td>
+        <td>{{ data.invoice.student.UserID.full_name }}</td>
+        <td>${{ data.invoice.total_amount }}</td>
+        <td>
+          {% if data.invoice.paid %}
+            <span class="text-success">Paid</span>
+            {%if not data.invoice.approved %}
+            <span class="text-danger">but not yet approved</span>
+            {% else %}
+            <span class="text-success">& Approved</span>
+            {% endif %}
+          {% else %}
+            <span class="text-danger">Unpaid</span>
+          {% endif %}
+        </td>
+        <td>{{ data.invoice.date_issued }}</td>
+        <td>{{ data.invoice.date_paid|default:"N/A" }}</td>
+        <td>
+          
+          <a href="{% url 'invoice_detail' data.invoice.id %}" class="btn btn-outline-secondary btn-sm">View</a>
+         
+          {% if not data.invoice.approved and data.invoice.paid%}
+           <p></p>
+          <form method="post" action="{% url 'approve_invoice' data.invoice.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success btn-sm">Approve Payment</button>
+          </form>
+          {% endif %}
+       
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7">No invoices found.</td>
       </tr>
       {% endfor %}
     </tbody>

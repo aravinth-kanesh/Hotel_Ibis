@@ -130,12 +130,17 @@ class StudentRequestForm(forms.ModelForm):
         model = StudentRequest
 
         fields = [
-            'language', 'description', 'time', 'venue',
+            'language', 'description','date', 'time', 'venue',
             'duration', 'frequency', 'term'
         ]
 
         widgets = {
             'description': forms.Textarea(attrs={'placeholder': 'Enter any other requirements here.'}),
+            'date': forms.DateInput(attrs={
+                'type': 'date',
+                'placeholder': 'YYYY-MM-DD',
+                'class': 'form-control',
+            }),
             'time': forms.TimeInput(attrs={'type': 'time'}),
             'venue': forms.TextInput(attrs={'placeholder': 'Enter venue address'}),
             'duration': forms.NumberInput(attrs={
@@ -246,6 +251,7 @@ class StudentRequestProcessingForm(forms.ModelForm):
     tutor = forms.ModelChoiceField(
         queryset=Tutor.objects.all(), 
         label="Select Tutor",
+        required=False,
         widget=forms.Select(attrs={'placeholder': 'Select a tutor'})
     )
 
@@ -291,11 +297,10 @@ class StudentRequestProcessingForm(forms.ModelForm):
         first_lesson_time = self.cleaned_data.get('first_lesson_time')
 
         # Enforce details for denied lessons
-        if status == 'denied' and not details:
-            self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
-
-        # Enforce tutor, date, and time for accepted lessons
-        if status == 'accepted':
+        if status == 'denied':
+            if not details:
+                self.add_error('details', 'You must provide a reason in the Details field when denying a request.')
+        else:
             if not tutor:
                 self.add_error('tutor', 'You must select a tutor for accepted requests.')
             if not first_lesson_date:
@@ -365,13 +370,14 @@ class LessonUpdateForm(forms.ModelForm):
         # Convert new date and time to datetime objects
         new_start_datetime = datetime.combine(new_date, new_time)
         new_end_datetime = new_start_datetime + timedelta(minutes=self.instance.duration)  
-
+        new_end_time = new_end_datetime.time()
+        
         # Check if the tutor is available at the new time
         tutor_availability = TutorAvailability.objects.filter(
             tutor=self.instance.tutor,
-            day=new_date.weekday(),  
+            day=new_date,  
             start_time__lte=new_time,  # Tutor should be available at or before the start of the new lesson
-            end_time__gte=new_time + timedelta(minutes=self.instance.duration)  # Tutor should be available for the full duration
+            end_time__gte=new_end_time  # Tutor should be available for the full duration
         )
 
         # If no availability found, raise a validation error
@@ -423,6 +429,19 @@ class LessonUpdateForm(forms.ModelForm):
         return cleaned_data
 
 class TutorAvailabilityForm(forms.ModelForm):
+    REPEAT_CHOICES = [
+        ('once', 'Once'),
+        ('weekly', 'Repeat Weekly'),
+        ('biweekly', 'Repeat Biweekly'),
+    ]
+
+    repeat = forms.ChoiceField(
+        choices=REPEAT_CHOICES,
+        required=True,
+        error_messages={'required': 'Please select a repeat option.'},
+        initial='once',
+        widget=forms.Select(attrs={'class': 'form-control'}),
+    )
     class Meta:
         model = TutorAvailability
         fields = ['tutor', 'start_time', 'end_time', 'day', 'availability_status']
@@ -432,42 +451,74 @@ class TutorAvailabilityForm(forms.ModelForm):
             'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'availability_status': forms.Select(attrs={'class': 'form-control'}),
-        }
-
-        def clean(self):
-            cleaned_data = super().clean()
-            start_time = cleaned_data.get('start_time')
-            end_time = cleaned_data.get('end_time')
-            day = cleaned_data.get('day')
-            tutor = self.instance.tutor  # Access the tutor instance
-
-            if start_time and end_time and start_time >= end_time:
-                raise forms.ValidationError("Start time must be earlier than end time.")
+            'tutor': forms.Select(attrs={'class': 'form-control'}),
             
-            conflicting_availability = TutorAvailability.objects.filter(
-                tutor=tutor,
-                day=day,
-            ).exclude(id=self.instance.id)  # Exclude the current instance for updates
+        }
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+        day = cleaned_data.get('day')
+        tutor = self.initial.get('tutor')
 
-            for availability in conflicting_availability:
-                if (
-                    start_time < availability.end_time and
-                    end_time > availability.start_time
-                ):
-                    raise forms.ValidationError("There is already an overlapping availability request for this time slot.")
+        if not isinstance(tutor, Tutor):
+            raise forms.ValidationError("A valid Tutor instance is required.")
 
+        
+        if day and start_time and end_time:
+            if start_time >= end_time:
+                raise forms.ValidationError("Start time must be earlier than end time.")
         # Check for overlapping availability
             if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day).exists():
                 raise forms.ValidationError("This time slot is already recorded.")
-            return cleaned_data
+        return cleaned_data
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+    
         
-        def save(self, commit=True):
-            instance = super().save(commit=False)
-            if self.initial.get('tutor'):
-                instance.tutor = self.initial['tutor']
+        if not instance.tutor:
+            instance.tutor = self.initial.get('tutor')
+            if not instance.tutor:
+                raise ValueError("A tutor instance is required to save this form.")
+
+        repeat_option = self.cleaned_data['repeat']
+    
+        if repeat_option in ['weekly', 'biweekly']:
+            from tutorials.term_dates import TERM_DATES, get_term
+
+            interval = 7 if repeat_option == 'weekly' else 14
+            date = self.cleaned_data.get('day')
+            term_dates = get_term(date)
+            start_date = term_dates['start_date']
+            end_date = term_dates['end_date']
+            current_date = instance.day
+            
+            if not start_date <= current_date <= end_date:
+                raise ValueError(f"Not in term time.")
+            
+            
+            current_date += timedelta(days=interval)
+            while current_date <= end_date:
+                if not TutorAvailability.objects.filter(
+                    tutor=instance.tutor,
+                    day=current_date,
+                    start_time=instance.start_time,
+                    end_time=instance.end_time
+                ).exists():
+                    TutorAvailability.objects.create(
+                        tutor=instance.tutor,
+                        day=current_date,
+                        start_time=instance.start_time,
+                        end_time=instance.end_time,
+                        availability_status=instance.availability_status,
+                    )
+                current_date += timedelta(days=interval)
+        else:
             if commit:
                 instance.save()
-            return instance
+        return instance
 
 class TutorLanguageForm(forms.Form):
     query = forms.CharField(

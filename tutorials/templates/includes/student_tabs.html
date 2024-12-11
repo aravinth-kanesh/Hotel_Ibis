@@ -2,30 +2,39 @@
 <div id="lessons">
     <h2>View My Lessons</h2>
     {% if lessons %}
-        <table class="table table-bordered table-striped">
-            <thead class="table-light">
-                <tr>
-                    <th>Lesson</th>
-                    <th>Tutor</th>
-                    <th>Time</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for lesson in lessons %}
+        {%if not invoice.paid %}
+        <p>You have an outstanding payment.</p>
+        <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-info btn-sm">View</a>
+        {%elif not invoice.approved%} 
+        <p>Someone is reviewing your payment.</p>
+        {%else%}
+            <table class="table table-bordered table-striped">
+                <thead class="table-light">
                     <tr>
-                        <td>{{ lesson.language.name }}</td>
-                        <td>{{ lesson.tutor.full_name }}</td>
-                        <td>{{ lesson.time|time:"H:i" }}</td>
-                        <td>{{ lesson.date }}</td>
+                        <th>Lesson</th>
+                        <th>Tutor</th>
+                        <th>Time</th>
+                        <th>Venue</th>
+                        <th>Date</th>
                     </tr>
-                {% empty %}
-                    <tr>
-                        <td colspan="4" class="text-center">No lessons yet.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for lesson in lessons %}
+                        <tr>
+                            <td>{{ lesson.language.name }}</td>
+                            <td>{{ lesson.tutor.UserID.full_name }}</td>
+                            <td>{{ lesson.time|time:"H:i" }}</td>
+                            <td>{{ lesson.venue }} </td>
+                            <td>{{ lesson.date }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No lessons yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {%endif%}
     {% else %}
         <p>No lessons yet.</p>
     {% endif %}

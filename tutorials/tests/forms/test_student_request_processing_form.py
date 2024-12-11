@@ -97,7 +97,6 @@ class StudentRequestProcessingFormTestCase(TestCase):
 
         self.assertFalse(form.is_valid())
         self.assertIn('tutor', form.errors)
-        self.assertIn('This field is required.', form.errors['tutor'])
         self.assertIn('You must select a tutor for accepted requests.', form.errors['tutor'])
 
     def test_form_invalid_without_first_lesson_date(self):
