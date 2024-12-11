@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.timezone import now
 from datetime import timedelta
 
+
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
 
@@ -101,12 +102,14 @@ class Tutor(models.Model):
         languages = ", ".join([language.name for language in self.languages.all()])
         return f"{self.UserID.first_name} {self.UserID.last_name} - {languages if languages else 'No languages assigned'}"
     
+    
 class Student(models.Model):
     """Model for student"""
     id = models.AutoField(primary_key=True)
     UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
         return f"Student: {self.UserID.username}"
+    
     
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
@@ -128,6 +131,7 @@ class Invoice(models.Model):
     def __str__(self):
         status = "Paid" if self.paid else "Unpaid"
         return f"Invoice {self.id} ({status})"
+    
 
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
@@ -220,6 +224,7 @@ class StudentRequest(models.Model):
     def __str__(self):
         return f"Request {self.id} by {self.student.UserID.username} for {self.language.name}"
     
+    
 class Message (models.Model):
     recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True,  related_name="sent_messages", db_index=True)
@@ -244,7 +249,6 @@ class Message (models.Model):
 
     def __str__(self):
         return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
-    
     
 
 class TutorAvailability(models.Model):
