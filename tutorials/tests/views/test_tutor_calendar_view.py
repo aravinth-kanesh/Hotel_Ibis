@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from myapp.models import Student, Lesson, Invoice, Tutor
+from models import Student, Lesson, Invoice, Tutor
 from datetime import date
 
 class CreateInvoiceViewTest(TestCase):
@@ -116,4 +116,3 @@ class CreateInvoiceViewTest(TestCase):
         messages = list(response.wsgi_request._messages)
         full_name = f"{self.user.first_name} {self.user.last_name}"
         self.assertTrue(any(f"Invoice {invoice.id} created for {full_name}." in str(m.message) for m in messages))
-        

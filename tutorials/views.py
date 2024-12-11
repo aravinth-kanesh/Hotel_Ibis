@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count
 from django.utils.safestring import mark_safe
@@ -37,7 +37,6 @@ from datetime import date, datetime, timedelta
 import calendar
 from calendar import HTMLCalendar, monthrange
 from django.utils import timezone
-
 
 @login_required
 def dashboard(request):
