@@ -10,7 +10,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count
 from django.utils.safestring import mark_safe
@@ -37,7 +37,7 @@ from datetime import date, datetime, timedelta
 import calendar
 from calendar import HTMLCalendar, monthrange
 from django.utils import timezone
-
+from decimal import Decimal
 
 @login_required
 def dashboard(request):
@@ -303,6 +303,27 @@ def student_list(request):
         unpaid_invoices=Count('invoices', filter=Q(invoices__paid=False))
     )
     return render(request, 'student_list.html', {'students': students})
+
+@login_required
+def set_price(request, student_id):
+    if request.user.role != 'admin':
+        return redirect('dashboard')
+    student = get_object_or_404(Student, id=student_id)
+    if request.method == 'POST':
+        try:
+            price = Decimal(request.POST.get('price'))
+            if price < 0:
+                raise ValueError("Price must be a positive number.")
+        except (TypeError, ValueError, Decimal.InvalidOperation):
+            return HttpResponseBadRequest("Invalid price value.")
+        
+        lessons = Lesson.objects.filter(student=student, invoice__isnull=True)
+        if lessons.exists():
+            lessons.update(price=price)
+            messages.success(request, f"Price for {student.UserID.first_name} updated successfully.")
+        else:
+            return HttpResponse("No uninvoiced lessons found for this student.")
+    return redirect(f"{reverse('dashboard')}?tab=students")
 
 
 #need to add admin decorator here also
