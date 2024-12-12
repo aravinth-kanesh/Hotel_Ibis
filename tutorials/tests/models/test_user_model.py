@@ -157,3 +157,22 @@ class UserModelTestCase(TestCase):
     def _assert_user_is_invalid(self):
         with self.assertRaises(ValidationError):
             self.user.full_clean()
+
+    def test_save_raises_value_error_for_invalid_role(self):
+        self.user.role = 'invalid_role'
+        with self.assertRaises(ValueError) as context:
+            self.user.save()
+        self.assertEqual(
+            str(context.exception),
+            "Invalid role: invalid_role. Choose from: ['tutor', 'student', 'admin']"
+        )
+
+    def test_user_str_returns_username(self):
+        user = User(
+            username='@testuser',
+            first_name='Test',
+            last_name='User',
+            email='testuser@example.com',
+            role='student',
+        )
+        self.assertEqual(str(user), '@testuser')
