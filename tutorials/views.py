@@ -1131,9 +1131,12 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
             return redirect("dashboard")
         
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
-
         if availability_id:
             action = request.GET.get('action')
+            try:
+                availability = TutorAvailability.objects.get(id=availability_id, tutor=tutor)
+            except TutorAvailability.DoesNotExist:
+                return HttpResponseBadRequest("Invalid availability ID.")
             if action == 'edit':
                 availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
                 form = TutorAvailabilityForm(instance=availability)
