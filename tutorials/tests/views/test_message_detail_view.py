@@ -1,84 +1,83 @@
-"""Tests of the message detail view."""
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
-from tutorials.models import User, Message
+from django.contrib.auth import get_user_model
+from django.http import Http404
+from .models import Message
 
-class MessageDetailViewTestCase(TestCase):
-    """Tests of the MessageDetailView."""
-
-    fixtures = ['tutorials/tests/fixtures/default_user.json']
+class MessageDetailViewTests(TestCase):
+    fixtures = ['user_fixtures.json']  # Assuming the fixture file is named `user_fixtures.json`
 
     def setUp(self):
-        """Sets up test environment."""
-        self.user = User.objects.get(username='@johndoe')
-        self.recipient = User.objects.get(username='@janedoe')
-        self.message = Message.objects.create(
-            sender=self.user,
-            recipient=self.recipient,
-            subject='Test Message',
-            content='This is a test message.'
+        # Load users from the fixture
+        self.sender = get_user_model().objects.get(pk=3)  # User with pk=3 from the fixture
+        self.recipient = get_user_model().objects.create_user(
+            username="recipient",
+            password="recipientpassword",
+            email="recipient@example.com"
         )
-        self.url = reverse('message_detail', kwargs={'pk': self.message.id})
 
-    def test_message_detail_url(self):
-        """Ensure the URL is correct."""
-        self.assertEqual(self.url, f'/messages/{self.message.id}/')
-
-    def test_get_message_detail(self):
-        """Ensure the page loads correctly and the correct template is used."""
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, 'message_detail.html')
-        self.assertContains(response, self.message.subject)
-        self.assertContains(response, self.message.sender.username)
-        self.assertContains(response, self.message.recipient.username)
-        self.assertContains(response, self.message.content)
-
-    def test_get_message_detail_redirects_when_not_logged_in(self):
-        """Ensure a user that has not logged in is redirected to login."""
-        response = self.client.get(self.url)
-        login_url = reverse('login')
-        self.assertRedirects(response, f'{login_url}?next={self.url}')
-
-    def test_get_message_detail_logged_in(self):
-        """Ensure a user that has logged in can view the page."""
-        self.client.login(username=self.user.username, password="Password123")
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, self.message.subject)
-        self.assertContains(response, self.message.sender.username)
-        self.assertContains(response, self.message.recipient.username)
-
-    def test_view_previous_message(self):
-        """Ensure the 'View Previous Message' button works correctly."""
-        previous_message = Message.objects.create(
-            sender=self.user,
+        # Create test messages
+        self.original_message = Message.objects.create(
+            sender=self.sender,
             recipient=self.recipient,
-            subject='Previous Message',
-            content='Content of the previous message.'
+            subject="Original Message",
+            content="This is the original message."
         )
-        self.message.previous_message = previous_message
-        self.message.save()
-        response = self.client.get(self.url)
-        previous_message_url = reverse('message_detail', kwargs={'pk': previous_message.id})
-        self.assertContains(response, f'href="{previous_message_url}"')
-
-    def test_view_next_message(self):
-        """Ensure the 'View Reply' button works correctly."""
-        next_message = Message.objects.create(
+        self.reply_message = Message.objects.create(
             sender=self.recipient,
-            recipient=self.user,
-            subject='Next Message',
-            content='Content of the next message.'
+            recipient=self.sender,
+            subject="Re: Original Message",
+            content="This is a reply to the original message.",
+            previous_message=self.original_message
         )
-        self.message.reply = next_message
-        self.message.save()
-        response = self.client.get(self.url)
-        next_message_url = reverse('message_detail', kwargs={'pk': next_message.id})
-        self.assertContains(response, f'href="{next_message_url}"')
+        self.original_message.reply = self.reply_message
+        self.original_message.save()
 
-    def test_reply_button(self):
-        """Ensure the reply button directs the user to the correct reply URL."""
-        reply_url = reverse('message_reply', kwargs={'pk': self.message.id})
+        # Log in as the sender
+        self.client = Client()
+        self.client.login(username=self.sender.username, password="pbkdf2_sha256$260000$4BNvFuAWoTT1XVU8D6hCay$KqDCG+bHl8TwYcvA60SGhOMluAheVOnF1PMz0wClilc=")
+
+        # Set the URL for the view
+        self.url = reverse("message_detail", kwargs={"pk": self.original_message.id})
+
+    def test_redirect_if_not_logged_in(self):
+        """Test that unauthenticated users are redirected to the login page."""
+        self.client.logout()
         response = self.client.get(self.url)
-        self.assertContains(response, f'href="{reply_url}"')
+        self.assertRedirects(response, f"/accounts/login/?next={self.url}")
+
+    def test_access_authorized_user(self):
+        """Test that an authorized user can view the message."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "message_detail.html")
+        self.assertEqual(response.context["message"], self.original_message)
+
+    def test_access_unauthorized_user(self):
+        """Test that an unauthorized user cannot view the message."""
+        other_user = get_user_model().objects.create_user(
+            username="unauthorized",
+            password="unauthorizedpassword",
+            email="unauthorized@example.com"
+        )
+        self.client.login(username="unauthorized", password="unauthorizedpassword")
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 403)  # Forbidden for unauthorized access
+
+    def test_context_includes_previous_and_next_message(self):
+        """Test that the context includes previous and next message."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["previous_message"], None)
+        self.assertEqual(response.context["next_message"], self.reply_message)
+
+    def test_context_includes_reply_url(self):
+        """Test that the context includes the reply URL."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.context["reply_url"], reverse("reply_message", kwargs={"reply_id": self.original_message.id}))
+
+    def test_nonexistent_message(self):
+        """Test that a non-existent message raises 404."""
+        nonexistent_url = reverse("message_detail", kwargs={"pk": 999})
+        response = self.client.get(nonexistent_url)
+        self.assertEqual(response.status_code, 404)
+        
