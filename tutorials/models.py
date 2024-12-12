@@ -249,6 +249,10 @@ class Message (models.Model):
         return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
     
 
+from django.core.exceptions import ValidationError
+from django.db import models
+
+
 class TutorAvailability(models.Model):
     CHOICE = [
         ('available', 'Available'),
@@ -258,7 +262,8 @@ class TutorAvailability(models.Model):
         ('edit', 'Edit'),
         ('delete', 'Delete')
     ]
-    tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="availability")
+    
+    tutor = models.ForeignKey('Tutor', on_delete=models.CASCADE, related_name="availability")
     start_time = models.TimeField(default="09:00")
     end_time = models.TimeField()
     day = models.DateField()
@@ -266,9 +271,20 @@ class TutorAvailability(models.Model):
     action = models.CharField(max_length=10, choices=ACTION, default='edit')
 
     def __str__(self):
-        return f"{self.tutor.UserID.full_name} - {self.day} - from {self.start_time} to {self.end_time} - ({self.availability_status})"
+        return f"{self.tutor.UserID.full_name()} - {self.day} - from {self.start_time} to {self.end_time} - ({self.availability_status})"
     
     def clean(self):
-        """Ensure start_time is before end_time."""
+        """Ensure start_time is before end_time, availability_status and action are valid."""
+        # Ensure start_time is before end_time
         if self.start_time >= self.end_time:
             raise ValidationError("Start time must be before end time.")
+        
+        # Validate the availability_status is one of the defined choices
+        if self.availability_status not in dict(self.CHOICE):
+            raise ValidationError(f"Invalid availability status: {self.availability_status}")
+        
+        # Validate the action is one of the defined choices
+        if self.action not in dict(self.ACTION):
+            raise ValidationError(f"Invalid action: {self.action}")
+
+        super().clean()
