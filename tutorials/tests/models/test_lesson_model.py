@@ -89,3 +89,80 @@ class LessonModelTest(TestCase):
         """Test get_occurrence_dates with a mismatched term."""
         self.lesson.term = 'sept-christmas'  # Mismatched term
         self.assertEqual(self.lesson.get_occurrence_dates(), [])
+
+    def test_get_occurrence_dates_valid_weekly(self):
+        """Test get_occurrence_dates for weekly lessons with valid term dates."""
+        expected_dates = [
+            date(2024, 1, 10),
+            date(2024, 1, 17),
+            date(2024, 1, 24),
+            date(2024, 1, 31),
+            date(2024, 2, 7),
+            date(2024, 2, 14),
+            date(2024, 2, 21),
+            date(2024, 2, 28),
+            date(2024, 3, 6),
+            date(2024, 3, 13),
+            date(2024, 3, 20),
+            date(2024, 3, 27),
+            date(2024, 4, 3),
+            date(2024, 4, 10),
+        ]
+        self.assertEqual(self.lesson.get_occurrence_dates(), expected_dates)
+
+    def test_get_occurrence_dates_valid_fortnightly(self):
+        """Test get_occurrence_dates for fortnightly lessons with valid term dates."""
+        self.lesson.frequency = 'once per fortnight'
+        self.lesson.save()
+        expected_dates = [
+            date(2024, 1, 10),
+            date(2024, 1, 24),
+            date(2024, 2, 7),
+            date(2024, 2, 21),
+            date(2024, 3, 6),
+            date(2024, 3, 20),
+            date(2024, 4, 3),
+        ]
+        self.assertEqual(self.lesson.get_occurrence_dates(), expected_dates)
+
+    def test_get_occurrence_dates_outside_term(self):
+        """Test get_occurrence_dates when lesson date is outside the term."""
+        self.lesson.date = date(2024, 4, 15)  # After the 'jan-easter' term
+        self.lesson.save()
+        with self.assertRaises(ValueError):
+            self.lesson.get_occurrence_dates()
+
+    def test_get_occurrence_dates_term_boundary(self):
+        """Test get_occurrence_dates for a lesson starting near the term boundary."""
+        self.lesson.date = date(2024, 4, 9)  # Near the end of the term
+        self.lesson.save()
+        expected_dates = [
+            date(2024, 4, 9),
+        ]  # Only one date within the term
+        self.assertEqual(self.lesson.get_occurrence_dates(), expected_dates)
+
+    def test_get_occurrence_dates_invalid_frequency(self):
+        """Test get_occurrence_dates with an invalid frequency."""
+        self.lesson.frequency = 'daily'
+        self.lesson.save()
+        self.assertEqual(self.lesson.get_occurrence_dates(), [])
+
+    def test_get_occurrence_dates_start_date_before_term(self):
+        """Test get_occurrence_dates when lesson start date is before the term start."""
+        self.lesson.date = date(2023, 12, 25)  # Before the term starts
+        self.lesson.save()
+        expected_dates = [
+            date(2024, 1, 6),
+            date(2024, 1, 13),
+            date(2024, 1, 20),
+            # Additional dates until the end of the term
+        ]
+        with self.assertRaises(ValueError):
+            self.lesson.get_occurrence_dates()
+
+    def test_get_occurrence_dates_no_matching_term(self):
+        """Test get_occurrence_dates when no matching term exists."""
+        self.lesson.date = date(2024, 8, 1)  # Not in any term
+        self.lesson.save()
+        with self.assertRaises(ValueError):
+            self.lesson.get_occurrence_dates()
