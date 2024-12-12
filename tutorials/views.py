@@ -1139,7 +1139,7 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
                 return HttpResponseBadRequest("Invalid availability ID.")
             if action == 'edit':
                 availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
-                form = TutorAvailabilityForm(instance=availability)
+                form = TutorAvailabilityForm(instance=availability, user=request.user)
             elif action == 'delete':
                 availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
                 availability.delete()
@@ -1147,7 +1147,7 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
             else:
                 return HttpResponseBadRequest("Invalid action.")
         else:
-            form = TutorAvailabilityForm(initial={'tutor': tutor})
+            form = TutorAvailabilityForm(initial={'tutor': tutor}, user=request.user)
 
         context = {
             "tutor": tutor,
@@ -1173,9 +1173,9 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
 
         if availability_id:
             availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
-            form = TutorAvailabilityForm(request.POST, instance=availability)
+            form = TutorAvailabilityForm(request.POST, instance=availability, user=request.user)
         else:
-            form = TutorAvailabilityForm(request.POST, initial={'tutor': Tutor.objects.get(UserID=request.user)})
+            form = TutorAvailabilityForm(request.POST, initial={'tutor': Tutor.objects.get(UserID=request.user)}, user=request.user)
 
         if form.is_valid():
             print("Form is valid")

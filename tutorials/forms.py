@@ -454,6 +454,19 @@ class TutorAvailabilityForm(forms.ModelForm):
             'tutor': forms.Select(attrs={'class': 'form-control'}),
             
         }
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user')  
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            try:
+                tutor = Tutor.objects.get(UserID=user)
+                self.fields['tutor'].queryset = Tutor.objects.filter(id=tutor.id)
+                self.fields['tutor'].initial = tutor 
+            except Tutor.DoesNotExist:
+                self.fields['tutor'].queryset = Tutor.objects.none()
+        
+        self.fields['tutor'].disabled = True
         
     def clean(self):
         cleaned_data = super().clean()
