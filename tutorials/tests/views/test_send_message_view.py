@@ -5,7 +5,7 @@ from tutorials.models import Message
 from tutorials.forms import MessageForm
 
 class SendMessageViewTests(TestCase):
-    fixtures = ['user_fixtures.json']  # Assuming the fixture file is named `user_fixtures.json`
+    fixtures = ['tutorials/tests/fixtures/other_users.json']
 
     def setUp(self):
         # Load users from the fixture

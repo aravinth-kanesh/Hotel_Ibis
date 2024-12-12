@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.utils import timezone
-from models import Student, Invoice
+from tutorials.models import Student, Invoice
 
 class PayInvoiceViewTest(TestCase):
     def setUp(self):

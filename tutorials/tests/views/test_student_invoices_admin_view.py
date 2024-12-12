@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from models import Student, Invoice
+from tutorials.models import Student, Invoice
 
 class StudentInvoicesAdminViewTest(TestCase):
     def setUp(self):

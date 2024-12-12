@@ -1,7 +1,7 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from myapp.models import Student, Lesson, Invoice, Tutor
+from tutorials.models import Student, Lesson, Invoice, Tutor
 from datetime import date
 
 class CreateInvoiceViewTest(TestCase):

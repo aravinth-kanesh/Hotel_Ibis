@@ -2,21 +2,18 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.http import Http404
-from .models import Message
+from tutorials.models import Message
 
 class MessageDetailViewTests(TestCase):
-    fixtures = ['user_fixtures.json']  # Assuming the fixture file is named `user_fixtures.json`
-
+    fixtures = ['tutorials/tests/fixtures/other_users.json']  
     def setUp(self):
-        # Load users from the fixture
-        self.sender = get_user_model().objects.get(pk=3)  # User with pk=3 from the fixture
+        self.sender = get_user_model().objects.get(pk=3)  
         self.recipient = get_user_model().objects.create_user(
             username="recipient",
             password="recipientpassword",
             email="recipient@example.com"
         )
 
-        # Create test messages
         self.original_message = Message.objects.create(
             sender=self.sender,
             recipient=self.recipient,
@@ -33,11 +30,10 @@ class MessageDetailViewTests(TestCase):
         self.original_message.reply = self.reply_message
         self.original_message.save()
 
-        # Log in as the sender
         self.client = Client()
-        self.client.login(username=self.sender.username, password="pbkdf2_sha256$260000$4BNvFuAWoTT1XVU8D6hCay$KqDCG+bHl8TwYcvA60SGhOMluAheVOnF1PMz0wClilc=")
+        self.client.login(username=self.sender.username, password="Password123")
 
-        # Set the URL for the view
+
         self.url = reverse("message_detail", kwargs={"pk": self.original_message.id})
 
     def test_redirect_if_not_logged_in(self):
@@ -62,7 +58,7 @@ class MessageDetailViewTests(TestCase):
         )
         self.client.login(username="unauthorized", password="unauthorizedpassword")
         response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 403)  # Forbidden for unauthorized access
+        self.assertEqual(response.status_code, 403)  
 
     def test_context_includes_previous_and_next_message(self):
         """Test that the context includes previous and next message."""
@@ -80,4 +76,23 @@ class MessageDetailViewTests(TestCase):
         nonexistent_url = reverse("message_detail", kwargs={"pk": 999})
         response = self.client.get(nonexistent_url)
         self.assertEqual(response.status_code, 404)
+    
+    def test_reply_button(self):
+        """Ensure the reply button directs the user to the correct reply URL."""
+        reply_url = reverse('message_reply', kwargs={'pk': self.message.id})
+        response = self.client.get(self.url)
+        self.assertContains(response, f'href="{reply_url}"')
         
+    def test_message_detail_url(self):
+        """Ensure the URL is correct."""
+        self.assertEqual(self.url, f'/messages/{self.message.id}/')
+
+    def test_get_message_detail(self):
+        """Ensure the page loads correctly and the correct template is used."""
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'message_detail.html')
+        self.assertContains(response, self.message.subject)
+        self.assertContains(response, self.message.sender.username)
+        self.assertContains(response, self.message.recipient.username)
+        self.assertContains(response, self.message.content)

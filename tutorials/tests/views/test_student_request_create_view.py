@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from tutorials.models import StudentRequest, Language, Student
 from django.utils.timezone import now
+from django.contrib.auth import get_user_model
 
 class StudentRequestCreateViewTests(TestCase):
     fixtures = [
@@ -9,16 +10,14 @@ class StudentRequestCreateViewTests(TestCase):
     ]
     def setUp(self):
         # Load the user from the fixture
-        self.user = Student.objects.create(
-            user_id=3 
-        )
+        self.user = get_user_model().objects.get(pk=3)
         
         # Create a Language instance for the test
         self.language = Language.objects.create(name="Python")
         
         # Log in as the user
         self.client = Client()
-        self.client.login(username="@petrapickles", password="pbkdf2_sha256$260000$4BNvFuAWoTT1XVU8D6hCay$KqDCG+bHl8TwYcvA60SGhOMluAheVOnF1PMz0wClilc=")
+        self.client.login(username="@petrapickles", password="Password123")
         
         # Set the URL for the view
         self.url = reverse("student_request_create")

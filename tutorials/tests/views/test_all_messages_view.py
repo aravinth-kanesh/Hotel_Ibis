@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from tutorials.models import Message
 
 class AllMessagesViewTests(TestCase):
-    fixtures = ['user_fixtures.json']  # Assuming the fixture file is named `user_fixtures.json`
+    fixtures = ['tutorials/tests/fixtures/other_users.json']  # Assuming the fixture file is named `user_fixtures.json`
 
     def setUp(self):
         # Load users from the fixture
@@ -31,7 +31,7 @@ class AllMessagesViewTests(TestCase):
 
         # Log in as the user
         self.client = Client()
-        self.client.login(username=self.user.username, password="pbkdf2_sha256$260000$4BNvFuAWoTT1XVU8D6hCay$KqDCG+bHl8TwYcvA60SGhOMluAheVOnF1PMz0wClilc=")
+        self.client.login(username=self.user.username, password="Password123")
 
         # Set the URL for the view
         self.url = reverse("all_messages")

@@ -2,8 +2,8 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from datetime import date
-from models import Student, Lesson
-from views import next_month, prev_month
+from tutorials.models import Student, Lesson
+from tutorials.views import next_month, prev_month
 
 class CalendarViewTestCase(TestCase):
     def setUp(self):
