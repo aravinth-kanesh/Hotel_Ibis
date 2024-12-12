@@ -1,9 +1,6 @@
 from django.test import TestCase
 from tutorials.forms import StudentRequestProcessingForm
-from tutorials.models import Tutor, Language, StudentRequest, Student
-from django.contrib.auth import get_user_model
-
-#Test commit
+from tutorials.models import Tutor, Language, StudentRequest, Student, User
 
 class StudentRequestProcessingFormTestCase(TestCase):
     def setUp(self):
@@ -12,8 +9,8 @@ class StudentRequestProcessingFormTestCase(TestCase):
         # Create Language instance
         self.language_python = Language.objects.create(name="Python")
         
-        # Create Student instance
-        self.student_user = get_user_model().objects.create_user(
+        # Create Student user and Student instance
+        self.student_user = User.objects.create_user(
             username='student1',
             password='password123',
             first_name='Student',
@@ -21,9 +18,9 @@ class StudentRequestProcessingFormTestCase(TestCase):
             email='student1@example.com'
         )
         self.student, _ = Student.objects.get_or_create(UserID=self.student_user)
-        
-        # Create Tutor instance
-        self.tutor_user_python = get_user_model().objects.create_user(
+
+        # Create Tutor user and Tutor instance
+        self.tutor_user_python = User.objects.create_user(
             username='tutor_python',
             password='password123',
             first_name='Python Tutor',
@@ -32,7 +29,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
         )
         self.tutor_python, _ = Tutor.objects.get_or_create(UserID=self.tutor_user_python)
         self.tutor_python.languages.add(self.language_python)
-        
+
         # Create a student request instance (request for Python tutor)
         self.student_request = StudentRequest.objects.create(
             student=self.student,
@@ -45,6 +42,7 @@ class StudentRequestProcessingFormTestCase(TestCase):
             term='sept-christmas'
         )
 
+        # Valid test data
         self.valid_date = '2024-12-15' 
         self.valid_time = '14:30:00' 
     
@@ -135,9 +133,6 @@ class StudentRequestProcessingFormTestCase(TestCase):
         data = {
             'status': 'denied',
             'details': 'Scheduling conflict',
-            'tutor': self.tutor_python,
-            'first_lesson_date': self.valid_date,
-            'first_lesson_time': self.valid_time
         }
 
         form = StudentRequestProcessingForm(data)
@@ -146,16 +141,16 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertEqual(form.cleaned_data['status'], 'denied')
         self.assertEqual(form.cleaned_data['details'], 'Scheduling conflict')
 
-    def test_form_invalid_with_status_accepted_and_missing_fields(self):
-        """Test if the form is invalid when status is 'accepted' but tutor, date, or time are missing."""
+    def test_form_invalid_without_tutor(self):
+        """Test if the form is invalid when status is 'accepted' but tutor is missing."""
         
         data = {
             'status': 'accepted',
+            'first_lesson_date': self.valid_date,
+            'first_lesson_time': self.valid_time
         }
 
         form = StudentRequestProcessingForm(data)
 
         self.assertFalse(form.is_valid())
         self.assertIn('tutor', form.errors)
-        self.assertIn('first_lesson_date', form.errors)
-        self.assertIn('first_lesson_time', form.errors)

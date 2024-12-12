@@ -3,8 +3,14 @@ from django.core.management.base import BaseCommand, CommandError
 from tutorials.models import User, Tutor, Student, Language, StudentRequest, TutorAvailability, Message, Invoice, Lesson
 from tutorials.term_dates import TERM_DATES, get_term
 import random
+from tutorials.models import User, Tutor, Student, Language, StudentRequest, TutorAvailability, Message, Invoice, Lesson
+from tutorials.term_dates import TERM_DATES, get_term
+import random
 import pytz
 from faker import Faker
+from random import randint
+from datetime import datetime, timedelta, time, date
+from django.utils.timezone import now
 from random import randint
 from datetime import datetime, timedelta, time, date
 from django.utils.timezone import now

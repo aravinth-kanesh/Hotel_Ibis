@@ -1,16 +1,20 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
-from tutorials.models import Lesson, Tutor, Student, Language
-
-#Test commit
+from tutorials.models import Lesson, Tutor, Student, Language, TutorAvailability
 
 class LessonUpdateViewTestCase(TestCase):
     """Test suite for the LessonUpdateView where the admin user performs the actions."""
 
     def setUp(self):
-        # Create an admin
-        self.user_admin = get_user_model().objects.create_user(
+        self.create_users()
+        self.create_language_and_associations()
+        self.create_lesson_and_availabilities()
+
+    def create_users(self):
+        """Create users for admin, tutor, and student."""
+        User = get_user_model()
+        self.user_admin = User.objects.create_user(
             username='@admin_user',
             first_name='Admin',
             last_name='User',
@@ -19,8 +23,7 @@ class LessonUpdateViewTestCase(TestCase):
             role='admin' 
         )
 
-        # Create a tutor
-        self.user_tutor = get_user_model().objects.create_user(
+        self.user_tutor = User.objects.create_user(
             username='@john_doe',
             first_name='John',
             last_name='Doe',
@@ -29,8 +32,7 @@ class LessonUpdateViewTestCase(TestCase):
             role='tutor'
         )
 
-        # Create a student
-        self.user_student = get_user_model().objects.create_user(
+        self.user_student = User.objects.create_user(
             username='@jane_smith',
             first_name='Jane',
             last_name='Smith',
@@ -39,14 +41,15 @@ class LessonUpdateViewTestCase(TestCase):
             role='student'
         )
 
-        # Create a language
+    def create_language_and_associations(self):
+        """Create a language and associate it with the tutor."""
         self.language = Language.objects.create(name="Python")
-
         self.tutor, _ = Tutor.objects.get_or_create(UserID=self.user_tutor)
         self.student, _ = Student.objects.get_or_create(UserID=self.user_student)
         self.tutor.languages.add(self.language)
 
-        # Create a lesson instance
+    def create_lesson_and_availabilities(self):
+        """Create a lesson and related tutor availability."""
         self.lesson = Lesson.objects.create(
             tutor=self.tutor,
             student=self.student,
@@ -58,6 +61,21 @@ class LessonUpdateViewTestCase(TestCase):
             frequency="once a week",
             term="sept-christmas"
         )
+
+        availability_data = [
+            {"day": self.lesson.date, "start_time": "09:00", "end_time": "17:00"},
+            {"day": "2024-12-05", "start_time": "09:00", "end_time": "17:00"},
+        ]
+
+        for data in availability_data:
+            TutorAvailability.objects.create(
+                tutor=self.tutor,
+                start_time=data["start_time"],
+                end_time=data["end_time"],
+                day=data["day"],
+                availability_status='available',
+                action='edit'
+            )
 
     def test_admin_can_access_lesson_update_form(self):
         """Test that the admin can access the lesson update form."""
