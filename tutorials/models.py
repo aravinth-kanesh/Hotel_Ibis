@@ -249,10 +249,6 @@ class Message (models.Model):
         return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
     
 
-from django.core.exceptions import ValidationError
-from django.db import models
-
-
 class TutorAvailability(models.Model):
     CHOICE = [
         ('available', 'Available'),
