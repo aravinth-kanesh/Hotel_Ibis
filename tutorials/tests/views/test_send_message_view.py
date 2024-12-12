@@ -18,7 +18,7 @@ class SendMessageViewTests(TestCase):
 
         # Log in as the sender
         self.client = Client()
-        self.client.login(username=self.sender.username, password="pbkdf2_sha256$260000$4BNvFuAWoTT1XVU8D6hCay$KqDCG+bHl8TwYcvA60SGhOMluAheVOnF1PMz0wClilc=")
+        self.client.login(username=self.sender.username, password="Password123")
 
         # Set the URL for the view
         self.url = reverse("send_message")
@@ -34,7 +34,7 @@ class SendMessageViewTests(TestCase):
         """Test that unauthenticated users are redirected to the login page."""
         self.client.logout()
         response = self.client.get(self.url)
-        self.assertRedirects(response, f"/accounts/login/?next={self.url}")
+        self.assertRedirects(response, f"/log_in/?next={self.url}")
 
     def test_form_submission_success(self):
         """Test successful form submission."""

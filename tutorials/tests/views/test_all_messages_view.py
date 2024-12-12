@@ -40,7 +40,7 @@ class AllMessagesViewTests(TestCase):
         """Test that unauthenticated users are redirected to the login page."""
         self.client.logout()
         response = self.client.get(self.url)
-        self.assertRedirects(response, f"/accounts/login/?next={self.url}")
+        self.assertRedirects(response, f"login/?next={self.url}")
 
     def test_view_renders_correctly(self):
         """Test that the view renders with the correct template and context."""

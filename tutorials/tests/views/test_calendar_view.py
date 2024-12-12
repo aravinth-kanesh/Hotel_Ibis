@@ -4,14 +4,17 @@ from django.contrib.auth.models import User
 from datetime import date
 from tutorials.models import Student, Lesson
 from tutorials.views import next_month, prev_month
+from django.contrib.auth import get_user_model
 
 class CalendarViewTestCase(TestCase):
     def setUp(self):
+        User = get_user_model()
         self.client = Client()
         self.user = User.objects.create_user(
-            username='testuser',
+            username='@testuser',
             email='testuser@example.com',
-            password='password123'
+            password='password123',
+            role='tutor',
         )
         self.calendar_url = reverse('calendar')
 
@@ -19,7 +22,7 @@ class CalendarViewTestCase(TestCase):
         """Calendar view should redirect to login if user is not authenticated."""
         response = self.client.get(self.calendar_url)
         self.assertNotEqual(response.status_code, 200)
-        self.assertRedirects(response, f'/log_in?next={self.calendar_url}')
+        self.assertRedirects(response, f"/log_in/?next=/calendar/")
 
 
     def test_calendar_view_no_student_profile_redirects(self):

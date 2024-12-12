@@ -99,7 +99,7 @@ def dashboard(request):
         tutors = Tutor.objects.all()
         tutor_data = [{'tutor': tutor} for tutor in tutors]
 
-        lessons = Lesson.objects.all()
+        lessons = Lesson.objects.all().order_by('-created_at')
         lessons_data = [{'lesson': lesson} for lesson in lessons]
         if search_all:
             filtered_lessons = lessons.filter(

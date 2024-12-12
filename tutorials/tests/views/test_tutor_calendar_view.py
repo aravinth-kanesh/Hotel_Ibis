@@ -1,6 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth.models import User
+from tutorials.models import User
 from tutorials.models import Student, Lesson, Invoice, Tutor
 from datetime import date
 
@@ -8,21 +8,23 @@ class CreateInvoiceViewTest(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
-            username='testuser',
+            username='@testuser',
             password='testpass',
-            first_name='John',
-            last_name='Doe'
+            first_name='Jahn',
+            last_name='Doe',
+            role="student"
         )
         self.tutor_user = User.objects.create_user(
-            username='tutoruser',
+            username='@tutoruser',
             password='testpass',
             first_name='Jane',
-            last_name='Smith'
+            last_name='Smith',
+            role = "tutor"
         )
         
         # Create Tutor and Student instances
-        self.tutor = Tutor.objects.create(UserID=self.tutor_user)
-        self.student = Student.objects.create(UserID=self.user)
+        self.tutor = Tutor.objects.get_or_create(UserID=self.tutor_user)
+        self.student = Student.objects.get_or_create(UserID=self.user)
 
         # URL for create_invoice (adjust if your URL differs)
         self.url = reverse('create_invoice', args=[self.student.id])

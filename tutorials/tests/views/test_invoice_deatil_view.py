@@ -1,11 +1,12 @@
 from django.test import TestCase, Client
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth.models import get_user_model
 from tutorials.models import Student, Invoice
 
 class InvoiceDetailViewTest(TestCase):
     def setUp(self):
         self.client = Client()
+        User = get_user_model()  
         # Users
         self.admin_user = User.objects.create_user(username='adminuser', password='adminpass')
         self.admin_user.role = 'admin'
@@ -20,7 +21,7 @@ class InvoiceDetailViewTest(TestCase):
         self.other_user.save()
 
         # Student/Invoice
-        self.student = Student.objects.create(UserID=self.student_user)
+        self.student = Student.objects.get_or_create(UserID=self.student_user)
         self.invoice = Invoice.objects.create(student=self.student, paid=False, total_amount=100.0)
 
         self.invoice_detail_url = reverse('invoice_detail', args=[self.invoice.id])

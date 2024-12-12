@@ -40,7 +40,7 @@ class MessageDetailViewTests(TestCase):
         """Test that unauthenticated users are redirected to the login page."""
         self.client.logout()
         response = self.client.get(self.url)
-        self.assertRedirects(response, f"/accounts/login/?next={self.url}")
+        self.assertRedirects(response, f"/log_in/?next={self.url}")
 
     def test_access_authorized_user(self):
         """Test that an authorized user can view the message."""

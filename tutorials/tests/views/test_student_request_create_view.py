@@ -19,8 +19,8 @@ class StudentRequestCreateViewTests(TestCase):
         self.client = Client()
         self.client.login(username="@petrapickles", password="Password123")
         
-        # Set the URL for the view
-        self.url = reverse("student_request_create")
+
+        self.url = reverse("create_request")
 
     def test_get_request_form(self):
         """Test the form renders correctly for logged-in users."""
@@ -32,7 +32,7 @@ class StudentRequestCreateViewTests(TestCase):
         """Test that the view redirects non-logged-in users to the login page."""
         self.client.logout()
         response = self.client.get(self.url)
-        self.assertRedirects(response, f"/accounts/login/?next={self.url}")
+        self.assertRedirects(response, f"/log_in/?next={self.url}")
 
     def test_form_submission_success(self):
         """Test successful form submission."""

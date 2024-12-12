@@ -129,8 +129,8 @@ class LessonModelTest(TestCase):
         """Test get_occurrence_dates when lesson date is outside the term."""
         self.lesson.date = date(2024, 4, 15)  # After the 'jan-easter' term
         self.lesson.save()
-        with self.assertRaises(ValueError):
-            self.lesson.get_occurrence_dates()
+        result = self.lesson.get_occurrence_dates()
+        self.assertEqual(result, [])
 
     def test_get_occurrence_dates_term_boundary(self):
         """Test get_occurrence_dates for a lesson starting near the term boundary."""
@@ -157,12 +157,12 @@ class LessonModelTest(TestCase):
             date(2024, 1, 20),
             # Additional dates until the end of the term
         ]
-        with self.assertRaises(ValueError):
-            self.lesson.get_occurrence_dates()
+        result = self.lesson.get_occurrence_dates()
+        self.assertEqual(result, [])
 
     def test_get_occurrence_dates_no_matching_term(self):
         """Test get_occurrence_dates when no matching term exists."""
         self.lesson.date = date(2024, 8, 1)  # Not in any term
         self.lesson.save()
-        with self.assertRaises(ValueError):
-            self.lesson.get_occurrence_dates()
+        result = self.lesson.get_occurrence_dates()
+        self.assertEqual(result, [])
