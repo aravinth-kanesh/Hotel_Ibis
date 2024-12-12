@@ -36,6 +36,10 @@
 
 {% if tab == 'availability' %}
 <div id="availability">
+  <div class="d-flex justify-content-start ">
+      <a class="btn btn-primary" href="{% url 'tutor_availability_request' %}">Add Availability</a>
+    </div>
+    <br>
     <table class="table table-bordered table-striped">
       <thead class="table-light">
         <tr>
@@ -76,8 +80,6 @@
         {% endfor %}
       </tbody>
     </table>
-    <div class="d-flex justify-content-end">
-      <a class="btn btn-primary" href="{% url 'tutor_availability_request' %}">Add Availability Request</a>
-    </div>
+    
 </div>
 {% endif %}
