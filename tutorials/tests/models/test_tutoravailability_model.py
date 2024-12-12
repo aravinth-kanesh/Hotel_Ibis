@@ -149,3 +149,22 @@ class TutorAvailabilityTestCase(TestCase):
             availability.save()  # Ensure no exceptions during save
         except Exception as e:
             self.fail(f"Save raised an exception: {e}")
+
+    def test_clean_method_called(self):
+        """Test that the clean method is properly called and executes the super().clean()"""
+        
+        # Creating a valid TutorAvailability instance to trigger the clean() method
+        availability = TutorAvailability(
+            tutor=self.tutor,
+            start_time=time(9, 0),
+            end_time=time(17, 0),
+            day=date(2024, 1, 1),
+            availability_status='available',
+            action='edit'
+        )
+        
+        # Calling the clean method, which will invoke super().clean()
+        try:
+            availability.clean()  # No exception should be raised
+        except ValidationError:
+            self.fail("clean() raised ValidationError unexpectedly")
