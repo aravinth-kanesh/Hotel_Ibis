@@ -41,7 +41,7 @@ else:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = ENVIRONMENT == 'development'
 
-ALLOWED_HOSTS = ['jacel.pythonanywhere.com', 'localhost']
+ALLOWED_HOSTS = ['jacel.pythonanywhere.com', '127.0.0.1']
 
 
 # Application definition
