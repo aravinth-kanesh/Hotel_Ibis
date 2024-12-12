@@ -168,10 +168,12 @@ class Lesson(models.Model):
     
     def get_occurrence_dates(self):
         from .term_dates import TERM_DATES, get_term
-
-        term_dates = get_term(self.date)
-        if not term_dates:
-            return []
+        
+        try: 
+            term_dates = get_term(self.date)
+        except ValueError:
+            return[]
+        
         if self.term != term_dates['term']:
             return []
         

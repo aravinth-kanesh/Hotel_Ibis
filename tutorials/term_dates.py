@@ -27,17 +27,13 @@ def get_term(input_date):
         start_month, start_day = dates['start_date']
         end_month, end_day = dates['end_date']
 
-        # Handle terms that span the year boundary (e.g., Sept-Dec crossing into the next year)
         if start_month > end_month:
-            # Term starts in the previous year and ends in the current year
             start_date = date(reference_year - 1, start_month, start_day)
             end_date = date(reference_year, end_month, end_day)
         else:
-            # Term is within the same year
             start_date = date(reference_year, start_month, start_day)
             end_date = date(reference_year, end_month, end_day)
-
-        # Check if the input date falls within this term's date range
+            
         if start_date <= input_date <= end_date:
             return {
                 'term': term,
