@@ -170,8 +170,6 @@ class Lesson(models.Model):
         from .term_dates import TERM_DATES, get_term
 
         term_dates = get_term(self.date)
-        if not term_dates:
-            return []
         if self.term != term_dates['term']:
             return []
         
