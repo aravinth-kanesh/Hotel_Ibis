@@ -41,7 +41,7 @@ else:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = ENVIRONMENT == 'development'
 
-ALLOWED_HOSTS = ['jacelyne.pythonanywhere.com', 'localhost']
+ALLOWED_HOSTS = ['jacel.pythonanywhere.com', 'localhost']
 
 
 # Application definition
@@ -166,3 +166,6 @@ if ENVIRONMENT == 'production':
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SECURE_HSTS_PRELOAD = True
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = Path(BASE_DIR / 'media')
