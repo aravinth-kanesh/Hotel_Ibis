@@ -138,7 +138,7 @@ class tutorAvailabiltyViewTestCase(TestCase):
         ).exists(), "New availability should be created.")
 
     def test_post_new_availabilility_invalid_data(self):
-        self.form_input['tutor'] = ''
+        self.form_input['repeat'] = 'invalid'
         before_count = TutorAvailability.objects.count()
         response = self.client.post(self.url, self.form_input, follow=True)
         self.assertEqual(response.status_code, 200)
@@ -198,34 +198,12 @@ class tutorAvailabiltyViewTestCase(TestCase):
         expected_redirect_url = f"{reverse('dashboard')}?tab=availability"
         self.assertRedirects(response, expected_redirect_url, status_code=302, target_status_code=200)
 
-
-
+    def test_access_nonexistent_tutor_availability(self):
+        # Use an ID that does not exist in the database
+        non_existent_id = 9999
+        url = reverse('edit_tutor_availability', kwargs={'availability_id': non_existent_id}) + '?action=edit'
+        response = self.client.get(url)
         
-
-
-        
-
-
-
-
-
-
-
-
-    
-
-
-
-
-        
-
-
-
-        
-
-
-
-
-        
-        
-
+        # Assert a 400 Bad Request response
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "Invalid availability ID.", status_code=400)

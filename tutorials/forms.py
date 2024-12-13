@@ -425,10 +425,9 @@ class LessonUpdateForm(forms.ModelForm):
     def _is_tutor_available(self, new_date, new_time, new_end_time):
         """Check if the tutor is available for the new proposed date/time."""
   
-
         tutor_availability = TutorAvailability.objects.filter(
             tutor=self.instance.tutor,
-            day=new_date.weekday(),  
+            day=new_date,  
             start_time__lte=new_time,  # Tutor should be available at or before the start of the new lesson
             end_time__gte=new_end_time  # Tutor should be available for the full duration
         )
