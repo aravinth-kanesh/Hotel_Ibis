@@ -1,8 +1,16 @@
+from decimal import Decimal
 from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from django.forms import ValidationError
 from libgravatar import Gravatar
 from django.contrib.auth.models import BaseUserManager
+from datetime import time  
+from django.utils import timezone
+from django.utils.timezone import now
+from datetime import timedelta
+from django.core.validators import MinValueValidator
+
 
 class User(AbstractUser):
     """Model used for user authentication, and team member related information."""
@@ -28,19 +36,9 @@ class User(AbstractUser):
     id = models.AutoField(primary_key=True)
     role = models.CharField(max_length=10, choices= ROLE_CHOICES, default='student')
     def save(self, *args, **kwargs):
+        if self.role not in dict(self.ROLE_CHOICES):
+            raise ValueError(f"Invalid role: {self.role}. Choose from: {[choice[0] for choice in self.ROLE_CHOICES]}")
         super().save(*args, **kwargs)
-    # assign groups/permissions based on role
-        if self.role == 'admin':
-            group, _ = Group.objects.get_or_create(name='Admins')
-            self.groups.add(group)
-        elif self.role == 'tutor':
-            group, _ = Group.objects.get_or_create(name='Tutors')
-            self.groups.add(group)
-        elif self.role == 'student':
-            group, _ = Group.objects.get_or_create(name='Students')
-            self.groups.add(group)
-
-
 
     def __str__(self):
         return self.username
@@ -72,41 +70,69 @@ class User(AbstractUser):
 # model for lang, tutor, student, invoice, class
 
 class Language(models.Model):
-    """ languages supported by tutors"""
+    """Languages supported by tutors"""
     id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100, unique=True, blank=False)
+
+    def clean(self):
+        # Check for empty name
+        if not self.name:
+            raise ValidationError('Name cannot be empty')
+
+        # Check that the name does not exceed max length
+        if len(self.name) > 100:
+            raise ValidationError('Name exceeds the maximum length of 100 characters')
+
+    def save(self, *args, **kwargs):
+        # Normalize the name to lowercase before saving
+        self.name = self.name.lower().strip()
+        self.clean()  # Perform validation before saving
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        return self.name
+        return self.name.title()
     
+
 class Tutor(models.Model):
     """Model for tutors"""
     id = models.AutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
+    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tutor_profile")
     languages = models.ManyToManyField(Language, related_name="taught_by")
-
+    
     def __str__(self):
-        return f"Tutor: {self.user.full_name}"
+        languages = ", ".join([language.name for language in self.languages.all()])
+        return f"{self.UserID.first_name} {self.UserID.last_name}"
+    
     
 class Student(models.Model):
     """Model for student"""
     id = models.AutoField(primary_key=True)
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
+    UserID = models.OneToOneField(User, on_delete=models.CASCADE, related_name="student_profile")
     def __str__(self):
-        return f"Student: {self.user.userna}"
-
+        return f"Student: {self.UserID.username}"
+    
+    
 class Invoice(models.Model):
     id = models.AutoField(primary_key=True)
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="invoices")
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="invoices")
-    total_amount = models.IntegerField()
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     paid = models.BooleanField(default=False)
+    approved = models.BooleanField(default=False)
     date_issued = models.DateField(auto_now_add=True)
     date_paid = models.DateField(null=True, blank=True)
+
+    def calculate_total_amount(self):
+        lessons = Lesson.objects.filter(invoice=self)
+        total = sum(lesson.price for lesson in lessons)
+        total = Decimal(total)
+        self.total_amount = round(total, 2)
+        self.save()
 
     def __str__(self):
         status = "Paid" if self.paid else "Unpaid"
         return f"Invoice {self.id} ({status})"
+    
 
 #All students have regular sessions 
 # (every week/fortnight, same time, same venue, same tutor)
@@ -128,16 +154,54 @@ class Lesson(models.Model):
     tutor = models.ForeignKey(Tutor, on_delete=models.CASCADE, related_name="classes")
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="classes")
     language = models.ForeignKey(Language, on_delete=models.CASCADE, related_name="classes")
-    time = models.TimeField()
-    date = models.DateField()
-    venue = models.CharField(max_length=255)
-    duration = models.IntegerField()  # Duration in minutes
-    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
-    term = models.CharField(max_length=20, choices=TERM_CHOICES)
+    invoice = models.ForeignKey(Invoice, on_delete=models.SET_NULL, null=True, blank=True, related_name="lessons")
+    time = models.TimeField(default=time(9, 0))
+    date = models.DateField(default=now)
+    venue = models.CharField(max_length=255, default="TBD")
+    duration = models.IntegerField(default=60)  # Duration in minutes
+    frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES, default='once a week')
+    term = models.CharField(max_length=20, choices=TERM_CHOICES, default='sept-christmas')
+    price = models.DecimalField(max_digits=6, decimal_places=2, default=0.00)
+    created_at = models.DateTimeField(auto_now=True)
+
+    def get_price(self):
+        return self.price
+    
+    def get_occurrence_dates(self):
+        from .term_dates import TERM_DATES, get_term
+        
+        try: 
+            term_dates = get_term(self.date)
+        except ValueError:
+            return[]
+        
+        if self.term != term_dates['term']:
+            return []
+        
+        start_date = max(self.date, term_dates['start_date'])  # Ensure the lesson doesn't start before the term
+        end_date = term_dates['end_date']
+
+        occurrence_dates = []
+        current_date = start_date
+
+        # Determine the interval between lessons
+        if self.frequency == 'once a week':
+            delta = timedelta(weeks=1)
+        elif self.frequency == 'once per fortnight':
+            delta = timedelta(weeks=2)
+        else:
+            return []
+
+        # Generate dates until the end of the term
+        while current_date <= end_date:
+            occurrence_dates.append(current_date)
+            current_date += delta
+
+        return occurrence_dates
 
     def __str__(self):
-        return f"Lesson {self.id} ({self.language.name}) with {self.student.user.username} on {self.date} at {self.time}"
-    
+        return f"Lesson {self.id} ({self.language.name}) with {self.student.UserID.username} on {self.date} at {self.time}"
+
 
 # for handling student reqs
 class StudentRequest(models.Model):
@@ -155,13 +219,15 @@ class StudentRequest(models.Model):
     description = models.TextField()
     is_allocated = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    date = models.DateField(default=now)
     time = models.TimeField()
     venue = models.TextField()
-    duration = models.IntegerField() 
+    duration = models.IntegerField(validators=[MinValueValidator(1)]) 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
     def __str__(self):
-        return f"Request {self.id} by {self.student.user.username} for {self.language.name}"
+        return f"Request {self.id} by {self.student.UserID.username} for {self.language.name}"
+    
     
 class Message (models.Model):
     recipient = models.ForeignKey(User, on_delete=models.SET_NULL,null=True,  related_name="received_messages", db_index=True)
@@ -187,3 +253,43 @@ class Message (models.Model):
 
     def __str__(self):
         return f"Message from {self.sender} to {self.recipient} - {self.subject[:30]}"
+    
+
+from django.core.exceptions import ValidationError
+from django.db import models
+
+
+class TutorAvailability(models.Model):
+    CHOICE = [
+        ('available', 'Available'),
+        ('not_available', 'Not Available'),
+    ]
+    ACTION = [
+        ('edit', 'Edit'),
+        ('delete', 'Delete')
+    ]
+    
+    tutor = models.ForeignKey('Tutor', on_delete=models.CASCADE, related_name="availability")
+    start_time = models.TimeField(default="09:00")
+    end_time = models.TimeField()
+    day = models.DateField()
+    availability_status = models.CharField(max_length=20, choices=CHOICE, default='available')
+    action = models.CharField(max_length=10, choices=ACTION, default='edit')
+
+    def __str__(self):
+        return f"{self.tutor.UserID.full_name()} - {self.day} - from {self.start_time} to {self.end_time} - ({self.availability_status})"
+    
+    def clean(self):
+        """Ensure start_time is before end_time, availability_status and action are valid."""
+        # Ensure start_time is before end_time
+        if self.start_time >= self.end_time:
+            raise ValidationError("Start time must be before end time.")
+        
+        # Validate the availability_status is one of the defined choices
+        if self.availability_status not in dict(self.CHOICE):
+            raise ValidationError(f"Invalid availability status: {self.availability_status}")
+        
+        if self.action not in dict(self.ACTION):
+            raise ValidationError(f"Invalid action: {self.action}")
+        
+        super().clean()

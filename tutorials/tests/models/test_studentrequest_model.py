@@ -3,8 +3,8 @@ from tutorials.models import StudentRequest, Student, Language, User
 
 class StudentRequestModelTest(TestCase):
     def test_create_request(self):
-        user = User.objects.create(username="@johndoe", email="johndoe@example.com", role="student")
-        student = Student.objects.get(user=user)
+        user = User.objects.create(username="@student1", email="student1@example.com", role="student")
+        student, _ = Student.objects.get_or_create(UserID=user)
         language = Language.objects.create(name="Python")
         request = StudentRequest.objects.create(
             student=student,
@@ -17,4 +17,4 @@ class StudentRequestModelTest(TestCase):
             term="sept-christmas",
         )
         self.assertEqual(request.is_allocated, False)
-        self.assertEqual(str(request), f"Request {request.id} by @johndoe for Python")
+        self.assertEqual(str(request), f"Request {request.id} by @student1 for python")

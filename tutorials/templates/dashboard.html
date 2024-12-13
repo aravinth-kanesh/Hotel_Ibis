@@ -1,10 +1,92 @@
+<!-- templates/base_content.html or your dashboard template -->
+
 {% extends 'base_content.html' %}
+
 {% block content %}
 <div class="container">
-  <div class="row">
-    <div class="col-12">
-      <h1>Welcome to your dashboard {{ user.username }}</h1>
+  <div class="col-12">
+    <h1>Welcome to your dashboard, {{ user.username }}!</h1>
+    <hr style="border: 1px solid grey;">
+    <style>
+      .btn-xs {
+        font-size: 0.85rem; /* Adjust font size */
+        padding: 0.15rem 0.3rem; /* Adjust padding */
+        line-height: 1.2rem;
+      }
+    </style>
+    <div class="d-flex justify-content-center gap-2 mt-2 w-100">
+      
+      {% if user.role == 'admin' or user.is_staff %}
+        <a href="{% url 'send_message' %}" class="btn btn-light btn-sm">Send Message</a>
+        <a href="{% url 'all_messages' %}" class="btn btn-light btn-sm">View Messages</a>
+
+  
+      {% elif user.role == 'tutor' %}
+        <a href="{% url 'manage_languages' %}" class="btn btn-light btn-sm">Manage Languages</a>
+        <a href="{% url 'send_message' %}" class="btn btn-light btn-sm">Send Message</a>
+        <a href="{% url 'all_messages' %}" class="btn btn-light btn-xs">View Messages</a>
+        <a href="{% url 'tutor_calendar' %}" class="btn btn-light btn-xs">Calendar</a>
+      
+        
+      {%elif user.role == 'student' %}
+        <a href="{% url 'create_request' %}" class="btn btn-light btn-xs">Request Lesson </a>
+        <a href="{% url 'view_request' %}" class="btn btn-light btn-xs">View Requests</a>
+        <a href="{% url 'send_message' %}" class="btn btn-light btn-xs">Send Message</a>
+        <a href="{% url 'all_messages' %}" class="btn btn-light btn-xs">View Messages</a>
+        <a href="{% url 'student_invoices' %}" class="btn btn-light btn-xs">View Invoices</a>
+        <a href="{% url 'calendar' %}" class="btn btn-light btn-xs">Calendar</a>
+               
+        {% else %}
+        <p>Your role is not recognized.</p>
+      {% endif %}
+    </div>
+    <br>
+    
+    <ul class="nav nav-tabs">
+      {% if user.role == 'admin' or user.is_staff %}
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'accounts' %}active{% endif %}" href="?tab=accounts">All Accounts</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'tutors' %}active{% endif %}" href="?tab=tutors">Tutor Info</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'students' %}active{% endif %}" href="?tab=students">Student Info</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">Lessons</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'invoices' %}active{% endif %}" href="?tab=invoices">Invoices</a>
+        </li>
+      {% elif user.role == 'tutor' %}
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">My Lessons</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if tab == 'availability' %}active{% endif %}" href="?tab=availability">My Availability</a>
+        </li>
+      {% elif user.role == 'student' %}
+      <li class="nav-item">
+        <a class="nav-link {% if tab == 'lessons' %}active{% endif %}" href="?tab=lessons">My Lessons</a>
+      </li>
+      {% endif %}
+    </ul>
+
+    <div class="tab-content mt-3">
+      {% if user.role == 'admin' or user.is_staff %}
+        {% include 'includes/admin_tabs.html' %}
+  
+      {% elif user.role == 'tutor' %}
+        {% include 'includes/tutor_tabs.html' %}
+        
+      {%elif user.role == 'student' %}
+        {% include 'includes/student_tabs.html' %}
+      {% else %}
+        <p>Your role is not recognized.</p>
+      {% endif %}
+    
     </div>
   </div>
-</div>
+</div>    
 {% endblock %}

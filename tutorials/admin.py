@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import User, Language, Tutor, Student, Invoice, Lesson, Message
+from .models import User, Language, Tutor, Student, Invoice, Lesson, TutorAvailability, Message, StudentRequest
 # Register your models here.
 
 
@@ -20,9 +20,9 @@ class LanguageAdmin(admin.ModelAdmin):
 
 @admin.register(Tutor)
 class TutorAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'get_languages') 
+    list_display = ('id', 'UserID', 'get_languages') 
     search_fields = ('user__username', 'user__email')  
-    autocomplete_fields = ['user']   
+    autocomplete_fields = ['UserID']   
     filter_horizontal = ['languages'] 
 
     def get_languages(self, obj):
@@ -33,9 +33,9 @@ class TutorAdmin(admin.ModelAdmin):
 
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user') 
+    list_display = ('id', 'UserID') 
     search_fields = ('user__username', 'user__email')  
-    autocomplete_fields = ['user']  
+    autocomplete_fields = ['UserID']  
 
 
 @admin.register(Invoice)
@@ -47,14 +47,11 @@ class InvoiceAdmin(admin.ModelAdmin):
 
 
 @admin.register(Lesson)
-class ClassAdmin(admin.ModelAdmin):
-    list_display = ('id', 'tutor', 'student', 'language', 'date', 'time', 'venue', 'duration', 'frequency', 'term')
+class LessonAdmin(admin.ModelAdmin):
+    list_display = ('id', 'tutor', 'student', 'invoice','language', 'date', 'time', 'venue', 'duration', 'frequency', 'term', 'created_at')
     list_filter = ('frequency', 'term', 'date') 
     search_fields = ('tutor__UserID__username', 'student__UserID__username', 'language__name')  
     autocomplete_fields = ['tutor', 'student', 'language'] 
-
-from django.contrib import admin
-from .models import StudentRequest
 
 @admin.register(StudentRequest)
 class StudentRequestAdmin(admin.ModelAdmin):
@@ -78,4 +75,12 @@ class MessageAdmin(admin.ModelAdmin):
         """Display the reply message in a human-readable format."""
         return obj.reply.subject if obj.reply else "None"
     get_reply.subject = "Reply Message"
+
+@admin.register(TutorAvailability)
+class TutorAvailability(admin.ModelAdmin):
+    list_display = ('tutor', 'day', 'start_time', 'end_time', 'action', 'availability_status')
+    list_filter = ('tutor', 'action', 'availability_status', )
+    search_fields = ('tutor__UserID__username', 'day', 'availability_status')
+
+
 

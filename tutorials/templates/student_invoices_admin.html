@@ -1,0 +1,44 @@
+
+{% extends 'base_content.html' %}
+
+{% block title %}Invoices for {{ student.UserID.full_name }}{% endblock %}
+
+{% block content %}
+  <h1>Invoices for {{ student.UserID.full_name }}</h1>
+  {% if invoices %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Invoice ID</th>
+          <th>Total Amount</th>
+          <th>Status</th>
+          <th>Date Issued</th>
+          <th>Date Paid</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for invoice in invoices %}
+          <tr>
+            <td>{{ invoice.id }}</td>
+            <td>${{ invoice.total_amount }}</td>
+            <td>
+              {% if invoice.paid %}
+                <span class="text-success">Paid</span>
+              {% else %}
+                <span class="text-danger">Unpaid</span>
+              {% endif %}
+            </td>
+            <td>{{ invoice.date_issued }}</td>
+            <td>{{ invoice.date_paid|default:'N/A' }}</td>
+            <td>
+              <a href="{% url 'invoice_detail' invoice.id %}" class="btn btn-info btn-sm">View</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No invoices found for this student.</p>
+  {% endif %}
+{% endblock %}

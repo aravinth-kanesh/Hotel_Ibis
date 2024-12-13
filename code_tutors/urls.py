@@ -39,5 +39,39 @@ urlpatterns = [
     path('message/send/<int:reply_id>/', views.SendMessageView.as_view(), name='reply_message'),
     path('messages/', views.AllMessagesView.as_view(), name='all_messages'),
     path('messages/<int:pk>/', views.MessageDetailView.as_view(), name='message_detail'),
+
+    path('invoice/<int:invoice_id>/approve/', views.approve_invoice, name='approve_invoice'),
+
+    #dashboard tools (admin)
+    path('user/<int:user_id>/delete/', views.delete_user, name='delete_user'),
+    path('user/<int:user_id>/update-role/', views.update_user_role, name='update_user_role'),
+
+    path('calendar/', views.calendar_view, name='calendar'),
+    path('calendar/<int:year>/<int:month>/', views.calendar_view, name='calendar'),
+    path('lessons/<int:year>/<int:month>/<int:day>/', views.lessons_on_day, name='lessons_on_day'),
+    path('tutor/calendar/', views.tutor_calendar_view, name='tutor_calendar'),
+    path('tutor/calendar/<int:year>/<int:month>/', views.tutor_calendar_view, name='tutor_calendar'),
+    path('tutor/lessons/<int:year>/<int:month>/<int:day>/', views.lessons_on_day_tutor, name='lessons_on_day_tutor'),
+    # Admin URLs
+    path('students/', views.student_list, name='student_list'),
+    path('invoices/create/<int:student_id>/', views.create_invoice, name='create_invoice'),
+    path('view/<int:student_id>/invoices/', views.student_invoices_admin, name='student_invoices_admin'),
+    path('set-price/<int:student_id>/', views.set_price, name='set_price'),
+    
+    # Invoice URLs
+    path('invoices/<int:invoice_id>/', views.invoice_detail, name='invoice_detail'),
+    path('invoices/pay/<int:invoice_id>/', views.pay_invoice, name='pay_invoice'),
+
+    # Student Invoice List
+    path('my-invoices/', views.student_invoices, name='student_invoices'),
+
+    path('process-request/<int:request_id>/', views.StudentRequestProcessingView.as_view(), name='process_request'),
+    path('lesson-update/<int:lesson_id>/', views.LessonUpdateView.as_view(), name='lesson_update'),
+    # tutor pages
+    path('manage-languages/', views.manage_languages, name='manage_languages'),
+    path('tutor/manage-availability/', views.TutorAvailabilityView.as_view(), name='tutor_availability_request'),
+    path('tutor/manage-availability/<int:availability_id>/edit', views.TutorAvailabilityView.as_view(), name='edit_tutor_availability'),
+    path('tutor/manage-availability/<int:availability_id>/delete', views.TutorAvailabilityView.as_view(), name='delete_tutor_availability'),
+
 ]
 urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

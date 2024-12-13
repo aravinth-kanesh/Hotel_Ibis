@@ -1,0 +1,180 @@
+{% extends 'base_content.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-sm-12 col-md-8 offset-md-2">
+            <h1 class="mb-4 text-center">Process Student Request</h1>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <table class="table table-bordered">
+                        <tr>
+                            <th>Student</th>
+                            <td>{{ request.student.UserID.first_name }} {{ request.student.UserID.last_name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Language</th>
+                            <td>{{ request.language.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Description</th>
+                            <td>{{ request.description }}</td>
+                        </tr>
+                        <tr>
+                            <th>Time</th>
+                            <td>{{ request.time }}</td>
+                        </tr>
+                        <tr>
+                            <th>Venue</th>
+                            <td>{{ request.venue }}</td>
+                        </tr>
+                        <tr>
+                            <th>Duration</th>
+                            <td>{{ request.duration }} minutes</td>
+                        </tr>
+                        <tr>
+                            <th>Frequency</th>
+                            <td>{{ request.frequency }}</td>
+                        </tr>
+                        <tr>
+                            <th>Term</th>
+                            <td>{{ request.term }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger mb-4">
+                <ul>
+                    {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="form-group mb-4">
+                            <label for="id_status" class="font-weight-bold h4">Request Status</label>
+                            <div class="mt-2">
+                                {{ form.status }}
+                            </div>
+                            {% if form.status.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.status.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="id_tutor" class="font-weight-bold h4">Select Tutor</label>
+                            <div class="mt-2">
+                                {{ form.tutor }}
+                            </div>
+                            {% if form.tutor.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.tutor.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="id_first_lesson_date" class="font-weight-bold h4">First Lesson Date</label>
+                            <div class="mt-2">
+                                {{ form.first_lesson_date }}
+                            </div>
+                            {% if form.first_lesson_date.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.first_lesson_date.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="id_first_lesson_time" class="font-weight-bold h4">First Lesson Time</label>
+                            <div class="mt-2">
+                                {{ form.first_lesson_time }}
+                            </div>
+                            {% if form.first_lesson_time.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.first_lesson_time.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group mb-4">
+                            <label for="id_details" class="font-weight-bold h4">Details</label>
+                            <div class="mt-2">
+                                {{ form.details }}
+                            </div>
+                            {% if form.details.errors %}
+                                <ul class="errorlist">
+                                    {% for error in form.details.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group text-center mb-0">
+                            <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            <div class="text-center mb-4">
+                <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-lg">Back to Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-group label {
+        font-size: 1.5rem; /* Match header size */
+        margin-bottom: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group .errorlist {
+        color: red;
+        margin-top: 0.5rem;
+    }
+
+    .form-group .mt-2 {
+        margin-top: 0.5rem;
+    }
+
+    .form-group button {
+        width: auto;
+        display: inline-block;
+    }
+
+    .mb-4 a {
+        display: inline-block;
+        margin: 0 auto;
+    }
+
+    /* Remove extra space below the submit button */
+    .form-group button {
+        margin-bottom: 0;
+    }
+</style>
+{% endblock %}

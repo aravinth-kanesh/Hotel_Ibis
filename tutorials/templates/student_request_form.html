@@ -4,6 +4,23 @@
 <div class="container">
   <div class="row">
     <div class="col-sm-12 col-md-6 offset-md-3">
+      {% if not invoice.paid %}
+      <div class="alert alert-danger">
+        <strong>Warning!</strong> You have an unpaid invoice. This request will not be processed until you have made payment. 
+      </div>
+      {% endif %}
+      {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li>{{ field|capfirst }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+      {% endif %}
+
       <h1>Request a Lesson</h1>
       <form action="{% url 'create_request' %}" method="post">
         {% csrf_token %}

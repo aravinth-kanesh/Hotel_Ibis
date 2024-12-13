@@ -5,8 +5,10 @@
   <div class="row">
     <div class="col-12">
       <h1 class="mb-4">Your Messages</h1>
-
-      <!-- Tabs for Sent and Received Messages -->
+    
+      <a href="{% url 'send_message'%}" class="btn btn-primary my-2">Send a Message</a>
+     
+    
       <ul class="nav nav-tabs mb-3" id="messageTabs" role="tablist">
         <li class="nav-item">
           <button class="nav-link active" id="received-tab" data-bs-toggle="tab" data-bs-target="#received" type="button" role="tab">Received</button>
@@ -17,7 +19,7 @@
       </ul>
 
       <div class="tab-content" id="messageTabsContent">
-        <!-- Received Messages Tab -->
+ 
         <div class="tab-pane fade show active" id="received" role="tabpanel" aria-labelledby="received-tab">
           <h3>Received Messages</h3>
           {% for message in received_messages %}
@@ -34,7 +36,7 @@
           {% endfor %}
         </div>
 
-        <!-- Sent Messages Tab -->
+
         <div class="tab-pane fade" id="sent" role="tabpanel" aria-labelledby="sent-tab">
           <h3>Sent Messages</h3>
           {% for message in sent_messages %}

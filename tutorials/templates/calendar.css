@@ -1,0 +1,87 @@
+/* static/css/calendar.css */
+
+.calendar-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.calendar-header {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.calendar-header a {
+    margin: 0 20px;
+    text-decoration: none;
+    color: #007bff;
+}
+
+.calendar-header a:hover {
+    text-decoration: underline;
+}
+
+.calendar-grid {
+    display: flex;
+    flex-direction: column;
+}
+
+.calendar-row {
+    display: flex;
+}
+
+.calendar-cell {
+    width: 14.28%; /* 100% divided by 7 days */
+    border: 1px solid #ddd;
+    box-sizing: border-box;
+    height: 120px; /* Adjust as needed */
+    padding: 5px;
+    position: relative;
+    background-color: #fff;
+}
+
+.calendar-days .calendar-cell {
+    background-color: #f5f5f5;
+    font-weight: bold;
+    text-align: center;
+}
+
+.other-month {
+    background-color: #f9f9f9;
+    color: #ccc;
+}
+
+.day-number {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.event-container {
+    background-color: #d9edf7;
+    border: 1px solid #bce8f1;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+    font-size: 12px; /* Smaller text */
+    color: #31708f;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.event-container:hover {
+    background-color: #c4e3f3;
+}
+
+.event-text {
+    display: block;
+}
+
+@media screen and (max-width: 600px) {
+    .calendar-cell {
+        height: 80px;
+    }
+
+    .event-container {
+        font-size: 10px;
+    }
+}
