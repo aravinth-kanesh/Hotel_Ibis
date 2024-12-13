@@ -221,3 +221,48 @@ class StudentRequestProcessingViewTestCase(TestCase):
 
         self.student_request.refresh_from_db()
         self.assertEqual(self.student_request.is_allocated, True)
+
+    def test_invalid_form_submission(self):
+        """Test that submitting invalid data results in a form error."""
+
+        self.client.login(username='@admin_user', password='adminpassword')
+
+        # Simulate a POST request with invalid data
+        response = self.client.post(reverse('process_request', args=[self.student_request.id]), {
+            'status': 'bluh',
+            'details': '',
+            'tutor': self.tutor.id,
+            'first_lesson_date': "2025-09-04",  
+            'first_lesson_time': "15:00",  
+        })
+
+        # Check that the form is rendered again, meaning validation failed
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'process_request.html')
+
+    def test_tutor_availability_unavailable(self):
+        """Test that the lesson cannot be scheduled if the tutor is unavailable at the requested time."""
+
+        self.client.login(username='@admin_user', password='adminpassword')
+
+        # Change the tutor's availability for a specific day to "unavailable"
+        unavailable_date = date(2025, 9, 4)
+        TutorAvailability.objects.filter(
+            tutor=self.tutor,
+            day=unavailable_date
+        ).update(availability_status='not_available')
+
+        # Try to accept the student request on this day with a conflicting time
+        response = self.client.post(reverse('process_request', args=[self.student_request.id]), {
+            'status': 'accepted',
+            'details': '',
+            'tutor': self.tutor.id,
+            'first_lesson_date': "2025-09-04",
+            'first_lesson_time': "15:00",  
+        })
+
+        # Check if the response is a redirect, indicating that there was an error
+        self.assertRedirects(response, reverse('dashboard'))
+
+        # Follow the redirect to check for the error message
+        response = self.client.get(reverse('dashboard'))

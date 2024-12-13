@@ -115,3 +115,19 @@ class LessonUpdateViewTestCase(TestCase):
 
         self.assertEqual(str(updated_lesson.date), "2024-12-05")
         self.assertEqual(str(updated_lesson.time), "14:00:00")
+
+    def test_invalid_form_submission(self):
+        """Test that submitting invalid data results in a form error."""
+
+        self.client.login(username='@admin_user', password='adminpassword')
+
+        # Simulate a POST request with invalid data
+        response = self.client.post(reverse('lesson_update', args=[self.lesson.id]), {
+            'cancel_lesson': False,            
+            'new_date': 'invalid_date',        
+            'new_time': 'invalid_time',        
+        })
+
+        # Check that the form is rendered again, meaning validation failed
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'lesson_update.html')

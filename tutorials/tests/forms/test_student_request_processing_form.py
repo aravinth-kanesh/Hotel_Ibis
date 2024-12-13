@@ -141,6 +141,19 @@ class StudentRequestProcessingFormTestCase(TestCase):
         self.assertEqual(form.cleaned_data['status'], 'denied')
         self.assertEqual(form.cleaned_data['details'], 'Scheduling conflict')
 
+    def test_form_invalid_with_status_denied_and_no_details(self):
+        """Test if the form is valid when status is 'denied' and no tutor or lesson date/time are provided."""
+        
+        data = {
+            'status': 'denied',
+            'details': '',
+        }
+
+        form = StudentRequestProcessingForm(data)
+        
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors['details'], ['You must provide a reason in the Details field when denying a request.'])
+
     def test_form_invalid_without_tutor(self):
         """Test if the form is invalid when status is 'accepted' but tutor is missing."""
         

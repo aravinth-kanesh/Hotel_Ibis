@@ -287,5 +287,9 @@ class TutorAvailability(models.Model):
         # Validate the availability_status is one of the defined choices
         if self.availability_status not in dict(self.CHOICE):
             raise ValidationError(f"Invalid availability status: {self.availability_status}")
+        
+        # Validate the action is one of the defined choices
+        if self.action not in dict(self.ACTION):
+            raise ValidationError(f"Invalid action: {self.action}")
 
         super().clean()

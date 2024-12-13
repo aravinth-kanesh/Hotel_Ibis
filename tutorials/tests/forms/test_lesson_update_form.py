@@ -36,6 +36,18 @@ class LessonUpdateFormTestCase(TestCase):
             term="sept-christmas"
         )
 
+        Lesson.objects.create(
+            student=self.student,
+            tutor=self.tutor,
+            language=self.language,
+            date="2024-12-05",
+            time="10:00",
+            venue="Room 101",
+            duration=60,
+            frequency="once a week",
+            term="sept-christmas"
+        )
+
         TutorAvailability.objects.create(
             tutor=self.tutor,
             start_time="09:00", 
@@ -125,13 +137,6 @@ class LessonUpdateFormTestCase(TestCase):
         form = LessonUpdateForm(data)
 
         self.assertTrue(form.is_valid())
-
-    def test_form_invalid_when_date_and_time_not_changed(self):
-        """Test if the form is invalid when neither the date nor the time is changed."""
-
-        form = LessonUpdateForm(instance=self.lesson)
-
-        self.assertFalse(form.is_valid())
 
     def test_form_valid_when_only_date_is_changed(self):
         """Test if the form is valid when only the date is changed."""

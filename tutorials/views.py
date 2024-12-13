@@ -901,7 +901,7 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         )
 
         if scheduled_lessons:
-            messages.success(request, f"Request accepted! {len(scheduled_lessons)} lessons have been scheduled.")
+            messages.success(request, f"Request accepted! Lessons have been scheduled.")
             student_request.is_allocated = True
         else:
             messages.error(request, "Unable to schedule lessons due to conflicts.")
@@ -918,23 +918,22 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         days_between_lessons = self.FREQUENCY_TO_DAYS.get(frequency, 7)
 
         while current_datetime.date() <= term_end:
-            if current_datetime.date() >= term_start:
-                available_slot = self.find_available_slot(
-                    tutor, student, current_datetime.date(), current_datetime.time(), duration
+            available_slot = self.find_available_slot(
+                tutor, student, current_datetime.date(), current_datetime.time(), duration
+            )
+            if available_slot:
+                lesson = Lesson.objects.create(
+                    student=student,
+                    tutor=tutor,
+                    language=language,
+                    date=available_slot.date(),
+                    time=available_slot.time(),
+                    duration=duration,
+                    venue=venue
                 )
-                if available_slot:
-                    lesson = Lesson.objects.create(
-                        student=student,
-                        tutor=tutor,
-                        language=language,
-                        date=available_slot.date(),
-                        time=available_slot.time(),
-                        duration=duration,
-                        venue=venue
-                    )
-                    scheduled_lessons.append(lesson)
-                else:
-                    return HttpResponseBadRequest(f"No available times for {current_datetime.date()}.")
+                scheduled_lessons.append(lesson)
+            else:
+                return HttpResponseBadRequest(f"No available times for {current_datetime.date()}.")
 
             current_datetime += timedelta(days=days_between_lessons)
 
@@ -1004,13 +1003,18 @@ class StudentRequestProcessingView(LoginRequiredMixin, View):
         def conflicts_with_lessons(lessons):
             for lesson in lessons:
                 lesson_end_time = (datetime.combine(lesson.date, lesson.time) + timedelta(minutes=lesson.duration)).time()
+
+                if end_time <= lesson.time or slot.time() >= lesson_end_time:
+                    continue
+
                 if (
-                    (slot.time() < lesson_end_time and end_time > lesson.time) or  # New starts before, ends after
+                    (slot.time() < lesson.time and end_time > lesson_end_time) or  # New starts before, ends after
                     (slot.time() < lesson.time and end_time > lesson.time and end_time <= lesson_end_time) or  # New starts before, ends during
-                    (slot.time() >= lesson.time and slot.time() < lesson_end_time and end_time <= lesson_end_time) or  # New starts during, ends during
-                    (slot.time() >= lesson.time and slot.time() < lesson_end_time and end_time > lesson_end_time)  # New starts during, ends after
+                    (slot.time() >= lesson.time and end_time > lesson.time and end_time <= lesson_end_time) or  # New starts during, ends during
+                    (slot.time() >= lesson.time and end_time > lesson_end_time)  # New starts during, ends after
                 ):
                     return True
+                
             return False
 
         student_lessons = Lesson.objects.filter(student=student, date=slot.date())
@@ -1052,10 +1056,12 @@ class LessonUpdateView(LoginRequiredMixin, View):
                 return self._handle_cancellation(request, lesson)
 
             return self._handle_update(request, form, lesson)
-
-        # If the form is invalid
-        messages.error(request, "There was an error updating the lesson. Please try again.")
-        return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
+        
+        messages.error(request, "There was an error processing the request. Please try again.")
+        return render(request, 'lesson_update.html', {
+            'form': form,
+            'request': lesson,
+        })
 
     def _is_cancellation_requested(self, form):
         """Determine if the cancellation checkbox is selected."""

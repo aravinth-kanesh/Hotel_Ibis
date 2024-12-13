@@ -379,6 +379,8 @@ class LessonUpdateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if instance:
+            self.instance = instance
+
             # Pre-fill fields with original lesson data
             self.fields['new_date'].initial = instance.date
             self.fields['new_time'].initial = instance.time
@@ -399,12 +401,8 @@ class LessonUpdateForm(forms.ModelForm):
             return cleaned_data
 
         # Ensure new_date and/or new_time are provided if not cancelling
-        if not new_date or not new_time:
+        if not new_date or not new_time or (new_date == self.instance.date and new_time == self.instance.time):
             raise forms.ValidationError("New date and/or new time are required when cancelling is not selected.")
-
-        # If the date or time has not changed, raise validation error
-        if new_date == self.instance.date and new_time == self.instance.time:
-            raise forms.ValidationError("You must change the date or time to update the lesson details.")
 
         # Convert new date and time to datetime objects
         new_start_datetime = datetime.combine(new_date, new_time)
@@ -446,9 +444,6 @@ class LessonUpdateForm(forms.ModelForm):
             "The student already has a lesson scheduled that conflicts with the new date and time."
         )
 
-        if student_conflict:
-            return True
-
         # Check for tutor conflicts
         tutor_conflict = self._get_conflicting_lessons(
             Lesson.objects.filter(tutor=self.instance.tutor)
@@ -459,7 +454,7 @@ class LessonUpdateForm(forms.ModelForm):
             "The tutor already has a lesson scheduled that conflicts with the new date and time."
         )
 
-        if tutor_conflict:
+        if student_conflict or tutor_conflict:
             return True
 
         return False
@@ -471,15 +466,17 @@ class LessonUpdateForm(forms.ModelForm):
             existing_start_datetime = datetime.combine(existing_lesson.date, existing_lesson.time)
             existing_end_datetime = existing_start_datetime + timedelta(minutes=existing_lesson.duration)
 
-            # Check for overlap conditions
+            if new_end_datetime <= existing_start_datetime or new_start_datetime >= existing_end_datetime:
+                continue
+
             if (
-                (new_start_datetime < existing_end_datetime and new_end_datetime > existing_start_datetime and new_end_datetime < existing_end_datetime) or
+                (new_start_datetime < existing_start_datetime and new_end_datetime > existing_start_datetime and new_end_datetime <= existing_end_datetime) or
                 (new_start_datetime < existing_start_datetime and new_end_datetime > existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime)
+                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime)          
             ):
                 return True
-            
+
         return False
     
 
