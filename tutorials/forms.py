@@ -448,15 +448,17 @@ class LessonUpdateForm(forms.ModelForm):
             existing_start_datetime = datetime.combine(existing_lesson.date, existing_lesson.time)
             existing_end_datetime = existing_start_datetime + timedelta(minutes=existing_lesson.duration)
 
-            # Check for overlap conditions
+            if new_end_datetime <= existing_start_datetime or new_start_datetime >= existing_end_datetime:
+                continue
+
             if (
-                (new_start_datetime < existing_end_datetime and new_end_datetime > existing_start_datetime and new_end_datetime < existing_end_datetime) or
+                (new_start_datetime < existing_start_datetime and new_end_datetime > existing_start_datetime and new_end_datetime <= existing_end_datetime) or
                 (new_start_datetime < existing_start_datetime and new_end_datetime > existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime) or
-                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime)
+                (new_start_datetime >= existing_start_datetime and new_end_datetime > existing_end_datetime) or
+                (new_start_datetime >= existing_start_datetime and new_end_datetime <= existing_end_datetime)          
             ):
                 return True
-            
+
         return False
     
 

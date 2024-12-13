@@ -36,6 +36,18 @@ class LessonUpdateFormTestCase(TestCase):
             term="sept-christmas"
         )
 
+        Lesson.objects.create(
+            student=self.student,
+            tutor=self.tutor,
+            language=self.language,
+            date="2024-12-05",
+            time="10:00",
+            venue="Room 101",
+            duration=60,
+            frequency="once a week",
+            term="sept-christmas"
+        )
+
         TutorAvailability.objects.create(
             tutor=self.tutor,
             start_time="09:00", 
