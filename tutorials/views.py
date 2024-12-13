@@ -1038,10 +1038,6 @@ class LessonUpdateView(LoginRequiredMixin, View):
 
             return self._handle_update(request, form, lesson)
 
-        # If the form is invalid
-        messages.error(request, "There was an error updating the lesson. Please try again.")
-        return render(request, 'lesson_update.html', {'form': form, 'lesson': lesson})
-
     def _is_cancellation_requested(self, form):
         """Determine if the cancellation checkbox is selected."""
 

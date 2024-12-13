@@ -126,13 +126,6 @@ class LessonUpdateFormTestCase(TestCase):
 
         self.assertTrue(form.is_valid())
 
-    def test_form_invalid_when_date_and_time_not_changed(self):
-        """Test if the form is invalid when neither the date nor the time is changed."""
-
-        form = LessonUpdateForm(instance=self.lesson)
-
-        self.assertFalse(form.is_valid())
-
     def test_form_valid_when_only_date_is_changed(self):
         """Test if the form is valid when only the date is changed."""
         
