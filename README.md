@@ -3,10 +3,10 @@
 ## Team members
 The members of the team are:
 - Jacelyne Tan
-- Natalia Ahsan
-- Jasmin Bedi
 - Aravinth Kaneshalingam
+- Natalia Ahsan
 - Emil Khojayev
+- Jasmin Bedi
 
 ## Project structure
 The project is called `task_manager`.  It currently consists of a single app `tasks`.
@@ -50,4 +50,17 @@ $ python3 manage.py test
 ## Sources
 The packages used by this application are specified in `requirements.txt`
 
-*Declare are other sources here, and remove this line*
+Usage of AI - Aravinth Kaneshalingam
+
+To ensure maximum code coverage, I utilised ChatGPT to assist in writing tests for branches and statements that were missing in the following test files:
+- test_student_request_processing_view.py
+- test_lesson_update_view.py
+- test_lesson_model.py
+
+I also used ChatGPT for a few tips when refactoring the code the wrote that I wrote, which helped me cut down my code length and ensure that each method and class I created was small and each focused on a single responsibility/task. ChatGPT was utilised in this sense for the following classes:
+- LessonUpdateForm - forms.py
+- StudentRequestProcessingView - views.py
+
+Leveraging ChatGPT has also significantly increased my understanding of writing and debugging tests as well as identifying logical errors, which has ensured that the functionality I was responsible for is well-tested.
+
+I also used W3Schools (https://www.w3schools.com/html/default.asp) in order to learn HTML which was extremely helpful when creating the templates I was responsible for.
