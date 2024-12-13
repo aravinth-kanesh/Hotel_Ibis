@@ -818,17 +818,18 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         message = self.get_object()
 
         return self.request.user == message.sender or self.request.user == message.recipient
+    
     def get_context_data(self, **kwargs):
         """Add previous message, next message (reply), and reply URL to the context."""
         context = super().get_context_data(**kwargs)
         message = self.get_object()
+
         if not message:
             raise ValueError("Message object not found.")
         
         context['previous_message'] = message.previous_message if message.previous_message else None
         context['next_message'] = message.reply if message.reply else None
 
-        
         if message.id:
             context["reply_url"] = reverse("reply_message", kwargs={"reply_id": message.id}) if message.id else None
         else:

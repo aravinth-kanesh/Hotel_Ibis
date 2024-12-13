@@ -15,7 +15,6 @@ class AdminViewTests(TestCase):
         self.student_user = User.objects.create_user(username="student_user", role="student", password="studentpass" , email="qwtyjker@test.com")
         self.tutor_user = User.objects.create_user(username="tutor_user", role="tutor", password="tutorpass", email="qwertyur@test.com")
 
-\
         self.student_profile, _  = Student.objects.get_or_create(UserID=self.student_user)
         self.tutor_profile, _  = Tutor.objects.get_or_create(UserID=self.tutor_user)
         self.language = Language.objects.create(name="Python")
@@ -113,9 +112,9 @@ class AdminViewTests(TestCase):
 
         response = self.client.post(reverse("delete_user", args=[self.student_user.id]))
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.startswith(reverse("login")))
+        self.assertTrue(response.url.startswith(reverse("log_in")))
 
         response = self.client.post(reverse("approve_invoice", args=[self.invoice.id]))
         self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.startswith(reverse("login")))
+        self.assertTrue(response.url.startswith(reverse("log_in")))
 

@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from tutorials.models import Message
+from tutorials.views import MessageDetailView
 
 class MessageDetailViewTests(TestCase):
     def setUp(self):
@@ -42,16 +43,21 @@ class MessageDetailViewTests(TestCase):
         self.original_message.reply = self.reply_message
         self.original_message.save()
 
-        self.client = Client()
+        # Create a message without saving it to the database (so no ID)
+        self.message_no_id = Message(
+            sender=self.sender,
+            recipient=self.recipient,
+            subject="No ID Message",
+            content="This message has no ID yet."
+        )
 
+        self.client = Client()
 
     def test_redirect_if_not_logged_in(self):
         """Test that unauthenticated users are redirected to the login page."""
         url = reverse("message_detail", kwargs={"pk": self.original_message.pk})
         response = self.client.get(url)
         self.assertRedirects(response, f"/log_in/?next={url}")
-
-
 
     def test_access_unauthorized_user(self):
         """Test that an unauthorized user cannot view the message."""
@@ -68,7 +74,6 @@ class MessageDetailViewTests(TestCase):
         self.assertEqual(response.context["previous_message"], self.original_message)
         self.assertIsNone(response.context["next_message"])
 
-
     def test_nonexistent_message(self):
         """Test that a non-existent message raises 404."""
         self.client.login(username="sender", password="password123")
@@ -80,4 +85,3 @@ class MessageDetailViewTests(TestCase):
         """Ensure the URL is correct."""
         url = reverse("message_detail", kwargs={"pk": self.original_message.id})
         self.assertEqual(url, f"/messages/{self.original_message.id}/")
-
