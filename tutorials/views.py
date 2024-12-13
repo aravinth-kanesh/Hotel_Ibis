@@ -121,9 +121,13 @@ def dashboard(request):
                         'availabilities': availabilities,})
 
     elif user.role == 'student':
-  
         lessons = Lesson.objects.filter(student__UserID=user)
-        invoice = lessons.first().invoice
+        lesson = lessons.first()
+        #CHANGED HERE
+        if lesson:
+            invoice = lesson.invoice
+        else:
+            invoice = None
         context.update({'lessons': lessons, 'invoice': invoice})
 
     return render(request, 'dashboard.html', context)
@@ -468,7 +472,12 @@ def manage_languages(request):
             if created:
                 messages.success(request, f"New language '{new_language.name}' created and added to your languages.")
             else:
-                messages.info(request, f"Language '{new_language.name}' already exists and has been added to your languages.")
+                messages.info(request, f"Language '{new_language.name}' already exists and has been added to your languages.")4
+    #CHANGED HERE
+    elif request.method == "GET":
+        if not query:
+            messages.error(request, "No input provided. Please enter a search term.")
+
     
     if request.method == "POST":
         if 'add_language' in request.POST:
@@ -1076,10 +1085,10 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
         if availability_id:
             action = request.GET.get('action')
             if action == 'edit':
-                availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
+                availability = get_object_or_404(TutorAvailability, id=availability_id)
                 form = TutorAvailabilityForm(instance=availability)
             elif action == 'delete':
-                availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
+                availability = get_object_or_404(TutorAvailability, id=availability_id)
                 availability.delete()
                 return redirect(f"{reverse('dashboard')}?tab=availability")
             else:
@@ -1095,12 +1104,13 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
         return render(request, self.template, context)
 
     @staticmethod
-    def has_overlapping(tutor, day, new_start, new_end):
+    def has_overlapping(tutor, day, new_start, new_end, availability_status):
         return TutorAvailability.objects.filter(
             tutor=tutor,
             day=day,
             start_time__lt=new_end,
-            end_time__gt=new_start
+            end_time__gt=new_start,
+            availability_status=availability_status,
         ).exists()
 
     def post(self, request, availability_id=None):
@@ -1116,14 +1126,16 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
             form = TutorAvailabilityForm(request.POST, initial={'tutor': Tutor.objects.get(UserID=request.user)})
 
         if form.is_valid():
-            print("Form is valid")
             new_availability = form.save(commit=False)
             new_availability.tutor = tutor
             day = form.cleaned_data['day']
             start_time = form.cleaned_data['start_time']
             end_time = form.cleaned_data['end_time']
+            #CHANGED HERE
+            availability_status = form.cleaned_data['availability_status']
 
-            if self.has_overlapping(tutor, day, start_time, end_time):
+            #CHANGED HERE
+            if self.has_overlapping(tutor, day, start_time, end_time, availability_status):
                 form.add_error(None, "This time slot overlaps with an existing availability.")
                 availabilities = TutorAvailability.objects.filter(tutor=tutor)
                 return render(request, self.template, {
@@ -1134,11 +1146,10 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
 
             new_availability.save()
             return redirect(f"{reverse('dashboard')}?tab=availability")
-        print("Form is not valid")
-        print(form.errors)
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
         return render(request, self.template, {
             "tutor": tutor,
             "availabilities": availabilities,
             "form": form,
         })
+        

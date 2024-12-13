@@ -18,6 +18,7 @@
                 {% csrf_token %}
                
                 <!-- Display Non-Field Errors (e.g., from the clean method) -->
+                 <!--CHANGED HERE-->
                 {% if form.non_field_errors %}
                     <div class="alert alert-danger">
                         {% for error in form.non_field_errors %}
@@ -27,9 +28,6 @@
                 {% endif %}
 
                 <!-- Render Form Fields with Field-Specific Errors -->
-
-                <div class="mb-3">
-                    <label for="Tutor" class="form-label">Tutor</label>
                     {{ form.tutor }}
                     {% if form.tutor.errors %}
                         <div class="text-danger">
@@ -38,7 +36,6 @@
                             {% endfor %}
                         </div>
                     {% endif %}
-                </div>
 
 
                 <div class="mb-3">

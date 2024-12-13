@@ -440,13 +440,11 @@ class TutorAvailabilityForm(forms.ModelForm):
         model = TutorAvailability
         fields = ['tutor', 'start_time', 'end_time', 'day', 'availability_status']
         widgets = {
-            'tutor': forms.Select(attrs={'class': 'form-control'}),
+            'tutor': forms.HiddenInput(),
             'day': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'availability_status': forms.Select(attrs={'class': 'form-control'}),
-            'tutor': forms.Select(attrs={'class': 'form-control'}),
-            
         }
         
     def clean(self):
@@ -454,7 +452,8 @@ class TutorAvailabilityForm(forms.ModelForm):
         start_time = cleaned_data.get('start_time')
         end_time = cleaned_data.get('end_time')
         day = cleaned_data.get('day')
-        tutor = self.initial.get('tutor')
+        availability_status = cleaned_data.get('availability_status')
+        tutor =  cleaned_data.get('tutor') or self.initial.get('tutor')
 
         if not isinstance(tutor, Tutor):
             raise forms.ValidationError("A valid Tutor instance is required.")
@@ -464,13 +463,13 @@ class TutorAvailabilityForm(forms.ModelForm):
             if start_time >= end_time:
                 raise forms.ValidationError("Start time must be earlier than end time.")
         # Check for overlapping availability
-            if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day).exists():
+        #CHANGED HERE
+            if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day, availability_status=availability_status).exists():
                 raise forms.ValidationError("This time slot is already recorded.")
         return cleaned_data
     
     def save(self, commit=True):
         instance = super().save(commit=False)
-        print("saving")
         
         if not instance.tutor:
             instance.tutor = self.initial.get('tutor')
@@ -478,7 +477,6 @@ class TutorAvailabilityForm(forms.ModelForm):
                 raise ValueError("A tutor instance is required to save this form.")
 
         repeat_option = self.cleaned_data['repeat']
-        print({repeat_option})
         if repeat_option in ['weekly', 'biweekly']:
             from tutorials.term_dates import TERM_DATES, get_term
 
@@ -509,7 +507,6 @@ class TutorAvailabilityForm(forms.ModelForm):
                         availability_status=instance.availability_status,
                     )
                 current_date += timedelta(days=interval)
-                print({current_date})
 
         else:
             if commit:

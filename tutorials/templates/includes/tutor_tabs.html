@@ -57,7 +57,7 @@
               {% endif %}
             </td>
             <td>
-              <a href="{% url 'edit_tutor_availability' availability.id %}" class="btn btn-warning btn-sm">Edit</a>
+              <a href="{% url 'edit_tutor_availability' availability.id %}?action=edit" class="btn btn-warning btn-sm">Edit</a>
               <a href="{% url 'delete_tutor_availability' availability.id %}?action=delete" class="btn btn-danger btn-sm"
                 onclick="return confirm('Are you sure you want to delete this availability?');">
                 Delete
@@ -74,5 +74,16 @@
     <div class="d-flex justify-content-end">
       <a class="btn btn-primary" href="{% url 'tutor_availability_request' %}">Add Availability Request</a>
     </div>
+    {% if request.GET.action == 'edit' and form %}
+    <div class="mt-4">
+      <h3>Edit Availability</h3>
+      <form method="post" action="{% url 'edit_tutor_availability' request.GET.availability_id %}?action=edit">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+        <a href="{% url 'dashboard' %}?tab=availability" class="btn btn-secondary">Cancel</a>
+      </form>
+    </div>
+    {% endif %}
 </div>
 {% endif %}
