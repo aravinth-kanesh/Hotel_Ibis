@@ -50,7 +50,7 @@ $ python3 manage.py test
 ## Sources
 The packages used by this application are specified in `requirements.txt`
 
-Usage of AI - Aravinth Kaneshalingam
+Sources - Aravinth Kaneshalingam
 
 To ensure maximum code coverage, I utilised ChatGPT to assist in writing tests for branches and statements that were missing in the following test files:
 - test_student_request_processing_view.py
