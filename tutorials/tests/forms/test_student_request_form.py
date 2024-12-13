@@ -1,5 +1,4 @@
 from django.test import TestCase
-from django.utils.timezone import now
 from tutorials.models import StudentRequest, Student, Language, User
 from tutorials.forms import StudentRequestForm
 
@@ -46,9 +45,9 @@ class StudentRequestFormTests(TestCase):
         self.assertIn("frequency", form.errors)
         self.assertIn("term", form.errors)
 
-    def test_invalid_duration(self):
-        """Test that a duration less than or equal to zero is invalid."""
-        form_data = {
+    def test_invalid_duration_zero(self):
+        """Test that a duration of zero is invalid."""
+        data = {
             "language": self.language.id,
             "description": "Need help with Python.",
             "date": "2025-01-10",
@@ -58,13 +57,86 @@ class StudentRequestFormTests(TestCase):
             "frequency": "once a week",
             "term": "sept-christmas"
         }
-        form = StudentRequestForm(data=form_data)
-        form.full_clean()
-
-  
+        form = StudentRequestForm(data=data)
         self.assertFalse(form.is_valid())
         self.assertIn("duration", form.errors)
-        
+
+    def test_invalid_duration_negative(self):
+        """Test that a negative duration is invalid."""
+        data = {
+            "language": self.language.id,
+            "description": "Need help with Python.",
+            "date": "2025-01-10",
+            "time": "10:30:00",
+            "venue": "Library Room 2",
+            "duration": -30,
+            "frequency": "once a week",
+            "term": "sept-christmas"
+        }
+        form = StudentRequestForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("duration", form.errors)
+
+    def test_clean_method_missing_language(self):
+        """Test that missing language raises an error."""
+        data = {
+            "description": "Need help with Python.",
+            "date": "2025-01-10",
+            "time": "10:30:00",
+            "venue": "Library Room 2",
+            "duration": 60,
+            "frequency": "once a week",
+            "term": "sept-christmas"
+        }
+        form = StudentRequestForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("language", form.errors)
+
+    def test_clean_method_missing_description(self):
+        """Test that missing description raises an error."""
+        data = {
+            "language": self.language.id,
+            "date": "2025-01-10",
+            "time": "10:30:00",
+            "venue": "Library Room 2",
+            "duration": 60,
+            "frequency": "once a week",
+            "term": "sept-christmas"
+        }
+        form = StudentRequestForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("description", form.errors)
+
+    def test_clean_method_missing_required_fields(self):
+        """Test that missing any required field raises an error."""
+        data = {
+            "language": self.language.id,
+            "description": "Need help with Python.",
+            "duration": 60,
+            "frequency": "once a week",
+        }
+        form = StudentRequestForm(data=data)
+        self.assertFalse(form.is_valid())
+        self.assertIn("date", form.errors)
+        self.assertIn("time", form.errors)
+        self.assertIn("venue", form.errors)
+        self.assertIn("term", form.errors)
+
+    def test_valid_form_with_all_fields(self):
+        """Test that the form is valid when all fields are filled."""
+        data = {
+            "language": self.language.id,
+            "description": "Need help with Python.",
+            "date": "2025-01-10",
+            "time": "10:30:00",
+            "venue": "Library Room 2",
+            "duration": 90,
+            "frequency": "once a week",
+            "term": "sept-christmas"
+        }
+        form = StudentRequestForm(data=data)
+        self.assertTrue(form.is_valid())
+
     def test_clean_method_errors(self):
         """Test that the custom clean method handles missing fields correctly."""
         form_data = {}
