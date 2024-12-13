@@ -472,7 +472,7 @@ def manage_languages(request):
             if created:
                 messages.success(request, f"New language '{new_language.name}' created and added to your languages.")
             else:
-                messages.info(request, f"Language '{new_language.name}' already exists and has been added to your languages.")4
+                messages.info(request, f"Language '{new_language.name}' already exists and has been added to your languages.")
     #CHANGED HERE
     elif request.method == "GET":
         if not query:
