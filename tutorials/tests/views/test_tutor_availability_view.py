@@ -138,7 +138,7 @@ class tutorAvailabiltyViewTestCase(TestCase):
         ).exists(), "New availability should be created.")
 
     def test_post_new_availabilility_invalid_data(self):
-        self.form_input['tutor'] = ''
+        self.form_input['repeat'] = 'invalid'
         before_count = TutorAvailability.objects.count()
         response = self.client.post(self.url, self.form_input, follow=True)
         self.assertEqual(response.status_code, 200)
@@ -197,35 +197,3 @@ class tutorAvailabiltyViewTestCase(TestCase):
         response = self.client.post(self.url, self.form_input_no_tutor, follow=True)
         expected_redirect_url = f"{reverse('dashboard')}?tab=availability"
         self.assertRedirects(response, expected_redirect_url, status_code=302, target_status_code=200)
-
-
-
-        
-
-
-        
-
-
-
-
-
-
-
-
-    
-
-
-
-
-        
-
-
-
-        
-
-
-
-
-        
-        
-
