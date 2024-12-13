@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
 from datetime import date
-from tutorials.models import Student, Lesson
+from tutorials.models import Student, Lesson, Tutor, Language
 from tutorials.views import next_month, prev_month
 from django.contrib.auth import get_user_model
 
@@ -16,6 +16,20 @@ class CalendarViewTestCase(TestCase):
             password='password123',
             role='tutor',
         )
+
+        self.user_tutor = User.objects.create_user(
+            username='@tutor',
+            email='tutor.one@example.com',
+            password='password123',
+            role='tutor'
+        )
+
+        self.student = Student.objects.create(UserID=self.user)
+        self.tutor, _ = Tutor.objects.get_or_create(UserID=self.user_tutor)
+        
+        self.language, _ = Language.objects.get_or_create(name="Python")
+        self.tutor.languages.add(self.language)
+
         self.calendar_url = reverse('calendar')
 
     def test_calendar_view_requires_login(self):
@@ -24,27 +38,47 @@ class CalendarViewTestCase(TestCase):
         self.assertNotEqual(response.status_code, 200)
         self.assertRedirects(response, f"/log_in/?next=/calendar/")
 
-
     def test_calendar_view_no_student_profile_redirects(self):
         """If the user doesn't have a student profile, they are redirected."""
-        self.client.login(username='testuser', password='password123')
+        self.client.login(username='@bluh', password='bluh')
         response = self.client.get(self.calendar_url)
-        # Assuming 'dashboard' is the name of the redirect URL if no student found
-        self.assertRedirects(response, reverse(f"/log_in/?next=/calendar/"))
+        self.assertRedirects(response, f"/log_in/?next=/calendar/")
 
     def test_calendar_view_with_student_and_lessons(self):
         """If the student and lessons exist, the calendar view should render properly."""
-        # Create the student profile
-        student = Student.objects.create(UserID=self.user)
 
         # Create some lessons in the current month/year
         current_year = date.today().year
         current_month = date.today().month
-        Lesson.objects.create(student=student, date=date(current_year, current_month, 10))
-        Lesson.objects.create(student=student, date=date(current_year, current_month, 15))
 
-        self.client.login(username='testuser', password='password123')
+        Lesson.objects.create(
+            student=self.student,
+            tutor=self.tutor,
+            language=self.language,
+            date=date(current_year, current_month, 10),
+            time="10:00",
+            venue="Room 101",
+            duration=60,
+            frequency="once a week",
+            term="sept-christmas"
+        )
+
+        Lesson.objects.create(
+            student=self.student,
+            tutor=self.tutor,
+            language=self.language,
+            date=date(current_year, current_month, 10),
+            time="10:00",
+            venue="Room 101",
+            duration=60,
+            frequency="once a week",
+            term="sept-christmas"
+        )
+
+        self.client.login(username='@testuser', password='password123')
         response = self.client.get(self.calendar_url)
+        print(response.url)  # Add this line after the line where the redirect happens
+
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'calendar.html')
         # Check that the calendar HTML is in the response
@@ -55,15 +89,27 @@ class CalendarViewTestCase(TestCase):
 
     def test_calendar_view_with_year_month_parameters(self):
         """Test the view with explicit year and month parameters."""
-        student = Student.objects.create(UserID=self.user)
 
         year = 2024
         month = 12
-        Lesson.objects.create(student=student, date=date(year, month, 25))
 
-        self.client.login(username='testuser', password='password123')
-        url = reverse('calendar/<int:year>/<int:month>/', args=[year, month])
+        Lesson.objects.create(
+            student=self.student,
+            tutor=self.tutor,
+            language=self.language,
+            date=date(year, month, 25),
+            time="10:00",
+            venue="Room 101",
+            duration=60,
+            frequency="once a week",
+            term="sept-christmas"
+        )
+
+        self.client.login(username='@testuser', password='password123')
+        url = reverse('calendar', args=[year, month])
         response = self.client.get(url)
+        print(response.url)  # Add this line after the line where the redirect happens
+
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'calendar.html')
         # Check that the calendar is for the specified year/month

@@ -236,6 +236,7 @@ def home(request):
 @login_required
 def calendar_view(request, year=None, month=None):
     user = request.user
+    print(user)
     today = date.today()
     year = int(year) if year else today.year
     month = int(month) if month else today.month
