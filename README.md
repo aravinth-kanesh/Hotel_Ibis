@@ -64,3 +64,13 @@ I also used ChatGPT for a few tips when refactoring the code the wrote that I wr
 Leveraging ChatGPT has also significantly increased my understanding of writing and debugging tests as well as identifying logical errors, which has ensured that the functionality I was responsible for is well-tested.
 
 I also used W3Schools (https://www.w3schools.com/html/default.asp) in order to learn HTML which was extremely helpful when creating the templates I was responsible for.
+
+
+Sources - Natalia Ahsan
+
+I used ChatGPT, w3Schools and Youtube. 
+These resources helped in filling any gaps in my knowledge and to complete tasks assigned to me.
+Such as:
+- writing tests
+- creating view functions
+- creating html templates
