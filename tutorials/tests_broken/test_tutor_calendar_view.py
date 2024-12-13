@@ -17,14 +17,14 @@ class CreateInvoiceViewTest(TestCase):
         self.tutor_user = User.objects.create_user(
             username='@tutoruser',
             password='testpass',
-            first_name='Jane',
-            last_name='Smith',
+            first_name='Janee',
+            last_name='Smithe',
             role = "tutor"
         )
         
         # Create Tutor and Student instances
-        self.tutor = Tutor.objects.get_or_create(UserID=self.tutor_user)
-        self.student = Student.objects.get_or_create(UserID=self.user)
+        self.tutor, _  = Tutor.objects.get_or_create(UserID=self.tutor_user)
+        self.student, _  = Student.objects.get_or_create(UserID=self.user)
 
         # URL for create_invoice (adjust if your URL differs)
         self.url = reverse('create_invoice', args=[self.student.id])

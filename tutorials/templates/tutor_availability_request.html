@@ -7,7 +7,7 @@
         <a href="{% url 'dashboard' %}" class="btn btn-success">Back to Dashboard</a>
     </div>
 
-    <!-- Form to Add/Update Availability -->
+
     <h4 class="mb-3"></h4>
     <div class="card mb-4">
         <div class="card-header">
@@ -16,8 +16,7 @@
         <div class="card-body">
             <form method="post">
                 {% csrf_token %}
-               
-                <!-- Display Non-Field Errors (e.g., from the clean method) -->
+    
                 {% if form.non_field_errors %}
                     <div class="alert alert-danger">
                         {% for error in form.non_field_errors %}
@@ -26,10 +25,7 @@
                     </div>
                 {% endif %}
 
-                <!-- Render Form Fields with Field-Specific Errors -->
-
-                <div class="mb-3">
-                    <label for="Tutor" class="form-label">Tutor</label>
+       
                     {{ form.tutor }}
                     {% if form.tutor.errors %}
                         <div class="text-danger">
@@ -38,7 +34,6 @@
                             {% endfor %}
                         </div>
                     {% endif %}
-                </div>
 
 
                 <div class="mb-3">

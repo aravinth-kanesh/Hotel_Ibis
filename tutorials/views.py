@@ -9,7 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models.query import QuerySet
-from django.http import HttpResponseBadRequest, HttpResponse
+from django.http import HttpResponseBadRequest, HttpResponse, HttpResponseForbidden
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views import View
 from django.http import JsonResponse
@@ -164,11 +164,14 @@ def dashboard(request):
                         'invoice': invoice})
 
     elif user.role == 'student':
-  
         lessons = Lesson.objects.filter(student__UserID=user)
-        if lessons.exists():
-            invoice = lessons.first().invoice
-            context.update({'lessons': lessons, 'invoice': invoice})
+        lesson = lessons.first()
+  
+        if lesson:
+            invoice = lesson.invoice
+        else:
+            invoice = None
+        context.update({'lessons': lessons, 'invoice': invoice})
 
     return render(request, 'dashboard.html', context)
 
@@ -182,6 +185,9 @@ def update_user_role(request, user_id):
             user.save()
             messages.success(request, f"Role updated for {user.username}.")
         return redirect('dashboard')
+    if request.user.role != 'admin':
+            return HttpResponseForbidden("You do not have permission to perform this action.")
+        
 @login_required
 def delete_user(request, user_id):
     if request.method == "POST" and request.user.role == 'admin':
@@ -189,8 +195,11 @@ def delete_user(request, user_id):
         user.delete()
         messages.success(request, f"User {user.username} deleted successfully.")
         return redirect('dashboard')
+    if request.user.role != 'admin':
+            return HttpResponseForbidden("You do not have permission to perform this action.")
+        
 def get_unallocated_requests(student):
-    # Ensure we are working with a Student instance
+
     if isinstance(student, Student):
         return StudentRequest.objects.filter(student=student, is_allocated=False).order_by('-created_at').first()
     return None
@@ -203,6 +212,8 @@ def get_allocated_lesson(student):
 
 @login_required
 def approve_invoice(request, invoice_id):
+    if request.user.role != 'admin':
+            return HttpResponseForbidden("You do not have permission to perform this action.")
     invoice = get_object_or_404(Invoice, id=invoice_id)
     if request.method == "POST" and request.user.role in ['admin']:
         invoice.approved = True
@@ -211,6 +222,8 @@ def approve_invoice(request, invoice_id):
     else:
         messages.success(request, f"Invoice already approved.")
     return redirect('dashboard')
+    
+        
 
 
 
@@ -520,6 +533,11 @@ def manage_languages(request):
                 messages.success(request, f"New language '{new_language.name}' created and added to your languages.")
             else:
                 messages.info(request, f"Language '{new_language.name}' already exists and has been added to your languages.")
+    #CHANGED HERE
+    elif request.method == "GET":
+        if not query:
+            messages.error(request, "No input provided. Please enter a search term.")
+
     
     if request.method == "POST":
         if 'add_language' in request.POST:
@@ -551,7 +569,7 @@ def manage_languages(request):
                 tutor.languages.remove(language)
                 messages.success(request, f"{language.name} has been removed.")
 
-                # Delete language if no tutors are associated
+        
                 if language.taught_by.count() == 0:
                     language.delete()
                     messages.info(request, f"{language.name} has been deleted as no tutors teach it anymore.")
@@ -727,7 +745,7 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
     
 
 class StudentRequestListView(LoginRequiredMixin, ListView):
-    """view to display all requests made by the logged-in student."""
+    """View to display all requests made by the logged-in student."""
     model = StudentRequest
     template_name = 'student_requests_list.html'
     context_object_name = 'requests' 
@@ -741,6 +759,7 @@ class StudentRequestListView(LoginRequiredMixin, ListView):
             return StudentRequest.objects.none() 
 
 class SendMessageView(LoginRequiredMixin, CreateView):
+    """View for sending messages"""
     model = Message
     form_class = MessageForm
     template_name = 'send_message.html'
@@ -776,7 +795,7 @@ class SendMessageView(LoginRequiredMixin, CreateView):
 
 
 class AllMessagesView(LoginRequiredMixin, TemplateView):
-    """display all sent and received messages."""
+    """Display all sent and received messages."""
     template_name = 'all_messages.html'
 
     def get_context_data(self, **kwargs):
@@ -789,7 +808,7 @@ class AllMessagesView(LoginRequiredMixin, TemplateView):
         return context
 
 class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
-    """ single message """
+    """Display single message"""
     model = Message
     template_name = 'message_detail.html'
     context_object_name = 'message'
@@ -797,7 +816,7 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def test_func(self):
         """ensure the user is authorized"""
         message = self.get_object()
-        print(f"User: {self.request.user}, Sender: {message.sender}, Recipient: {message.recipient}")
+
         return self.request.user == message.sender or self.request.user == message.recipient
     def get_context_data(self, **kwargs):
         """Add previous message, next message (reply), and reply URL to the context."""
@@ -815,7 +834,6 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
         else:
             context["reply_url"] = None  
 
-        print(f"Context: {context}")
         return context
         
 class StudentRequestProcessingView(LoginRequiredMixin, View):
@@ -1109,7 +1127,7 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
                 availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
                 form = TutorAvailabilityForm(instance=availability, user=request.user)
             elif action == 'delete':
-                availability = get_object_or_404(TutorAvailability, id=availability_id, tutor=tutor)
+                availability = get_object_or_404(TutorAvailability, id=availability_id)
                 availability.delete()
                 return redirect(f"{reverse('dashboard')}?tab=availability")
             else:
@@ -1125,12 +1143,13 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
         return render(request, self.template, context)
 
     @staticmethod
-    def has_overlapping(tutor, day, new_start, new_end):
+    def has_overlapping(tutor, day, new_start, new_end, availability_status):
         return TutorAvailability.objects.filter(
             tutor=tutor,
             day=day,
             start_time__lt=new_end,
-            end_time__gt=new_start
+            end_time__gt=new_start,
+            availability_status=availability_status,
         ).exists()
 
     def post(self, request, availability_id=None):
@@ -1146,14 +1165,16 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
             form = TutorAvailabilityForm(request.POST, initial={'tutor': Tutor.objects.get(UserID=request.user)}, user=request.user)
 
         if form.is_valid():
-            print("Form is valid")
             new_availability = form.save(commit=False)
             new_availability.tutor = tutor
             day = form.cleaned_data['day']
             start_time = form.cleaned_data['start_time']
             end_time = form.cleaned_data['end_time']
+            #CHANGED HERE
+            availability_status = form.cleaned_data['availability_status']
 
-            if self.has_overlapping(tutor, day, start_time, end_time):
+            #CHANGED HERE
+            if self.has_overlapping(tutor, day, start_time, end_time, availability_status):
                 form.add_error(None, "This time slot overlaps with an existing availability.")
                 availabilities = TutorAvailability.objects.filter(tutor=tutor)
                 return render(request, self.template, {
@@ -1164,8 +1185,6 @@ class TutorAvailabilityView(LoginRequiredMixin, View):
 
             new_availability.save()
             return redirect(f"{reverse('dashboard')}?tab=availability")
-        print("Form is not valid")
-        print(form.errors)
         availabilities = TutorAvailability.objects.filter(tutor=tutor)
         return render(request, self.template, {
             "tutor": tutor,

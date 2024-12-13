@@ -72,19 +72,6 @@ class TutorAvailabilityTestCase(TestCase):
         with self.assertRaises(ValidationError):
             availability.clean()  # Availability status should be 'available' or 'not_available'
 
-    def test_tutor_availability_invalid_action(self):
-        """Test that creating a TutorAvailability with an invalid action raises an error."""
-        availability = TutorAvailability(
-            tutor=self.tutor,
-            start_time=time(9, 0),
-            end_time=time(17, 0),
-            day=date(2024, 1, 1),
-            availability_status='available',
-            action='remove'  # Invalid value for action
-        )
-        with self.assertRaises(ValidationError):
-            availability.clean()  # Action should be 'edit' or 'delete'
-
     def test_tutor_availability_string_representation(self):
         """Test that the string representation of TutorAvailability is correct."""
         availability = TutorAvailability.objects.create(

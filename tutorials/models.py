@@ -101,7 +101,7 @@ class Tutor(models.Model):
     
     def __str__(self):
         languages = ", ".join([language.name for language in self.languages.all()])
-        return f"{self.UserID.first_name} {self.UserID.last_name} - {languages if languages else 'No languages assigned'}"
+        return f"{self.UserID.first_name} {self.UserID.last_name}"
     
     
 class Student(models.Model):

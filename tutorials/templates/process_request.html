@@ -6,7 +6,6 @@
         <div class="col-sm-12 col-md-8 offset-md-2">
             <h1 class="mb-4 text-center">Process Student Request</h1>
 
-            <!-- Card for Original Request Details -->
             <div class="card mb-4">
                 <div class="card-body">
                     <table class="table table-bordered">
@@ -46,7 +45,6 @@
                 </div>
             </div>
 
-            <!-- Display form-wide errors -->
             {% if form.non_field_errors %}
             <div class="alert alert-danger mb-4">
                 <ul>
@@ -56,15 +54,11 @@
                 </ul>
             </div>
             {% endif %}
-
-            <!-- Form for Processing Request -->
             <form method="post">
                 {% csrf_token %}
 
-                <!-- Card for Processing Request -->
                 <div class="card mb-4">
                     <div class="card-body">
-                        <!-- Request Status Field -->
                         <div class="form-group mb-4">
                             <label for="id_status" class="font-weight-bold h4">Request Status</label>
                             <div class="mt-2">
@@ -79,7 +73,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- Tutor Selection Field -->
                         <div class="form-group mb-4">
                             <label for="id_tutor" class="font-weight-bold h4">Select Tutor</label>
                             <div class="mt-2">
@@ -94,7 +87,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- First Lesson Date Field -->
                         <div class="form-group mb-4">
                             <label for="id_first_lesson_date" class="font-weight-bold h4">First Lesson Date</label>
                             <div class="mt-2">
@@ -109,7 +101,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- First Lesson Time Field -->
                         <div class="form-group mb-4">
                             <label for="id_first_lesson_time" class="font-weight-bold h4">First Lesson Time</label>
                             <div class="mt-2">
@@ -124,7 +115,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- Details Field -->
                         <div class="form-group mb-4">
                             <label for="id_details" class="font-weight-bold h4">Details</label>
                             <div class="mt-2">
@@ -139,7 +129,6 @@
                             {% endif %}
                         </div>
 
-                        <!-- Submit Button -->
                         <div class="form-group text-center mb-0">
                             <button type="submit" class="btn btn-primary btn-lg">Submit</button>
                         </div>
@@ -147,7 +136,6 @@
                 </div>
             </form>
 
-            <!-- Back to Dashboard Link -->
             <div class="text-center mb-4">
                 <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-lg">Back to Dashboard</a>
             </div>

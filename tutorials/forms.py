@@ -424,12 +424,13 @@ class LessonUpdateForm(forms.ModelForm):
 
     def _is_tutor_available(self, new_date, new_time, new_end_time):
         """Check if the tutor is available for the new proposed date/time."""
+  
 
         tutor_availability = TutorAvailability.objects.filter(
             tutor=self.instance.tutor,
             day=new_date.weekday(),  
             start_time__lte=new_time,  # Tutor should be available at or before the start of the new lesson
-            end_time__gte=new_time + timedelta(minutes=self.instance.duration)  # Tutor should be available for the full duration
+            end_time__gte=new_end_time  # Tutor should be available for the full duration
         )
 
         return tutor_availability.exists()
@@ -501,13 +502,13 @@ class TutorAvailabilityForm(forms.ModelForm):
         model = TutorAvailability
         fields = ['tutor', 'start_time', 'end_time', 'day', 'availability_status']
         widgets = {
-            'tutor': forms.Select(attrs={'class': 'form-control'}),
+            'tutor': forms.HiddenInput(),
             'day': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'start_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'end_time': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
             'availability_status': forms.Select(attrs={'class': 'form-control'}),
             'tutor': forms.Select(attrs={'class': 'form-control'}),
-            
+        
         }
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user')  
@@ -528,7 +529,8 @@ class TutorAvailabilityForm(forms.ModelForm):
         start_time = cleaned_data.get('start_time')
         end_time = cleaned_data.get('end_time')
         day = cleaned_data.get('day')
-        tutor = self.initial.get('tutor')
+        availability_status = cleaned_data.get('availability_status')
+        tutor =  cleaned_data.get('tutor') or self.initial.get('tutor')
 
         if not isinstance(tutor, Tutor):
             raise forms.ValidationError("A valid Tutor instance is required.")
@@ -537,8 +539,8 @@ class TutorAvailabilityForm(forms.ModelForm):
         if day and start_time and end_time:
             if start_time >= end_time:
                 raise forms.ValidationError("Start time must be earlier than end time.")
-        # Check for overlapping availability
-            if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day).exists():
+
+            if TutorAvailability.objects.filter(tutor=tutor, start_time=start_time, end_time=end_time, day=day, availability_status=availability_status).exists():
                 raise forms.ValidationError("This time slot is already recorded.")
         return cleaned_data
     

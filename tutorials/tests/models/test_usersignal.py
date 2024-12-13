@@ -69,3 +69,50 @@ class UserRoleSignalTest(TestCase):
         self.assertTrue(Tutor.objects.filter(UserID=user).exists())
         user.delete()
         self.assertFalse(Tutor.objects.filter(UserID=user.id).exists())
+        
+    def test_profile_update_on_role_change(self):
+        user = User.objects.create(username="@updaterole", email="updaterole@example.com", role=self.student_role)
+        self.assertTrue(Student.objects.filter(UserID=user).exists())
+
+        user.role = self.tutor_role
+        user.save()
+        self.assertTrue(Tutor.objects.filter(UserID=user).exists())
+        self.assertFalse(Student.objects.filter(UserID=user).exists())
+
+        user.role = self.admin_role
+        user.save()
+        self.assertFalse(Student.objects.filter(UserID=user).exists())
+        self.assertFalse(Tutor.objects.filter(UserID=user).exists())
+
+    def test_no_action_without_role(self):
+        """Test that no profiles are created if the User instance has no 'role' attribute.(defaults to student)"""
+        user = User.objects.create(username="@noroleuser", email="noroleuser@example.com")
+        self.assertTrue(Student.objects.filter(UserID=user).exists())
+        self.assertFalse(Tutor.objects.filter(UserID=user).exists())
+
+    def test_existing_profile_unchanged_on_save(self):
+        user = User.objects.create(username="@existingprofile", email="existingprofile@example.com", role=self.student_role)
+        student = Student.objects.get(UserID=user)
+        user.save()  # Trigger signal again
+        self.assertEqual(Student.objects.filter(UserID=user).count(), 1)
+        self.assertEqual(Student.objects.get(UserID=user), student)
+
+    def test_create_student_with_existing_tutor(self):
+        """Test that switching to student removes the tutor profile."""
+        user = User.objects.create(username="@switchrole", email="switchrole@example.com", role=self.tutor_role)
+        self.assertTrue(Tutor.objects.filter(UserID=user).exists())
+
+        user.role = self.student_role
+        user.save()
+        self.assertTrue(Student.objects.filter(UserID=user).exists())
+        self.assertFalse(Tutor.objects.filter(UserID=user).exists())
+
+    def test_create_tutor_with_existing_student(self):
+        """Test that switching to tutor removes the student profile."""
+        user = User.objects.create(username="@switchrole", email="switchrole@example.com", role=self.student_role)
+        self.assertTrue(Student.objects.filter(UserID=user).exists())
+
+        user.role = self.tutor_role
+        user.save()
+        self.assertTrue(Tutor.objects.filter(UserID=user).exists())
+        self.assertFalse(Student.objects.filter(UserID=user).exists())

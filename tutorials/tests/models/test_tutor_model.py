@@ -25,9 +25,9 @@ class TutorModelTest(TestCase):
 
     def test_tutor_string_representation(self):
         """Test the __str__ method of the Tutor model."""
-        expected_str1 = "John Doe - java, python"
-        expected_str2 = "Jane Smith - c++"
-        expected_str3 = "Alice Johnson - scala, javascript"
+        expected_str1 = "John Doe"
+        expected_str2 = "Jane Smith"
+        expected_str3 = "Alice Johnson"
 
         self.assertEqual(str(self.tutor1), expected_str1)
         self.assertEqual(str(self.tutor2), expected_str2)
@@ -97,7 +97,7 @@ class TutorModelTest(TestCase):
     def test_no_language_assignment(self):
         """Test the string representation of a tutor with no languages."""
         self.tutor2.languages.clear()
-        expected_str = "Jane Smith - No languages assigned"
+        expected_str = "Jane Smith"
         self.assertEqual(str(self.tutor2), expected_str)
 
     def test_duplicate_language_assignment(self):
@@ -143,4 +143,4 @@ class TutorModelTest(TestCase):
     def test_no_languages_edge_case(self):
         """Test string representation for tutors with absolutely no languages."""
         self.tutor1.languages.clear()
-        self.assertEqual(str(self.tutor1), "John Doe - No languages assigned")
+        self.assertEqual(str(self.tutor1), "John Doe")

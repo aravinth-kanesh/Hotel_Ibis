@@ -1,10 +1,10 @@
 
-<!-- Manage Accounts Tab -->
+
 {% if tab == 'accounts' %}
 <div id="manage-accounts">
   <h2>Manage Accounts</h2>
 
-  <!-- Search bar -->
+
   <div class="d-flex justify-content-between mb-3">
     <form method="get" class="d-flex mb-3">
       <input type="hidden" name="tab" value="accounts"> 
@@ -13,7 +13,7 @@
       <button type="submit" class="btn btn-outline-primary">Search</button>
     </form>
 
-    <!--Role Dropdown-->
+
     <form method="get" class="d-flex mb-3">
       <input type="hidden" name="tab" value="accounts"> 
       <label for="sort_query" class="me-2">Filter by Role:</label>
@@ -75,7 +75,7 @@
 </div>
 {% endif %}
 
-<!-- Retrieve Tutor Info Tab -->
+
 {% if tab == 'tutors' %}
 <div id="all_tutor">
   <h2>Retrieve Tutor Info</h2>
@@ -97,7 +97,7 @@
             {{ language.name }}{% if not forloop.last %}, {% endif %}
           {% endfor %}
         </td>
-        <!-- add more tutor info here? -->
+
       </tr>
       {% empty %}
       <tr>
@@ -110,9 +110,9 @@
 
 {% endif %}
 
-<!-- Retrieve Student Info Tab -->
+
 {% if tab == 'students' %}
-<!-- filter by action -->
+
 <form method="get" class="d-flex mb-3">
   <input type="hidden" name="tab" value="students">
   <label for="action_filter" class="me-2">Filter by Actions:</label>
@@ -206,7 +206,7 @@
       <button type="submit" class="btn btn-outline-primary">Search</button>
     </form>
 
-    <!--Role Dropdown-->
+
     <form method="get" class="d-flex mb-3">
       <input type="hidden" name="tab" value="lessons"> 
       <label for="sort" class="me-2">Filter by:</label>

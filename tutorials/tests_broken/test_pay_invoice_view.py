@@ -8,15 +8,15 @@ class PayInvoiceViewTest(TestCase):
     def setUp(self):
         self.client = Client()
 
-        self.admin_user = User.objects.create_user(username='adminuser', password='adminpass')
+        self.admin_user = User.objects.create_user(username='adminuser', password='adminpass', first_name="A", last_name="F")
         self.admin_user.role = 'admin'
         self.admin_user.save()
 
-        self.student_user = User.objects.create_user(username='studentuser', password='studentpass')
+        self.student_user = User.objects.create_user(username='studentuser', password='studentpass', first_name="B", last_name="S")
         self.student_user.role = 'student'
         self.student_user.save()
 
-        self.other_user = User.objects.create_user(username='otheruser', password='otherpass')
+        self.other_user = User.objects.create_user(username='otheruser', password='otherpass', first_name="C", last_name="A")
         self.other_user.role = 'tutor'
         self.other_user.save()
 

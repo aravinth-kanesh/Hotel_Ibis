@@ -3,14 +3,6 @@
 <div class="container mt-5">
     <h1>Manage Languages</h1>
 
-    {% if messages %}
-        <ul class="list-unstyled">
-            {% for message in messages %}
-                <li class="alert alert-{{ message.tags }}">{{ message }}</li>
-            {% endfor %}
-        </ul>
-    {% endif %}
-
 
     <form method="get" class="mb-4">
         <div class="mb-3">

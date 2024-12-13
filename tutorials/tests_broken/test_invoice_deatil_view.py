@@ -21,8 +21,8 @@ class InvoiceDetailViewTest(TestCase):
         self.other_user.save()
 
         # Student/Invoice
-        self.student = Student.objects.get_or_create(UserID=self.student_user)
-        self.invoice = Invoice.objects.create(student=self.student, paid=False, total_amount=100.0)
+        self.student, _  = Student.objects.get_or_create(UserID=self.student_user)
+        self.invoice, _  = Invoice.objects.create(student=self.student, paid=False, total_amount=100.0)
 
         self.invoice_detail_url = reverse('invoice_detail', args=[self.invoice.id])
         self.dashboard_url = reverse('dashboard')

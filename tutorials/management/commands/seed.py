@@ -196,7 +196,7 @@ class Command(BaseCommand):
             self.try_create_user(data)
         tutor_user = User.objects.get(username='@janedoe')
         student_user = User.objects.get(username='@charlie')
-        tutor = Tutor.objects.get_or_create(UserID=tutor_user)[0]
+        tutor, _  = Tutor.objects.get_or_create(UserID=tutor_user)[0]
         student = Student.objects.get_or_create(UserID=student_user)[0]
         lang = ['python hard', 'c++ easy', 'c++ intermediate']
         for l in lang:

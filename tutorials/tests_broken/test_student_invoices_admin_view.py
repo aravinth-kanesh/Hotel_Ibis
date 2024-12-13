@@ -7,17 +7,16 @@ class StudentInvoicesAdminViewTest(TestCase):
     def setUp(self):
         self.client = Client()
 
-        self.admin_user = User.objects.create_user(username='adminuser', password='adminpass')
+        self.admin_user = User.objects.create_user(username='adminuser', password='adminpass', first_name="A", last_name="B")
         self.admin_user.role = 'admin'
         self.admin_user.save()
 
-        self.student_user = User.objects.create_user(username='studentuser', password='studentpass')
+        self.student_user = User.objects.create_user(username='studentuser', password='studentpass',  first_name="C", last_name="D")
         self.student_user.role = 'student'
         self.student_user.save()
 
         self.student = Student.objects.create(UserID=self.student_user)
         self.invoice = Invoice.objects.create(student=self.student, paid=False, total_amount=100.0)
-
         self.student_invoices_admin_url = reverse('student_invoices_admin', args=[self.student.id])
         self.dashboard_url = reverse('dashboard')
 

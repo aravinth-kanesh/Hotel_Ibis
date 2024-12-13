@@ -30,7 +30,7 @@ class CalendarViewTestCase(TestCase):
         self.client.login(username='testuser', password='password123')
         response = self.client.get(self.calendar_url)
         # Assuming 'dashboard' is the name of the redirect URL if no student found
-        self.assertRedirects(response, reverse('dashboard'))
+        self.assertRedirects(response, reverse(f"/log_in/?next=/calendar/"))
 
     def test_calendar_view_with_student_and_lessons(self):
         """If the student and lessons exist, the calendar view should render properly."""

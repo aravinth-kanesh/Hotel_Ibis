@@ -43,8 +43,6 @@ class MessageDetailViewTests(TestCase):
         self.original_message.save()
 
         self.client = Client()
-        print(f"Original Message ID: {self.original_message.id}")
-        print(f"Generated URL: {reverse('message_detail', kwargs={'pk': self.original_message.id})}")
 
 
     def test_redirect_if_not_logged_in(self):

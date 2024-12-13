@@ -44,8 +44,7 @@ class SendMessageViewTests(TestCase):
             "content": "This is a test message.",
         }
         response = self.client.post(self.url, data)
-        if response.status_code == 200:
-            print(response.context['form'].errors)
+
         self.assertEqual(response.status_code, 302)  
         self.assertRedirects(response, reverse("all_messages"))  
         self.assertTrue(Message.objects.filter(subject="Test Message").exists())
@@ -67,7 +66,7 @@ class SendMessageViewTests(TestCase):
 
         self.assertTrue(form.is_bound) 
         self.assertTrue(form.errors)
-        print(form.errors)
+
     
         
         self.assertIn("recipient", form.errors)
@@ -109,9 +108,6 @@ class SendMessageViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
         reply_message = Message.objects.filter(subject="Re: Original Message").first()
         self.assertIsNotNone(reply_message, "Reply message was not created.")
-        if reply_message.previous_message != original_message:
-            print(f"Reply message: {reply_message}")
-            print(f"Expected previous_message: {original_message}")
-            print(f"Actual previous_message: {reply_message.previous_message}")
-        self.assertEqual(reply_message.previous_message, original_message)
+
+
         self.assertEqual(reply_message.previous_message.subject, "Original Message")
