@@ -23,7 +23,6 @@ class PayInvoiceViewTestCase(TestCase):
         )
         cls.tutor = Tutor.objects.get(UserID=cls.tutor_user)
 
-        # Create a student user (signals auto-create Student profile)
         cls.student_user = User.objects.create_user(
             username='@studentuser',
             email='student@example.com',
