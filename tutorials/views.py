@@ -1037,6 +1037,12 @@ class LessonUpdateView(LoginRequiredMixin, View):
                 return self._handle_cancellation(request, lesson)
 
             return self._handle_update(request, form, lesson)
+        
+        messages.error(request, "There was an error processing the request. Please try again.")
+        return render(request, 'lesson_update.html', {
+            'form': form,
+            'request': lesson,
+        })
 
     def _is_cancellation_requested(self, form):
         """Determine if the cancellation checkbox is selected."""
