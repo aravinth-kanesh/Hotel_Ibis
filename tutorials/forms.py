@@ -150,21 +150,24 @@ class StudentRequestForm(forms.ModelForm):
             'frequency': forms.Select(),
             'term': forms.Select(),
         }
-        def clean_duration(self):
-            value = self.cleaned_data['duration']
-            if value is None or value <= 0:
-                raise forms.ValidationError("Invalid duration.")
-            return value
         def clean(self):
             cleaned_data = super().clean()
             language = cleaned_data.get("language")
             description = cleaned_data.get("description")
+            duration = cleaned_data.get("duration")
+
+            if duration is not None and duration <= 0:
+                self.add_error("duration", "Invalid duration.")
 
             if not language:
                 self.add_error("language", "This field is required.")
 
             if not description:
                 self.add_error("description", "This field is required.")
+            required_fields = ['date', 'time', 'venue', 'duration', 'frequency', 'term']
+            for field in required_fields:
+                if not cleaned_data.get(field):
+                    self.add_error(field, "This field is required.")  
                 return cleaned_data
 
 class MessageForm (forms.ModelForm):

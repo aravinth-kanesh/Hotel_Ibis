@@ -9,6 +9,7 @@ from datetime import time
 from django.utils import timezone
 from django.utils.timezone import now
 from datetime import timedelta
+from django.core.validators import MinValueValidator
 
 
 class User(AbstractUser):
@@ -221,7 +222,7 @@ class StudentRequest(models.Model):
     date = models.DateField(default=now)
     time = models.TimeField()
     venue = models.TextField()
-    duration = models.IntegerField() 
+    duration = models.IntegerField(validators=[MinValueValidator(1)]) 
     frequency = models.CharField(max_length=20, choices=FREQUENCY_CHOICES)
     term = models.CharField(max_length=20, choices=TERM_CHOICES)
     def __str__(self):

@@ -27,13 +27,10 @@ def get_term(input_date):
         start_month, start_day = dates['start_date']
         end_month, end_day = dates['end_date']
 
-        if start_month > end_month:
-            start_date = date(reference_year - 1, start_month, start_day)
-            end_date = date(reference_year, end_month, end_day)
-        else:
-            start_date = date(reference_year, start_month, start_day)
-            end_date = date(reference_year, end_month, end_day)
-            
+      
+        start_date = date(reference_year, start_month, start_day)
+        end_date = date(reference_year, end_month, end_day)
+        
         if start_date <= input_date <= end_date:
             return {
                 'term': term,
