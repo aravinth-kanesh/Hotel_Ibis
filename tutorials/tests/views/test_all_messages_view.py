@@ -11,7 +11,7 @@ class AllMessagesViewTests(TestCase):
         self.user = get_user_model().objects.get(pk=3)  # User with pk=3 from the fixture
         self.other_user = get_user_model().objects.create_user(
             username="otheruser",
-            password="otherpassword",
+            password="Password123",
             email="otheruser@example.com"
         )
 
@@ -40,7 +40,7 @@ class AllMessagesViewTests(TestCase):
         """Test that unauthenticated users are redirected to the login page."""
         self.client.logout()
         response = self.client.get(self.url)
-        self.assertRedirects(response, f"login/?next={self.url}")
+        self.assertRedirects(response, f"/log_in/?next={self.url}")
 
     def test_view_renders_correctly(self):
         """Test that the view renders with the correct template and context."""
@@ -69,13 +69,17 @@ class AllMessagesViewTests(TestCase):
     def test_no_messages_for_user(self):
         """Test that the context contains no messages when the user has none."""
         new_user = get_user_model().objects.create_user(
-            username="newuser",
+            username="@newuser",
             password="newpassword123",
             email="newuser@example.com"
         )
-        self.client.login(username="newuser", password="newpassword123")
+        self.client.login(username="@newuser", password="newpassword123")
 
-        response = self.client.get(self.url)
-        self.assertEqual(response.status_code, 200)
-        self.assertQuerysetEqual(response.context["sent_messages"], [])
-        self.assertQuerysetEqual(response.context["received_messages"], [])
+        response = self.client.get(reverse("all_messages"))
+
+        sent_messages = response.context["sent_messages"]
+        received_messages = response.context["received_messages"]
+       
+        self.assertEqual(list(sent_messages), [])
+        self.assertEqual(list(received_messages), [])
+        self.assertTemplateUsed(response, "all_messages.html")

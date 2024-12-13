@@ -168,7 +168,7 @@ def dashboard(request):
         lessons = Lesson.objects.filter(student__UserID=user)
         if lessons.exists():
             invoice = lessons.first().invoice
-        context.update({'lessons': lessons, 'invoice': invoice})
+            context.update({'lessons': lessons, 'invoice': invoice})
 
     return render(request, 'dashboard.html', context)
 
@@ -703,19 +703,26 @@ class StudentRequestCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         """attach the logged-in student to the form before saving."""
-        try:
-            student = self.request.user.student_profile  
-        except Student.DoesNotExist:
+        student = getattr(self.request.user, 'student_profile', None)
+        if not student:
+            messages.error(self.request, "You must have a student profile to submit a request.")
             return redirect('dashboard')
         form.instance.created_at = timezone.now()
-        form.instance.student = student  
+        form.instance.student = student
         return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, "Failed to create request")
+        return self.render_to_response(self.get_context_data(form=form))
+    
     def get_context_data(self, **kwargs) -> dict[str, any]:
         context = super().get_context_data(**kwargs)
-        student = self.request.user.student_profile 
-        if get_allocated_lesson(student).invoice != None:
-            existing = get_allocated_lesson(student).invoice
-        context["invoice"] = existing
+        context['form'] = kwargs.get('form', self.get_form())
+        student = getattr(self.request.user, 'student_profile', None)
+        if student and get_allocated_lesson(student):
+            lesson = get_allocated_lesson(student)
+            if lesson.invoice:
+                context["invoice"] = lesson.invoice
         return context
     
 
@@ -740,6 +747,7 @@ class SendMessageView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('all_messages')
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['form'] = kwargs.get('form', self.get_form())
         reply_id = self.kwargs.get('reply_id')
         if reply_id:
             reply_message = get_object_or_404(Message, pk=reply_id)
@@ -751,19 +759,20 @@ class SendMessageView(LoginRequiredMixin, CreateView):
         reply_id = self.kwargs.get('reply_id')
         if reply_id:
             reply = get_object_or_404(Message, pk=reply_id)
-            kwargs['previous_message'] = reply
+            self.object = Message(previous_message=reply)
+            kwargs['instance'] = self.object
         return kwargs
 
     def form_valid(self, form):
-        
+        """Handle valid form submissions."""
         form.instance.sender = self.request.user
         messages.success(self.request, "Message sent successfully!")
         return super().form_valid(form)
 
     def form_invalid(self, form):
-        
+        """Handle invalid form submissions."""
         messages.error(self.request, "Failed to send the message. Please correct the errors.")
-        return super().form_invalid(form)
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class AllMessagesView(LoginRequiredMixin, TemplateView):
@@ -788,19 +797,25 @@ class MessageDetailView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
     def test_func(self):
         """ensure the user is authorized"""
         message = self.get_object()
+        print(f"User: {self.request.user}, Sender: {message.sender}, Recipient: {message.recipient}")
         return self.request.user == message.sender or self.request.user == message.recipient
     def get_context_data(self, **kwargs):
         """Add previous message, next message (reply), and reply URL to the context."""
         context = super().get_context_data(**kwargs)
         message = self.get_object()
+        if not message:
+            raise ValueError("Message object not found.")
+        
+        context['previous_message'] = message.previous_message if message.previous_message else None
+        context['next_message'] = message.reply if message.reply else None
 
         
-        context['previous_message'] = message.previous_message 
-        context['next_message'] = message.reply
+        if message.id:
+            context["reply_url"] = reverse("reply_message", kwargs={"reply_id": message.id}) if message.id else None
+        else:
+            context["reply_url"] = None  
 
-        
-        context['reply_url'] = reverse('reply_message', kwargs={'reply_id': message.id})
-
+        print(f"Context: {context}")
         return context
         
 class StudentRequestProcessingView(LoginRequiredMixin, View):

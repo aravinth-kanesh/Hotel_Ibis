@@ -3,6 +3,8 @@ from django.urls import reverse
 from tutorials.models import StudentRequest, Language, Student
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
+from datetime import date, datetime, timedelta, time
+
 
 class StudentRequestCreateViewTests(TestCase):
     fixtures = [
@@ -11,6 +13,8 @@ class StudentRequestCreateViewTests(TestCase):
     def setUp(self):
         # Load the user from the fixture
         self.user = get_user_model().objects.get(pk=3)
+        self.assertTrue(hasattr(self.user, 'student_profile'))
+
         
         # Create a Language instance for the test
         self.language = Language.objects.create(name="Python")
@@ -39,41 +43,57 @@ class StudentRequestCreateViewTests(TestCase):
         data = {
             "language": self.language.id,
             "description": "I need help.",
-            "time": "10:30:00",
+            "date": date(2025,1,10),
+            "time": time(10,30),
             "venue": "Library Room 2",
             "duration": 60,
             "frequency": "once a week",
             "term": "sept-christmas"
         }
         response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, 302)  # Expect a redirect on success
-        self.assertRedirects(response, reverse("my_requests"))  # Ensure it redirects to the success URL
-        self.assertTrue(StudentRequest.objects.filter(description="I need help with Spanish grammar.").exists())
+        self.assertEqual(response.status_code, 302)  
+        self.assertRedirects(response, reverse("view_request"))  
+        self.assertTrue(StudentRequest.objects.filter(description="I need help.").exists())
 
     def test_form_submission_invalid(self):
         """Test form submission with invalid data."""
         data = {
-            "language": "",  # Missing required field
+            "language": "",  
             "description": "",
         }
         response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, 200)  # Stays on the same page
-        self.assertFormError(response, "form", "language", "This field is required.")
-        self.assertFormError(response, "form", "description", "This field is required.")
+        self.assertEqual(response.status_code, 200) 
+        self.assertIn("form", response.context)
+        form = response.context.get("form")
+        self.assertIsNotNone(form)
+
+        self.assertIn("language", form.errors)
+        self.assertIn("description", form.errors)
+        self.assertIn("date", form.errors)
+        self.assertIn("time", form.errors)
+        self.assertIn("venue", form.errors)
+        self.assertIn("duration", form.errors)
+        self.assertIn("frequency", form.errors)
+        self.assertIn("term", form.errors)
+        self.assertEqual(form.errors["language"], ["This field is required."])
+        self.assertEqual(form.errors["description"], ["This field is required."])
 
     def test_student_assignment_to_request(self):
         """Test that the logged-in student is correctly assigned to the request."""
         data = {
             "language": self.language.id,
             "description": "I want to improve.",
-            "time": "14:00:00",
-            "venue": "Room 1",
+            "date": "2025-01-10",
+            "time": "10:30:00",
+            "venue": "Library Room 2",
             "duration": 90,
             "frequency": "once per fortnight",
             "term": "jan-easter"
         }
         response = self.client.post(self.url, data)
+
         self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("view_request"))
         request = StudentRequest.objects.get(description="I want to improve.")
-        self.assertEqual(request.student, self.user)
+        self.assertEqual(request.student, self.user.student_profile)
         self.assertEqual(request.created_at.date(), now().date())

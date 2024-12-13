@@ -21,6 +21,20 @@
           </div>
         </div>
       {%endif%}
+      {% if form.errors %}
+        <div class="alert alert-danger">
+            <p><strong>There were errors with your submission:</strong></p>
+            <ul>
+                {% for field, errors in form.errors.items %}
+                    {% for error in errors %}
+                        <li><strong>{{ field|capfirst }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+      {% endif %}
+
+
       <form action="{% url 'send_message' %}" method="post">
         {% csrf_token %}
         <input type="hidden" name="next" value="{{ next }}">

@@ -39,13 +39,15 @@ class SendMessageViewTests(TestCase):
     def test_form_submission_success(self):
         """Test successful form submission."""
         data = {
-            "recipient": self.recipient.id,
+            "recipient": "recipient",
             "subject": "Test Message",
             "content": "This is a test message.",
         }
         response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, 302)  # Expect a redirect on success
-        self.assertRedirects(response, reverse("all_messages"))  # Ensure it redirects to the success URL
+        if response.status_code == 200:
+            print(response.context['form'].errors)
+        self.assertEqual(response.status_code, 302)  
+        self.assertRedirects(response, reverse("all_messages"))  
         self.assertTrue(Message.objects.filter(subject="Test Message").exists())
         message = Message.objects.get(subject="Test Message")
         self.assertEqual(message.sender, self.sender)
@@ -59,10 +61,21 @@ class SendMessageViewTests(TestCase):
             "content": "",
         }
         response = self.client.post(self.url, data)
-        self.assertEqual(response.status_code, 200)  # Stays on the same page
-        self.assertFormError(response, "form", "recipient", "This field is required.")
-        self.assertFormError(response, "form", "subject", "This field is required.")
-        self.assertFormError(response, "form", "content", "This field is required.")
+        self.assertEqual(response.status_code, 200)  
+        self.assertIn("form", response.context) 
+        form = response.context["form"]
+
+        self.assertTrue(form.is_bound) 
+        self.assertTrue(form.errors)
+        print(form.errors)
+    
+        
+        self.assertIn("recipient", form.errors)
+        self.assertEqual(form.errors["recipient"], ["This field is required."])
+        self.assertIn("subject", form.errors)
+        self.assertEqual(form.errors["subject"], ["This field is required."])
+        self.assertIn("content", form.errors)
+        self.assertEqual(form.errors["content"], ["This field is required."])
 
     def test_reply_message_context(self):
         """Test that the reply message is passed in the context when reply_id is provided."""
@@ -72,7 +85,7 @@ class SendMessageViewTests(TestCase):
             subject="Original Message",
             content="This is the original message."
         )
-        url_with_reply = reverse("send_message", kwargs={"reply_id": reply_message.id})
+        url_with_reply = reverse("reply_message", kwargs={"reply_id": reply_message.id})
         response = self.client.get(url_with_reply)
         self.assertEqual(response.status_code, 200)
         self.assertIn("reply_message", response.context)
@@ -86,13 +99,19 @@ class SendMessageViewTests(TestCase):
             subject="Original Message",
             content="This is the original message."
         )
-        url_with_reply = reverse("send_message", kwargs={"reply_id": original_message.id})
+        url_with_reply = reverse("reply_message", kwargs={"reply_id": original_message.id})
         data = {
-            "recipient": self.recipient.id,
+            "recipient": self.sender.username,
             "subject": "Re: Original Message",
             "content": "This is a reply to the original message.",
         }
         response = self.client.post(url_with_reply, data)
         self.assertEqual(response.status_code, 302)
-        reply_message = Message.objects.get(subject="Re: Original Message")
+        reply_message = Message.objects.filter(subject="Re: Original Message").first()
+        self.assertIsNotNone(reply_message, "Reply message was not created.")
+        if reply_message.previous_message != original_message:
+            print(f"Reply message: {reply_message}")
+            print(f"Expected previous_message: {original_message}")
+            print(f"Actual previous_message: {reply_message.previous_message}")
         self.assertEqual(reply_message.previous_message, original_message)
+        self.assertEqual(reply_message.previous_message.subject, "Original Message")

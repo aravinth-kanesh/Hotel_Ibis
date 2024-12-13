@@ -155,6 +155,17 @@ class StudentRequestForm(forms.ModelForm):
             if value is None or value <= 0:
                 raise forms.ValidationError("Invalid duration.")
             return value
+        def clean(self):
+            cleaned_data = super().clean()
+            language = cleaned_data.get("language")
+            description = cleaned_data.get("description")
+
+            if not language:
+                self.add_error("language", "This field is required.")
+
+            if not description:
+                self.add_error("description", "This field is required.")
+                return cleaned_data
 
 class MessageForm (forms.ModelForm):
     recipient = forms.CharField(
@@ -193,7 +204,9 @@ class MessageForm (forms.ModelForm):
         
     def clean_recipient(self):
         """Fuzzy matching for the recipient"""
-        username_input = self.cleaned_data['recipient']
+        username_input = self.cleaned_data['recipient'].strip()
+        if not username_input:
+            raise forms.ValidationError("This field is required.")
 
         try:
             recipient_user = User.objects.get(username__iexact=username_input)
@@ -203,9 +216,13 @@ class MessageForm (forms.ModelForm):
         return recipient_user
     def save(self, commit=True):
         """Overide save to handle recipient and reply """
+        if not self.is_valid():
+            raise ValueError("The Message could not be created because the data didn't validate.")
+
         message = super().save(commit=False)
     
-        message.recipient = self.cleaned_data['recipient']
+        if 'recipient' in self.cleaned_data:
+            message.recipient = self.cleaned_data["recipient"]
 
         if self.instance.previous_message:
             previous_message = self.instance.previous_message
@@ -213,8 +230,9 @@ class MessageForm (forms.ModelForm):
 
             if commit:
                 message.save()
-                previous_message.reply = message
-                previous_message.save()
+                if message.previous_message:
+                    message.previous_message.reply = message
+                    message.previous_message.save()
 
         if commit:
             message.save()
@@ -408,9 +426,9 @@ class LessonUpdateForm(forms.ModelForm):
 
         tutor_availability = TutorAvailability.objects.filter(
             tutor=self.instance.tutor,
-            day=new_date,  
+            day=new_date.weekday(),  
             start_time__lte=new_time,  # Tutor should be available at or before the start of the new lesson
-            end_time__gte=new_end_time  # Tutor should be available for the full duration
+            end_time__gte=new_time + timedelta(minutes=self.instance.duration)  # Tutor should be available for the full duration
         )
 
         return tutor_availability.exists()
